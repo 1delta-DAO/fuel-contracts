@@ -1,2 +1,12 @@
 [workspace]
-members = [ "contract", "predicate", "script" ,"order_settlement","order_registry", "order_utils"]
+members = [
+    "./scripts/swap_exact_input_script",
+    "./scripts/swap_exact_output_script",
+    "./dex_lib/mira_v1/interfaces",
+    "./dex_lib/mira_v1/math",
+    "./dex_lib/mira_v1/utils",
+    "contract",
+    "order_settlement",
+    "order_registry",
+    "order_utils",
+]

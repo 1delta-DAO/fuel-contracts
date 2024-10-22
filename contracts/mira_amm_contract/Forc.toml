@@ -1,0 +1,12 @@
+[project]
+authors = ["Mira AMM"]
+entry = "main.sw"
+license = "Apache-2.0"
+name = "mira_amm_contract"
+
+[dependencies]
+interfaces = { path = "../../dex_lib/mira_v1/interfaces" }
+pool_math = { path = "../../dex_lib/mira_v1/pool_math" }
+standards = { git = "https://github.com/FuelLabs/sway-standards", tag = "v0.6.1" }
+sway_libs = { git = "https://github.com/FuelLabs/sway-libs", tag = "v0.24.0" }
+utils = { path = "../../dex_lib/mira_v1/utils" }

@@ -1,140 +1,130 @@
 {
-  "encoding": "1",
-  "types": [
+  "programType": "contract",
+  "specVersion": "1",
+  "encodingVersion": "1",
+  "concreteTypes": [
     {
-      "typeId": 0,
       "type": "()",
-      "components": [],
-      "typeParameters": null
+      "concreteTypeId": "2e38e77b22c314a449e91fafed92a43826ac6aa403ae6a8acb6cf58239fbaf5d"
     },
     {
-      "typeId": 1,
       "type": "b256",
-      "components": null,
-      "typeParameters": null
+      "concreteTypeId": "7c5ee1cecf5f8eacd1284feb5f0bf2bdea533a51e2f0c9aabe9236d335989f3b"
     },
     {
-      "typeId": 2,
-      "type": "enum Error",
+      "type": "enum order_utils::structs::Error",
+      "concreteTypeId": "d17bf44120afbfa277bb39f5f550f3e6e94f72654087b8846c4169da43e155fe",
+      "metadataTypeId": 0
+    },
+    {
+      "type": "struct order_utils::structs::LimitOrder",
+      "concreteTypeId": "c354cc22a41e93a53205acdc55aab95d1476275ccaae65bf4c3e1c1b7acc5c69",
+      "metadataTypeId": 1
+    },
+    {
+      "type": "struct std::address::Address",
+      "concreteTypeId": "f597b637c3b0f588fb8d7086c6f4735caa3122b85f0423b82e489f9bb58e2308",
+      "metadataTypeId": 2
+    },
+    {
+      "type": "u64",
+      "concreteTypeId": "1506e6f44c1d6291cdf46395a8e573276a4fa79e8ace3fc891e092ef32d1b0a0"
+    }
+  ],
+  "metadataTypes": [
+    {
+      "type": "enum order_utils::structs::Error",
+      "metadataTypeId": 0,
       "components": [
         {
           "name": "OrderNotDefined",
-          "type": 0,
-          "typeArguments": null
+          "typeId": "2e38e77b22c314a449e91fafed92a43826ac6aa403ae6a8acb6cf58239fbaf5d"
         },
         {
           "name": "OrderReenter",
-          "type": 0,
-          "typeArguments": null
+          "typeId": "2e38e77b22c314a449e91fafed92a43826ac6aa403ae6a8acb6cf58239fbaf5d"
         },
         {
           "name": "TryToFillMoreThanRequired",
-          "type": 0,
-          "typeArguments": null
+          "typeId": "2e38e77b22c314a449e91fafed92a43826ac6aa403ae6a8acb6cf58239fbaf5d"
         },
         {
           "name": "SentAssetIdDoesNotMatchMakerToken",
-          "type": 0,
-          "typeArguments": null
+          "typeId": "2e38e77b22c314a449e91fafed92a43826ac6aa403ae6a8acb6cf58239fbaf5d"
         },
         {
           "name": "SentAssetAmountDoesNotMatchFillAmount",
-          "type": 0,
-          "typeArguments": null
+          "typeId": "2e38e77b22c314a449e91fafed92a43826ac6aa403ae6a8acb6cf58239fbaf5d"
         },
         {
           "name": "InsufficientTakerTokensReceivedFromCallback",
-          "type": 0,
-          "typeArguments": null
+          "typeId": "2e38e77b22c314a449e91fafed92a43826ac6aa403ae6a8acb6cf58239fbaf5d"
         },
         {
           "name": "OnlySettlementCanInteract",
-          "type": 0,
-          "typeArguments": null
+          "typeId": "2e38e77b22c314a449e91fafed92a43826ac6aa403ae6a8acb6cf58239fbaf5d"
         },
         {
           "name": "AlreadyIntitialized",
-          "type": 0,
-          "typeArguments": null
+          "typeId": "2e38e77b22c314a449e91fafed92a43826ac6aa403ae6a8acb6cf58239fbaf5d"
         },
         {
           "name": "MakerHasNotEnoughFunds",
-          "type": 0,
-          "typeArguments": null
+          "typeId": "2e38e77b22c314a449e91fafed92a43826ac6aa403ae6a8acb6cf58239fbaf5d"
         }
-      ],
-      "typeParameters": null
+      ]
     },
     {
-      "typeId": 3,
-      "type": "struct Address",
-      "components": [
-        {
-          "name": "bits",
-          "type": 1,
-          "typeArguments": null
-        }
-      ],
-      "typeParameters": null
-    },
-    {
-      "typeId": 4,
-      "type": "struct LimitOrder",
+      "type": "struct order_utils::structs::LimitOrder",
+      "metadataTypeId": 1,
       "components": [
         {
           "name": "maker_token",
-          "type": 1,
-          "typeArguments": null
+          "typeId": "7c5ee1cecf5f8eacd1284feb5f0bf2bdea533a51e2f0c9aabe9236d335989f3b"
         },
         {
           "name": "taker_token",
-          "type": 1,
-          "typeArguments": null
+          "typeId": "7c5ee1cecf5f8eacd1284feb5f0bf2bdea533a51e2f0c9aabe9236d335989f3b"
         },
         {
           "name": "maker_amount",
-          "type": 6,
-          "typeArguments": null
+          "typeId": "1506e6f44c1d6291cdf46395a8e573276a4fa79e8ace3fc891e092ef32d1b0a0"
         },
         {
           "name": "taker_amount",
-          "type": 6,
-          "typeArguments": null
+          "typeId": "1506e6f44c1d6291cdf46395a8e573276a4fa79e8ace3fc891e092ef32d1b0a0"
         },
         {
           "name": "maker",
-          "type": 3,
-          "typeArguments": null
+          "typeId": 2
         },
         {
           "name": "taker",
-          "type": 3,
-          "typeArguments": null
+          "typeId": 2
         },
         {
           "name": "nonce",
-          "type": 5,
-          "typeArguments": null
+          "typeId": 3
         },
         {
           "name": "expriy",
-          "type": 6,
-          "typeArguments": null
+          "typeId": "1506e6f44c1d6291cdf46395a8e573276a4fa79e8ace3fc891e092ef32d1b0a0"
         }
-      ],
-      "typeParameters": null
+      ]
     },
     {
-      "typeId": 5,
+      "type": "struct std::address::Address",
+      "metadataTypeId": 2,
+      "components": [
+        {
+          "name": "bits",
+          "typeId": "7c5ee1cecf5f8eacd1284feb5f0bf2bdea533a51e2f0c9aabe9236d335989f3b"
+        }
+      ]
+    },
+    {
       "type": "u256",
-      "components": null,
-      "typeParameters": null
-    },
-    {
-      "typeId": 6,
-      "type": "u64",
-      "components": null,
-      "typeParameters": null
+      "metadataTypeId": 3
     }
   ],
   "functions": [
@@ -142,16 +132,11 @@
       "inputs": [
         {
           "name": "hash",
-          "type": 1,
-          "typeArguments": null
+          "concreteTypeId": "7c5ee1cecf5f8eacd1284feb5f0bf2bdea533a51e2f0c9aabe9236d335989f3b"
         }
       ],
       "name": "cancel_order",
-      "output": {
-        "name": "",
-        "type": 1,
-        "typeArguments": null
-      },
+      "output": "7c5ee1cecf5f8eacd1284feb5f0bf2bdea533a51e2f0c9aabe9236d335989f3b",
       "attributes": [
         {
           "name": "storage",
@@ -169,31 +154,23 @@
       "inputs": [
         {
           "name": "expriy",
-          "type": 6,
-          "typeArguments": null
+          "concreteTypeId": "1506e6f44c1d6291cdf46395a8e573276a4fa79e8ace3fc891e092ef32d1b0a0"
         },
         {
           "name": "taker_amount",
-          "type": 6,
-          "typeArguments": null
+          "concreteTypeId": "1506e6f44c1d6291cdf46395a8e573276a4fa79e8ace3fc891e092ef32d1b0a0"
         },
         {
           "name": "taker_asset",
-          "type": 1,
-          "typeArguments": null
+          "concreteTypeId": "7c5ee1cecf5f8eacd1284feb5f0bf2bdea533a51e2f0c9aabe9236d335989f3b"
         },
         {
           "name": "taker",
-          "type": 3,
-          "typeArguments": null
+          "concreteTypeId": "f597b637c3b0f588fb8d7086c6f4735caa3122b85f0423b82e489f9bb58e2308"
         }
       ],
       "name": "create_order",
-      "output": {
-        "name": "",
-        "type": 1,
-        "typeArguments": null
-      },
+      "output": "7c5ee1cecf5f8eacd1284feb5f0bf2bdea533a51e2f0c9aabe9236d335989f3b",
       "attributes": [
         {
           "name": "storage",
@@ -211,16 +188,11 @@
       "inputs": [
         {
           "name": "hash",
-          "type": 1,
-          "typeArguments": null
+          "concreteTypeId": "7c5ee1cecf5f8eacd1284feb5f0bf2bdea533a51e2f0c9aabe9236d335989f3b"
         }
       ],
       "name": "get_order",
-      "output": {
-        "name": "",
-        "type": 4,
-        "typeArguments": null
-      },
+      "output": "c354cc22a41e93a53205acdc55aab95d1476275ccaae65bf4c3e1c1b7acc5c69",
       "attributes": [
         {
           "name": "storage",
@@ -234,16 +206,11 @@
       "inputs": [
         {
           "name": "settlement",
-          "type": 3,
-          "typeArguments": null
+          "concreteTypeId": "f597b637c3b0f588fb8d7086c6f4735caa3122b85f0423b82e489f9bb58e2308"
         }
       ],
       "name": "initialize",
-      "output": {
-        "name": "",
-        "type": 0,
-        "typeArguments": null
-      },
+      "output": "2e38e77b22c314a449e91fafed92a43826ac6aa403ae6a8acb6cf58239fbaf5d",
       "attributes": [
         {
           "name": "storage",
@@ -257,31 +224,23 @@
       "inputs": [
         {
           "name": "maker",
-          "type": 3,
-          "typeArguments": null
+          "concreteTypeId": "f597b637c3b0f588fb8d7086c6f4735caa3122b85f0423b82e489f9bb58e2308"
         },
         {
           "name": "maker_asset",
-          "type": 1,
-          "typeArguments": null
+          "concreteTypeId": "7c5ee1cecf5f8eacd1284feb5f0bf2bdea533a51e2f0c9aabe9236d335989f3b"
         },
         {
           "name": "maker_amount",
-          "type": 6,
-          "typeArguments": null
+          "concreteTypeId": "1506e6f44c1d6291cdf46395a8e573276a4fa79e8ace3fc891e092ef32d1b0a0"
         },
         {
           "name": "receiver",
-          "type": 3,
-          "typeArguments": null
+          "concreteTypeId": "f597b637c3b0f588fb8d7086c6f4735caa3122b85f0423b82e489f9bb58e2308"
         }
       ],
       "name": "pull_maker_funds",
-      "output": {
-        "name": "",
-        "type": 0,
-        "typeArguments": null
-      },
+      "output": "2e38e77b22c314a449e91fafed92a43826ac6aa403ae6a8acb6cf58239fbaf5d",
       "attributes": [
         {
           "name": "storage",
@@ -295,11 +254,7 @@
   "loggedTypes": [
     {
       "logId": "15094927136620789666",
-      "loggedType": {
-        "name": "",
-        "type": 2,
-        "typeArguments": []
-      }
+      "concreteTypeId": "d17bf44120afbfa277bb39f5f550f3e6e94f72654087b8846c4169da43e155fe"
     }
   ],
   "messagesTypes": [],

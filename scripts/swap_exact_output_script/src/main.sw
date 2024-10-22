@@ -44,7 +44,7 @@ fn main(
         } else {
             (0, amount_out)
         };
-        amm.swap(pool_id, amount_0_out, amount_1_out, to, Bytes::new());
+        amm.swap(pool_id, amount_0_out, amount_1_out, to, Option::None);
         i += 1;
     }
 

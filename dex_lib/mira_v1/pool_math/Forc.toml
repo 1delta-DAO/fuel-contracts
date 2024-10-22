@@ -2,8 +2,7 @@
 authors = ["Mira AMM"]
 entry = "lib.sw"
 license = "Apache-2.0"
-name = "utils"
+name = "pool_math"
 
 [dependencies]
 interfaces = { path = "../interfaces" }
-standards = { git = "https://github.com/FuelLabs/sway-standards", tag = "v0.6.1" }

@@ -9,30 +9,26 @@ use crate::paths::MOCK_TOKEN_CONTRACT_BINARY_PATH;
 use crate::types::PoolId;
 
 abigen!(
-    Script(
-        name = "AddLiquidityScript",
-        abi = "scripts/add_liquidity_script/out/debug/add_liquidity_script-abi.json"
-    ),
-    Script(
-        name = "RemoveLiquidityScript",
-        abi = "scripts/remove_liquidity_script/out/debug/remove_liquidity_script-abi.json"
-    ),
-    Script(
-        name = "SwapExactInputScript",
-        abi = "scripts/swap_exact_input_script/out/debug/swap_exact_input_script-abi.json"
-    ),
-    Script(
-        name = "SwapExactOutputScript",
-        abi = "scripts/swap_exact_output_script/out/debug/swap_exact_output_script-abi.json"
+    Contract(
+        name = "MockToken",
+        abi = "./contracts/mocks/mock_token/out/release/mock_token-abi.json"
     ),
     Contract(
         name = "MiraAMM",
-        abi = "fixtures/mira-amm/mira_amm_contract-abi.json"
+        abi = "./contracts/mira_amm_contract/out/release/mira_amm_contract-abi.json"
     ),
-    Contract(
-        name = "MockToken",
-        abi = "fixtures/mock-token/mock_token-abi.json"
-    )
+    Script(
+        name = "AddLiquidityScript",
+        abi = "./scripts/add_liquidity_script/out/debug/add_liquidity_script-abi.json"
+    ),
+    Script(
+        name = "SwapExactInputScript",
+        abi = "./scripts/swap_exact_input_script/out/debug/swap_exact_input_script-abi.json"
+    ),
+    Script(
+        name = "SwapExactOutputScript",
+        abi = "./scripts/swap_exact_output_script/out/debug/swap_exact_output_script-abi.json"
+    ),
 );
 
 pub mod amm {

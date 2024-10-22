@@ -1,0 +1,18 @@
+[workspace.package]
+name = "mira-v1-periphery"
+authors = ["Mira AMM"]
+version = "0.1.0"
+edition = "2021"
+
+[workspace]
+resolver = "2"
+members = [
+    "./test-harness",
+    "./scripts/swap_exact_input_script",
+    "./scripts/swap_exact_output_script",
+    "./scripts/add_liquidity_script",
+]
+
+[workspace.dependencies]
+fuels = { version = "0.66.9", features = ["fuel-core-lib"] }
+tokio = { version = "1.41.0", features = ["rt", "macros"] }

@@ -11,11 +11,11 @@ use crate::types::PoolId;
 abigen!(
     Contract(
         name = "MockToken",
-        abi = "./contracts/mocks/mock_token/out/release/mock_token-abi.json"
+        abi = "./fixtures/mock-token/mock_token-abi.json"
     ),
     Contract(
         name = "MiraAMM",
-        abi = "./contracts/mira_amm_contract/out/release/mira_amm_contract-abi.json"
+        abi = "./fixtures/mira-amm/mira_amm_contract-abi.json"
     ),
     Script(
         name = "AddLiquidityScript",

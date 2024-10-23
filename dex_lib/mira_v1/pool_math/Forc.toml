@@ -1,8 +1,0 @@
-[project]
-authors = ["Mira AMM"]
-entry = "lib.sw"
-license = "Apache-2.0"
-name = "pool_math"
-
-[dependencies]
-interfaces = { path = "../interfaces" }

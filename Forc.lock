@@ -36,18 +36,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "mira_amm_contract"
-source = "member"
-dependencies = [
-    "interfaces",
-    "pool_math",
-    "standards git+https://github.com/FuelLabs/sway-standards?tag=v0.6.1#792639cdf391565e6e6a02482ea8a46d9604a6f5",
-    "std",
-    "sway_libs",
-    "utils",
-]
-
-[[package]]
 name = "mock_token"
 source = "member"
 dependencies = [
@@ -76,14 +64,6 @@ dependencies = [
 name = "order_utils"
 source = "member"
 dependencies = ["std"]
-
-[[package]]
-name = "pool_math"
-source = "member"
-dependencies = [
-    "interfaces",
-    "std",
-]
 
 [[package]]
 name = "standards"

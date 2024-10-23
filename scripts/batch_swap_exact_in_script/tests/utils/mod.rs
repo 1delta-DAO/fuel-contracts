@@ -8,17 +8,19 @@ use test_harness::interface::mock::{
     add_token, deploy_mock_token_contract, get_sub_id, mint_tokens,
 };
 use test_harness::interface::{
-    AddLiquidityScript, AddLiquidityScriptConfigurables, SwapExactInputScript,
-    SwapExactInputScriptConfigurables,
+    AddLiquidityScript, AddLiquidityScriptConfigurables, BatchSwapExactInScript,
+    BatchSwapExactInScriptConfigurables,
 };
-use test_harness::paths::{ADD_LIQUIDITY_SCRIPT_BINARY_PATH, BATCH_SWAP_EXACT_IN_SCRIPT_BINARY_PATH};
+use test_harness::paths::{
+    ADD_LIQUIDITY_SCRIPT_BINARY_PATH, BATCH_SWAP_EXACT_IN_SCRIPT_BINARY_PATH,
+};
 use test_harness::setup::common::{deploy_amm, setup_wallet_and_provider};
 use test_harness::types::PoolId;
 use test_harness::utils::common::order_sub_ids;
 
 pub async fn setup() -> (
     AddLiquidityScript<WalletUnlocked>,
-    SwapExactInputScript<WalletUnlocked>,
+    BatchSwapExactInScript<WalletUnlocked>,
     MiraAMMContract,
     PoolId,
     PoolId,
@@ -99,11 +101,11 @@ pub async fn setup() -> (
         .await
         .unwrap();
 
-    let swap_exact_input_script_configurables = SwapExactInputScriptConfigurables::default()
+    let swap_exact_input_script_configurables = BatchSwapExactInScriptConfigurables::default()
         .with_AMM_CONTRACT_ID(ContractId::from_str(&amm.id.to_string()).unwrap())
         .unwrap();
     let mut swap_exact_input_script_instance =
-        SwapExactInputScript::new(wallet.clone(), BATCH_SWAP_EXACT_IN_SCRIPT_BINARY_PATH)
+        BatchSwapExactInScript::new(wallet.clone(), BATCH_SWAP_EXACT_IN_SCRIPT_BINARY_PATH)
             .with_configurables(swap_exact_input_script_configurables);
 
     swap_exact_input_script_instance

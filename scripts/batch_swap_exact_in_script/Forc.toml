@@ -5,6 +5,7 @@ license = "Apache-2.0"
 name = "batch_swap_exact_in_script"
 
 [dependencies]
+param_types = { path = "../../dex_lib/param_types" }
 interfaces = { path = "../../dex_lib/mira_v1/interfaces" }
 math = { path = "../../dex_lib/mira_v1/math" }
 utils = { path = "../../dex_lib/mira_v1/utils" }

@@ -2,6 +2,7 @@
 members = [
     # 1detla
     "scripts/batch_swap_exact_in_script",
+    "dex_lib/param_types",
     # libs
     "dex_lib/mira_v1/interfaces",
     "dex_lib/mira_v1/math",

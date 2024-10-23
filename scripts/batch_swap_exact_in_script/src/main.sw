@@ -3,6 +3,7 @@ script;
 use interfaces::{data_structures::PoolId, mira_amm::MiraAMM};
 use math::pool_math::get_amounts_out;
 use utils::blockchain_utils::check_deadline;
+use param_types::ExactInSwapStep;
 use std::{asset::transfer, bytes::Bytes};
 
 configurable {
@@ -16,6 +17,7 @@ fn main(
     pools: Vec<PoolId>,
     recipient: Identity,
     deadline: u32,
+    path:Option<Vec<ExactInSwapStep>>,
 ) -> Vec<(u64, AssetId)> {
     check_deadline(deadline);
 

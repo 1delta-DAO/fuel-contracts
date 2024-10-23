@@ -36,6 +36,56 @@ fn adjust(amount: u256, pow_decimals: u256) -> u256 {
     amount * ONE_E_18 / pow_decimals
 }
 
+
+pub fn get_mira_amount_out(
+    amm_contract: ContractId,
+    pool_id: PoolId,
+    asset_in: AssetId,
+    amount_in: u64,
+    ) -> (bool, u256, ContractCaller<MiraAMM>) {
+
+    let amm = abi(MiraAMM, amm_contract.into());
+    let (lp_fee_volatile, lp_fee_stable, protocol_fee_volatile, protocol_fee_stable) = amm.fees();
+    let (stable_fee, volatile_fee) = (lp_fee_stable + protocol_fee_stable, lp_fee_volatile + protocol_fee_volatile);
+    let pool_opt = amm.pool_metadata(pool_id);
+    require(pool_opt.is_some(), "Pool not present");
+    let pool = pool_opt.unwrap();
+    let fee = if is_stable(pool_id) {
+        stable_fee
+    } else {
+        volatile_fee
+    };
+    let zero_for_one = asset_in == pool_id.0;
+    let amount_out = if zero_for_one {
+        get_amount_out(
+            is_stable(pool_id),
+            pool.reserve_0
+                .as_u256(),
+            pool.reserve_1
+                .as_u256(),
+            pow_decimals(pool.decimals_0),
+            pow_decimals(pool.decimals_1),
+            subtract_fee(amount_in, fee)
+                .as_u256(),
+        )
+    } else {
+        get_amount_out(
+            is_stable(pool_id),
+            pool.reserve_1
+                .as_u256(),
+            pool.reserve_0
+                .as_u256(),
+            pow_decimals(pool.decimals_1),
+            pow_decimals(pool.decimals_0),
+            subtract_fee(amount_in, fee)
+                .as_u256(),
+        )
+    };
+
+    (zero_for_one, amount_out, amm)
+    }
+
+
 pub fn get_amount_out(
     is_stable: bool,
     reserve_in: u256,

@@ -21,10 +21,16 @@ abigen!(
         name = "AddLiquidityScript",
         abi = "./scripts/add_liquidity_script/out/debug/add_liquidity_script-abi.json"
     ),
+    // 1delta script
+    Script(
+        name = "BatchSwapExactInScript",
+        abi = "./scripts/batch_swap_exact_in_script/out/debug/batch_swap_exact_in_script-abi.json"
+    ),
     Script(
         name = "SwapExactInputScript",
         abi = "./scripts/swap_exact_input_script/out/debug/swap_exact_input_script-abi.json"
     ),
+    
     Script(
         name = "SwapExactOutputScript",
         abi = "./scripts/swap_exact_output_script/out/debug/swap_exact_output_script-abi.json"

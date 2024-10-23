@@ -14,6 +14,7 @@ source = "member"
 dependencies = [
     "interfaces",
     "math",
+    "param_types",
     "std",
     "utils",
 ]
@@ -72,6 +73,11 @@ dependencies = [
 
 [[package]]
 name = "order_utils"
+source = "member"
+dependencies = ["std"]
+
+[[package]]
+name = "param_types"
 source = "member"
 dependencies = ["std"]
 

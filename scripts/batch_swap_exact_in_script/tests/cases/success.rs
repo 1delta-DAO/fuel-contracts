@@ -68,6 +68,7 @@ async fn swap_between_two_volatile_tokens() {
             vec![pool_id],
             wallet.address().into(),
             deadline,
+            Option::None
         )
         .with_contracts(&[&amm.instance])
         .with_inputs(inputs)
@@ -204,6 +205,7 @@ async fn swap_between_three_volatile_tokens() {
             vec![pool_id_0, pool_id_1],
             wallet.address().into(),
             deadline,
+            Option::None
         )
         .with_contracts(&[&amm.instance])
         .with_inputs(inputs)

@@ -1,12 +1,15 @@
 [workspace]
 members = [
+    # 1detla
+    "scripts/batch_swap_exact_in_script",
+    # libs
+    "dex_lib/mira_v1/interfaces",
+    "dex_lib/mira_v1/math",
+    "dex_lib/mira_v1/utils",
     "scripts/swap_exact_input_script",
     "scripts/swap_exact_output_script",
     "scripts/add_liquidity_script",
     "scripts/create_pool_and_add_liquidity_script",
-    "dex_lib/mira_v1/interfaces",
-    "dex_lib/mira_v1/math",
-    "dex_lib/mira_v1/utils",
     "contracts/mocks/mock_token",
     "order_settlement",
     "order_registry",

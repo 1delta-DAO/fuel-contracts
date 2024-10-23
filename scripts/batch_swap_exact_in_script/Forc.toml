@@ -1,0 +1,10 @@
+[project]
+authors = ["1delta"]
+entry = "main.sw"
+license = "Apache-2.0"
+name = "batch_swap_exact_in_script"
+
+[dependencies]
+interfaces = { path = "../../dex_lib/mira_v1/interfaces" }
+math = { path = "../../dex_lib/mira_v1/math" }
+utils = { path = "../../dex_lib/mira_v1/utils" }

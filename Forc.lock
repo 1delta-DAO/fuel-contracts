@@ -9,6 +9,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "batch_swap_exact_in_script"
+source = "member"
+dependencies = [
+    "interfaces",
+    "math",
+    "std",
+    "utils",
+]
+
+[[package]]
 name = "core"
 source = "path+from-root-7053AAA90CC5E690"
 

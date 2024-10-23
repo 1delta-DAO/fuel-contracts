@@ -2,6 +2,7 @@ script;
 
 use interfaces::{data_structures::PoolId, mira_amm::MiraAMM};
 use math::pool_math::get_amounts_out;
+use math::pool_math::swap_mira_exact_out;
 use utils::blockchain_utils::check_deadline;
 use param_types::ExactInSwapStep;
 use std::{asset::transfer, bytes::Bytes};
@@ -48,6 +49,31 @@ fn main(
         amm.swap(pool_id, amount_0_out, amount_1_out, to, Option::None);
         i += 1;
     }
+
+//     i = 0;
+//    let swap_path = match path {
+//         Option::Some(v) => v,
+//         Option::None => Vec::new(),
+//     };
+//     while i < swap_path.len() {
+//         let swap_step = swap_path.get(i).unwrap();
+//         let amount_out = swap_mira_exact_out(
+//             Identity::ContractId(AMM_CONTRACT_ID),
+//             swap-step.
+//         );
+//         let to = if i == swap_path.len() - 1 {
+//             recipient
+//         } else {
+//             Identity::ContractId(AMM_CONTRACT_ID)
+//         };
+//         let (amount_0_out, amount_1_out) = if asset_out == pool_id.0 {
+//             (amount_out, 0)
+//         } else {
+//             (0, amount_out)
+//         };
+//         amm.swap(pool_id, amount_0_out, amount_1_out, to, Option::None);
+//         i += 1;
+//     }
 
     amounts_out
 }

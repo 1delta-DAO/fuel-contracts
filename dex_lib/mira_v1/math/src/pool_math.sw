@@ -36,55 +36,128 @@ fn adjust(amount: u256, pow_decimals: u256) -> u256 {
     amount * ONE_E_18 / pow_decimals
 }
 
-
+/// mira output amout calculator
 pub fn get_mira_amount_out(
     amm_contract: ContractId,
-    pool_id: PoolId,
     asset_in: AssetId,
+    asset_out: AssetId,
+    is_stable_pool: bool,
+    swap_fee: u64,
     amount_in: u64,
-    ) -> (bool, u256, ContractCaller<MiraAMM>) {
-
+) -> (bool, u256, PoolId, ContractCaller<MiraAMM>) {
     let amm = abi(MiraAMM, amm_contract.into());
-    let (lp_fee_volatile, lp_fee_stable, protocol_fee_volatile, protocol_fee_stable) = amm.fees();
-    let (stable_fee, volatile_fee) = (lp_fee_stable + protocol_fee_stable, lp_fee_volatile + protocol_fee_volatile);
-    let pool_opt = amm.pool_metadata(pool_id);
-    require(pool_opt.is_some(), "Pool not present");
-    let pool = pool_opt.unwrap();
-    let fee = if is_stable(pool_id) {
-        stable_fee
+    let zero_for_one = asset_in.bits() < asset_out.bits();
+
+    let (amount_out, _pool_id) = if zero_for_one {
+        let pool_id: PoolId = (asset_in, asset_out, is_stable_pool);
+        let pool_opt = amm.pool_metadata(pool_id);
+        require(pool_opt.is_some(), "Pool not present");
+        let pool = pool_opt.unwrap();
+        (
+            get_amount_out(
+                is_stable_pool,
+                pool.reserve_0
+                    .as_u256(),
+                pool.reserve_1
+                    .as_u256(),
+                pow_decimals(pool.decimals_0),
+                pow_decimals(pool.decimals_1),
+                subtract_fee(amount_in, swap_fee)
+                    .as_u256(),
+            ),
+            pool_id,
+        )
     } else {
-        volatile_fee
+        let pool_id: PoolId = (asset_in, asset_out, is_stable_pool);
+        let pool_opt = amm.pool_metadata(pool_id);
+        require(pool_opt.is_some(), "Pool not present");
+        let pool = pool_opt.unwrap();
+        (
+            get_amount_out(
+                is_stable_pool,
+                pool.reserve_1
+                    .as_u256(),
+                pool.reserve_0
+                    .as_u256(),
+                pow_decimals(pool.decimals_1),
+                pow_decimals(pool.decimals_0),
+                subtract_fee(amount_in, swap_fee)
+                    .as_u256(),
+            ),
+            pool_id,
+        )
     };
-    let zero_for_one = asset_in == pool_id.0;
-    let amount_out = if zero_for_one {
-        get_amount_out(
-            is_stable(pool_id),
+    (zero_for_one, amount_out, _pool_id, amm)
+}
+
+/// mira output amout calculator
+pub fn swap_mira_exact_out(
+    amm_contract: ContractId,
+    asset_in: AssetId,
+    asset_out: AssetId,
+    receiver: Identity,
+    is_stable_pool: bool,
+    swap_fee: u64,
+    amount_in: u64,
+) -> u256 {
+    let amm = abi(MiraAMM, amm_contract.into());
+    let amount_out = if asset_in.bits() < asset_out.bits() {
+        let pool_id: PoolId = (asset_in, asset_out, is_stable_pool);
+        let pool_opt = amm.pool_metadata(pool_id);
+        require(pool_opt.is_some(), "Pool not present");
+        let pool = pool_opt.unwrap();
+        // get output amount
+        let am_out = get_amount_out(
+            is_stable_pool,
             pool.reserve_0
                 .as_u256(),
             pool.reserve_1
                 .as_u256(),
             pow_decimals(pool.decimals_0),
             pow_decimals(pool.decimals_1),
-            subtract_fee(amount_in, fee)
+            subtract_fee(amount_in, swap_fee)
                 .as_u256(),
-        )
+        );
+        // exec swap
+        amm.swap(
+            pool_id,
+            0,
+            u64::try_from(am_out)
+                .unwrap(),
+            receiver,
+            Option::None,
+        );
+        am_out
     } else {
-        get_amount_out(
-            is_stable(pool_id),
+        let pool_id: PoolId = (asset_in, asset_out, is_stable_pool);
+        let pool_opt = amm.pool_metadata(pool_id);
+        require(pool_opt.is_some(), "Pool not present");
+        let pool = pool_opt.unwrap();
+        // get output amount
+        let am_out = get_amount_out(
+            is_stable_pool,
             pool.reserve_1
                 .as_u256(),
             pool.reserve_0
                 .as_u256(),
             pow_decimals(pool.decimals_1),
             pow_decimals(pool.decimals_0),
-            subtract_fee(amount_in, fee)
+            subtract_fee(amount_in, swap_fee)
                 .as_u256(),
-        )
+        );
+        // exec swap
+        amm.swap(
+            pool_id,
+            u64::try_from(am_out)
+                .unwrap(),
+            0,
+            receiver,
+            Option::None,
+        );
+        am_out
     };
-
-    (zero_for_one, amount_out, amm)
-    }
-
+    amount_out
+}
 
 pub fn get_amount_out(
     is_stable: bool,

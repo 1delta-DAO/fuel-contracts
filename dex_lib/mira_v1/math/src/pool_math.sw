@@ -91,7 +91,7 @@ pub fn get_mira_amount_out(
 }
 
 /// mira output amout calculator
-pub fn swap_mira_exact_out(
+pub fn swap_mira_exact_in(
     amm_contract: ContractId,
     asset_in: AssetId,
     asset_out: AssetId,

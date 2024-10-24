@@ -2,9 +2,9 @@ script;
 
 use interfaces::{data_structures::PoolId, mira_amm::MiraAMM};
 use math::pool_math::get_amounts_out;
-use math::pool_math::swap_mira_exact_out;
+use math::pool_math::swap_mira_exact_in;
 use utils::blockchain_utils::check_deadline;
-use param_types::ExactInSwapStep;
+use param_types::{ExactInSwapStep, get_mira_params, };
 use std::{asset::transfer, bytes::Bytes};
 
 configurable {
@@ -49,31 +49,35 @@ fn main(
         amm.swap(pool_id, amount_0_out, amount_1_out, to, Option::None);
         i += 1;
     }
-
-//     i = 0;
-//    let swap_path = match path {
-//         Option::Some(v) => v,
-//         Option::None => Vec::new(),
-//     };
-//     while i < swap_path.len() {
-//         let swap_step = swap_path.get(i).unwrap();
-//         let amount_out = swap_mira_exact_out(
-//             Identity::ContractId(AMM_CONTRACT_ID),
-//             swap-step.
-//         );
-//         let to = if i == swap_path.len() - 1 {
-//             recipient
-//         } else {
-//             Identity::ContractId(AMM_CONTRACT_ID)
-//         };
-//         let (amount_0_out, amount_1_out) = if asset_out == pool_id.0 {
-//             (amount_out, 0)
-//         } else {
-//             (0, amount_out)
-//         };
-//         amm.swap(pool_id, amount_0_out, amount_1_out, to, Option::None);
-//         i += 1;
-//     }
+    // i = 0;
+    // let mut amount = amount_in.as_u256();
+    // let swap_path = match path {
+    //     Option::Some(v) => v,
+    //     Option::None => Vec::new(),
+    // };
+    // while i < swap_path.len() {
+    //     let swap_step = swap_path.get(i).unwrap();
+    //     let receiver: Identity = if i == swap_path.len() - 1 {
+    //         recipient
+    //     } else {
+    //         Identity::ContractId(AMM_CONTRACT_ID)
+    //     };
+    //     let (fee, is_stable) = match swap_step.data  {
+    //         Option::Some(v) => get_mira_params(v),
+    //         Option::None => (0, false),
+    //     };
+    //     amount = swap_mira_exact_in(
+    //         AMM_CONTRACT_ID,
+    //         swap_step.asset_in,
+    //         swap_step.asset_out,
+    //         receiver,
+    //         is_stable,
+    //         fee,
+    //         u64::try_from(amount)
+    //             .unwrap()
+    //     );
+    //     i += 1;
+    // }
 
     amounts_out
 }

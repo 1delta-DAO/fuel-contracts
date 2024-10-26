@@ -3,7 +3,7 @@ use std::str::FromStr;
 use fuels::accounts::wallet::WalletUnlocked;
 use fuels::types::{AssetId, ContractId, Identity};
 use test_harness::data_structures::{MiraAMMContract, WalletAssetConfiguration};
-use test_harness::interface::amm::{create_pool, initialize_ownership};
+use test_harness::interface::amm::{create_pool, initialize_ownership, fees};
 use test_harness::interface::mock::{
     add_token, deploy_mock_token_contract, get_sub_id, mint_tokens,
 };
@@ -85,6 +85,8 @@ pub async fn setup() -> (
     .await
     .value;
 
+    let swap_fees = fees(&amm.instance).await.value;
+    println!("swap fee config {:?}", swap_fees);
     let deadline = provider.latest_block_height().await.unwrap() + 10;
 
     let add_liquidity_script_configurables = AddLiquidityScriptConfigurables::default()

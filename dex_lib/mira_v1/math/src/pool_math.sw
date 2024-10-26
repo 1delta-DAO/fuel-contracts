@@ -99,7 +99,7 @@ pub fn swap_mira_exact_in(
     is_stable_pool: bool,
     swap_fee: u64,
     amount_in: u64,
-) -> u256 {
+) -> u64 {
     let amm = abi(MiraAMM, amm_contract.into());
     let amount_out = if asset_in.bits() < asset_out.bits() {
         let pool_id: PoolId = (asset_in, asset_out, is_stable_pool);
@@ -156,7 +156,8 @@ pub fn swap_mira_exact_in(
         );
         am_out
     };
-    amount_out
+    u64::try_from(amount_out)
+                .unwrap()
 }
 
 pub fn get_amount_out(

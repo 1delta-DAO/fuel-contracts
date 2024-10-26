@@ -30,7 +30,7 @@ pub async fn setup() -> (
 ) {
     let (wallet, _asset_ids, provider) =
         setup_wallet_and_provider(&WalletAssetConfiguration::default()).await;
-    let amm = deploy_amm(&wallet).await;
+    let amm: MiraAMMContract = deploy_amm(&wallet).await;
     initialize_ownership(&amm.instance, Identity::Address(wallet.address().into())).await;
     let (token_contract_id, token_contract) = deploy_mock_token_contract(&wallet).await;
 

@@ -1,7 +1,10 @@
 use crate::utils::setup;
 use fuels::prelude::VariableOutputPolicy;
+use test_harness::interface::amm::fees;
 use test_harness::interface::amm::pool_metadata;
 use test_harness::interface::scripts::get_transaction_inputs_outputs;
+use test_harness::interface::ExactInSwapStep;
+use test_harness::types::encode_mira_params;
 use test_harness::utils::common::{pool_assets_balance, MINIMUM_LIQUIDITY};
 
 #[tokio::test]
@@ -30,6 +33,9 @@ async fn swap_between_two_volatile_tokens() {
     )
     .await;
 
+    let swap_fees = fees(&amm.instance).await.value;
+    println!("swap fee config {:?}", swap_fees);
+
     // adds initial liquidity
     let added_liquidity = add_liquidity_script
         .main(
@@ -57,10 +63,18 @@ async fn swap_between_two_volatile_tokens() {
 
     let (inputs, outputs) =
         get_transaction_inputs_outputs(&wallet, &vec![(token_0_id, token_0_to_swap)]).await;
-
     let wallet_balances_before = pool_assets_balance(&wallet, &pool_id, amm.id).await;
     let pool_metadata_before = pool_metadata(&amm.instance, pool_id).await.value.unwrap();
-    let amounts_out = swap_exact_input_script
+
+    // execute swap
+    let path = vec![ExactInSwapStep {
+        amount: Some(0),
+        asset_in: token_0_id,
+        asset_out: token_1_id,
+        receiver: Some(wallet.address().into()),
+        data: Some(encode_mira_params(swap_fees.0, false)),
+    }];
+    let res = swap_exact_input_script
         .main(
             token_0_to_swap,
             token_0_id,
@@ -68,7 +82,7 @@ async fn swap_between_two_volatile_tokens() {
             vec![pool_id],
             wallet.address().into(),
             deadline,
-            Option::None
+            Some(path),
         )
         .with_contracts(&[&amm.instance])
         .with_inputs(inputs)
@@ -76,9 +90,10 @@ async fn swap_between_two_volatile_tokens() {
         .with_variable_output_policy(VariableOutputPolicy::Exactly(1))
         .call()
         .await
-        .unwrap()
-        .value;
+        .unwrap();
+    let (amounts_out, amount_out) = res.value;
 
+    assert_eq!(token_1_expected, amount_out);
     assert_eq!(
         amounts_out,
         vec![
@@ -88,7 +103,6 @@ async fn swap_between_two_volatile_tokens() {
     );
     let wallet_balances_after = pool_assets_balance(&wallet, &pool_id, amm.id).await;
     let pool_metadata_after = pool_metadata(&amm.instance, pool_id).await.value.unwrap();
-
     assert_eq!(
         wallet_balances_after.asset_a,
         wallet_balances_before.asset_a - token_0_to_swap
@@ -119,6 +133,9 @@ async fn swap_between_three_volatile_tokens() {
         deadline,
         (token_0_id, token_1_id, token_2_id),
     ) = setup().await;
+
+    let swap_fees = fees(&amm.instance).await.value;
+    println!("swap fee config {:?}", swap_fees);
 
     let amount_0_desired: u64 = 1_000_000;
     let amount_1_desired: u64 = 1_000_000;
@@ -188,7 +205,7 @@ async fn swap_between_three_volatile_tokens() {
 
     let token_0_to_swap = 1_000;
     let token_1_expected = 996;
-    let token_2_expected = 992;
+    let token_2_expected: u64 = 992;
 
     let (inputs, outputs) =
         get_transaction_inputs_outputs(&wallet, &vec![(token_0_id, token_0_to_swap)]).await;
@@ -197,7 +214,25 @@ async fn swap_between_three_volatile_tokens() {
     let wallet_balances_1_before = pool_assets_balance(&wallet, &pool_id_1, amm.id).await;
     let pool_metadata_0_before = pool_metadata(&amm.instance, pool_id_0).await.value.unwrap();
     let pool_metadata_1_before = pool_metadata(&amm.instance, pool_id_1).await.value.unwrap();
-    let amounts_out = swap_exact_input_script
+
+    let path = vec![
+        ExactInSwapStep {
+            amount: Some(0),
+            asset_in: token_0_id,
+            asset_out: token_1_id,
+            receiver: Option::None,
+            data: Some(encode_mira_params(swap_fees.0, false)),
+        },
+        ExactInSwapStep {
+            amount: Some(0),
+            asset_in: token_1_id,
+            asset_out: token_2_id,
+            receiver: Some(wallet.address().into()),
+            data: Some(encode_mira_params(swap_fees.0, false)),
+        },
+    ];
+
+    let (amounts_out, amount_out) = swap_exact_input_script
         .main(
             token_0_to_swap,
             token_0_id,
@@ -205,7 +240,7 @@ async fn swap_between_three_volatile_tokens() {
             vec![pool_id_0, pool_id_1],
             wallet.address().into(),
             deadline,
-            Option::None
+            Some(path),
         )
         .with_contracts(&[&amm.instance])
         .with_inputs(inputs)
@@ -219,6 +254,11 @@ async fn swap_between_three_volatile_tokens() {
     let pool_metadata_1_after = pool_metadata(&amm.instance, pool_id_1).await.value.unwrap();
     let wallet_balances_0_after = pool_assets_balance(&wallet, &pool_id_0, amm.id).await;
     let wallet_balances_1_after = pool_assets_balance(&wallet, &pool_id_1, amm.id).await;
+
+    assert_eq!(
+        token_2_expected,
+        amount_out
+    );
 
     assert_eq!(
         amounts_out,

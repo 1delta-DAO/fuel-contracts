@@ -84,7 +84,7 @@ pub fn first_le_bytes_to_u64(bytes: Bytes) -> u64 {
 
 #[test]
 fn test_get_mira_params() {
-    let fee0: u64 = 123321;
+    let fee0: u64 = 30;
     let is_stable0 = true;
     let data0 = encode_mira_params(fee0, is_stable0);
     let (fee0_decoded, is_stable0_decoded) = get_mira_params(data0);

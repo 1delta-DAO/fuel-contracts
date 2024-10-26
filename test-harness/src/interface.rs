@@ -1,7 +1,7 @@
 use fuels::{
     prelude::*,
     programs::responses::CallResponse,
-    types::{input::Input, output::Output, Bits256},
+    types::{input::Input, output::Output, Bits256, Bytes},
 };
 
 use crate::paths::MOCK_TOKEN_CONTRACT_BINARY_PATH;
@@ -26,11 +26,6 @@ abigen!(
         name = "BatchSwapExactInScript",
         abi = "./scripts/batch_swap_exact_in_script/out/debug/batch_swap_exact_in_script-abi.json"
     ),
-    Script(
-        name = "SwapExactInputScript",
-        abi = "./scripts/swap_exact_input_script/out/debug/swap_exact_input_script-abi.json"
-    ),
-    
     Script(
         name = "SwapExactOutputScript",
         abi = "./scripts/swap_exact_output_script/out/debug/swap_exact_output_script-abi.json"
@@ -84,6 +79,17 @@ pub mod amm {
         contract
             .methods()
             .pool_metadata(pool_id)
+            .call()
+            .await
+            .unwrap()
+    }
+
+    pub async fn fees(
+        contract: &MiraAMM<WalletUnlocked>
+    ) -> CallResponse<(u64, u64, u64, u64)> {
+        contract
+            .methods()
+            .fees()
             .call()
             .await
             .unwrap()
@@ -165,7 +171,7 @@ pub mod scripts {
         let mut outputs: Vec<Output> = Vec::with_capacity(assets.len());
 
         for (asset, amount) in assets {
-            let asset_inputs = wallet
+            let asset_inputs: Vec<Input> = wallet
                 .get_asset_inputs_for_amount(*asset, *amount, None)
                 .await
                 .unwrap();

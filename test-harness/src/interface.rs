@@ -1,7 +1,7 @@
 use fuels::{
     prelude::*,
     programs::responses::CallResponse,
-    types::{input::Input, output::Output, Bits256, Bytes},
+    types::{input::Input, output::Output, Bits256},
 };
 
 use crate::paths::MOCK_TOKEN_CONTRACT_BINARY_PATH;

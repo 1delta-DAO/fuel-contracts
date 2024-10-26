@@ -67,13 +67,13 @@ async fn swap_between_two_volatile_tokens() {
     let pool_metadata_before = pool_metadata(&amm.instance, pool_id).await.value.unwrap();
 
     // execute swap
-    let path = vec![ExactInSwapStep {
+    let path = vec![vec![ExactInSwapStep {
         amount: Some(0),
         asset_in: token_0_id,
         asset_out: token_1_id,
         receiver: Some(wallet.address().into()),
         data: Some(encode_mira_params(swap_fees.0, false)),
-    }];
+    }]];
     let res = swap_exact_input_script
         .main(
             token_0_to_swap,
@@ -215,7 +215,7 @@ async fn swap_between_three_volatile_tokens() {
     let pool_metadata_0_before = pool_metadata(&amm.instance, pool_id_0).await.value.unwrap();
     let pool_metadata_1_before = pool_metadata(&amm.instance, pool_id_1).await.value.unwrap();
 
-    let path = vec![
+    let path = vec![vec![
         ExactInSwapStep {
             amount: Some(0),
             asset_in: token_0_id,
@@ -230,7 +230,7 @@ async fn swap_between_three_volatile_tokens() {
             receiver: Some(wallet.address().into()),
             data: Some(encode_mira_params(swap_fees.0, false)),
         },
-    ];
+    ]];
 
     let (amounts_out, amount_out) = swap_exact_input_script
         .main(
@@ -255,10 +255,7 @@ async fn swap_between_three_volatile_tokens() {
     let wallet_balances_0_after = pool_assets_balance(&wallet, &pool_id_0, amm.id).await;
     let wallet_balances_1_after = pool_assets_balance(&wallet, &pool_id_1, amm.id).await;
 
-    assert_eq!(
-        token_2_expected,
-        amount_out
-    );
+    assert_eq!(token_2_expected, amount_out);
 
     assert_eq!(
         amounts_out,

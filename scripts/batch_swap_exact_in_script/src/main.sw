@@ -3,7 +3,7 @@ script;
 use interfaces::{data_structures::PoolId, mira_amm::MiraAMM};
 use mira_v1_swap::swap::swap_mira_exact_in;
 use utils::blockchain_utils::check_deadline;
-use executor::{ExactInSwapStep, get_mira_params};
+use executor::{ExactInSwapStep, execute_exact_in};
 use std::{asset::transfer, bytes::Bytes};
 
 configurable {
@@ -74,24 +74,13 @@ fn main(
             //      DEX swap implemnentation  
             //=============================================
 
-            // get parameters
-            let (fee, is_stable) = match swap_step.data {
-                Option::Some(v) => get_mira_params(v),
-                Option::None => (0, false),
-            };
-
             // execute swap
-            amount_in_used = swap_mira_exact_in(
-                AMM_CONTRACT_ID,
-                swap_step
-                    .asset_in,
-                swap_step
-                    .asset_out,
-                receiver,
-                is_stable,
-                fee,
+            amount_in_used = execute_exact_in(
                 u64::try_from(amount_in_used)
                     .unwrap(),
+                swap_step,
+                receiver,
+                AMM_CONTRACT_ID,
             );
 
             //=============================================

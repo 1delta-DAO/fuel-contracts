@@ -12,9 +12,9 @@ dependencies = [
 name = "batch_swap_exact_in_script"
 source = "member"
 dependencies = [
+    "executor",
     "interfaces",
     "mira_v1_swap",
-    "executor",
     "std",
     "utils",
 ]
@@ -33,6 +33,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "executor"
+source = "member"
+dependencies = [
+    "mira_v1_swap",
+    "std",
+]
+
+[[package]]
 name = "interfaces"
 source = "member"
 dependencies = ["std"]
@@ -48,7 +56,7 @@ dependencies = [
 
 [[package]]
 name = "mira_v1_swap"
-source = "path+from-root-27160AED43ADBD24"
+source = "path+from-root-DC0586470AFEDD49"
 dependencies = [
     "interfaces",
     "math",
@@ -83,11 +91,6 @@ dependencies = [
 
 [[package]]
 name = "order_utils"
-source = "member"
-dependencies = ["std"]
-
-[[package]]
-name = "executor"
 source = "member"
 dependencies = ["std"]
 

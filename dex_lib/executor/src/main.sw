@@ -1,15 +1,88 @@
 library;
 
 use std::{bytes::Bytes, bytes_conversions::{b256::*, u16::*, u256::*, u32::*, u64::*},};
+use std::revert::revert;
 use core::raw_slice::*;
 use core::codec::abi_decode_in_place;
+use mira_v1_swap::swap::swap_mira_exact_in;
 
-// order object
+////////////////////////////////////////////////////
+// structs
+////////////////////////////////////////////////////
 pub struct ExactInSwapStep {
+    pub dex_id: u64,
     pub asset_in: AssetId,
     pub asset_out: AssetId,
     pub receiver: Option<Identity>,
     pub data: Option<Bytes>,
+}
+
+////////////////////////////////////////////////////
+// DEX ids
+////////////////////////////////////////////////////
+const MIRA_V1_ID: u64 = 0;
+
+////////////////////////////////////////////////////
+// Revert error codes
+////////////////////////////////////////////////////
+const INVALID_DEX: u64 = 0;
+
+////////////////////////////////////////////////////
+// swap functions - general
+////////////////////////////////////////////////////
+
+pub fn execute_exact_in(
+    amount_in: u64,
+    swap_step: ExactInSwapStep,
+    resolved_receiver: Identity,
+    MIRA_AMM_CONTRACT_ID: ContractId,
+) -> u64 {
+    match swap_step.dex_id {
+        MIRA_V1_ID => execute_mira_v1_exact_in(
+            amount_in,
+            swap_step
+                .asset_in,
+            swap_step
+                .asset_out,
+            resolved_receiver,
+            swap_step
+                .data,
+            MIRA_AMM_CONTRACT_ID,
+        ),
+        _ => revert(INVALID_DEX),
+    }
+}
+
+
+////////////////////////////////////////////////////
+// swap functions - mira v1
+////////////////////////////////////////////////////
+
+pub fn execute_mira_v1_exact_in(
+    amount_in: u64,
+    asset_in: AssetId,
+    asset_out: AssetId,
+    receiver: Identity,
+    data: Option<Bytes>,
+    MIRA_AMM_CONTRACT_ID: ContractId,
+) -> u64 {
+    // get parameters
+    let (fee, is_stable) = match data {
+        Option::Some(v) => get_mira_params(v),
+        Option::None => (0, false),
+    };
+
+    // execute swap
+    swap_mira_exact_in(
+        MIRA_AMM_CONTRACT_ID,
+        asset_in,
+        asset_out,
+        receiver,
+        is_stable,
+        fee,
+        u64::try_from(amount_in)
+            .unwrap(),
+    )
 }
 
 // expect the data of 9 bytes be laid out as follows
@@ -44,7 +117,7 @@ pub fn encode_mira_params(fee: u64, is_stable: bool) -> Bytes {
 
     bytes
 }
-
+// custon bytes decoder - read first 8 bytes as u64
 pub fn first_le_bytes_to_u64(bytes: Bytes) -> u64 {
     // we require at least 8 bytes
     assert(bytes.len() > 7);

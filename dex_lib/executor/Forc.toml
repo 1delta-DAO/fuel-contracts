@@ -5,4 +5,4 @@ license = "Apache-2.0"
 name = "executor"
 
 [dependencies]
-
+mira_v1_swap = { path = "../mira_v1/swap" }

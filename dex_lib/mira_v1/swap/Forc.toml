@@ -1,0 +1,10 @@
+[project]
+authors = ["Mira AMM"]
+entry = "lib.sw"
+license = "Apache-2.0"
+name = "mira_v1_swap"
+
+[dependencies]
+math = { path = "../math" }
+utils = { path = "../utils" }
+interfaces = { path = "../interfaces" }

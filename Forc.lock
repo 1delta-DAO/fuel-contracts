@@ -13,7 +13,7 @@ name = "batch_swap_exact_in_script"
 source = "member"
 dependencies = [
     "interfaces",
-    "math",
+    "mira_v1_swap",
     "param_types",
     "std",
     "utils",
@@ -42,6 +42,16 @@ name = "math"
 source = "member"
 dependencies = [
     "interfaces",
+    "std",
+    "utils",
+]
+
+[[package]]
+name = "mira_v1_swap"
+source = "path+from-root-27160AED43ADBD24"
+dependencies = [
+    "interfaces",
+    "math",
     "std",
     "utils",
 ]

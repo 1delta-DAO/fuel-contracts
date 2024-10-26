@@ -1,8 +1,7 @@
 script;
 
 use interfaces::{data_structures::PoolId, mira_amm::MiraAMM};
-use math::pool_math::get_amounts_out;
-use math::pool_math::swap_mira_exact_in;
+use mira_v1_swap::swap::swap_mira_exact_in;
 use utils::blockchain_utils::check_deadline;
 use param_types::{ExactInSwapStep, get_mira_params};
 use std::{asset::transfer, bytes::Bytes};

@@ -14,7 +14,7 @@ source = "member"
 dependencies = [
     "interfaces",
     "mira_v1_swap",
-    "param_types",
+    "executor",
     "std",
     "utils",
 ]
@@ -87,7 +87,7 @@ source = "member"
 dependencies = ["std"]
 
 [[package]]
-name = "param_types"
+name = "executor"
 source = "member"
 dependencies = ["std"]
 

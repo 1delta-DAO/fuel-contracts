@@ -69,6 +69,7 @@ async fn swap_between_two_volatile_tokens() {
     // execute swap
     let path = vec![(
         token_0_to_swap,
+        0u64,
         vec![ExactInSwapStep {
             asset_in: token_0_id,
             asset_out: token_1_id,
@@ -76,12 +77,8 @@ async fn swap_between_two_volatile_tokens() {
             data: Some(encode_mira_params(swap_fees.0, false)),
         }],
     )];
-    let res = swap_exact_input_script
+    swap_exact_input_script
         .main(
-            token_0_to_swap,
-            token_0_id,
-            0,
-            vec![pool_id],
             wallet.address().into(),
             deadline,
             Some(path),
@@ -93,16 +90,7 @@ async fn swap_between_two_volatile_tokens() {
         .call()
         .await
         .unwrap();
-    let (amounts_out, amount_out) = res.value;
 
-    assert_eq!(token_1_expected, amount_out);
-    assert_eq!(
-        amounts_out,
-        vec![
-            (token_0_to_swap, token_0_id),
-            (token_1_expected, token_1_id)
-        ]
-    );
     let wallet_balances_after = pool_assets_balance(&wallet, &pool_id, amm.id).await;
     let pool_metadata_after = pool_metadata(&amm.instance, pool_id).await.value.unwrap();
     assert_eq!(
@@ -219,6 +207,7 @@ async fn swap_between_three_volatile_tokens() {
 
     let path = vec![(
         token_0_to_swap,
+        0u64,
         vec![
             ExactInSwapStep {
                 asset_in: token_0_id,
@@ -235,12 +224,8 @@ async fn swap_between_three_volatile_tokens() {
         ],
     )];
 
-    let (amounts_out, amount_out) = swap_exact_input_script
+    swap_exact_input_script
         .main(
-            token_0_to_swap,
-            token_0_id,
-            0,
-            vec![pool_id_0, pool_id_1],
             wallet.address().into(),
             deadline,
             Some(path),
@@ -257,17 +242,6 @@ async fn swap_between_three_volatile_tokens() {
     let pool_metadata_1_after = pool_metadata(&amm.instance, pool_id_1).await.value.unwrap();
     let wallet_balances_0_after = pool_assets_balance(&wallet, &pool_id_0, amm.id).await;
     let wallet_balances_1_after = pool_assets_balance(&wallet, &pool_id_1, amm.id).await;
-
-    assert_eq!(token_2_expected, amount_out);
-
-    assert_eq!(
-        amounts_out,
-        vec![
-            (token_0_to_swap, pool_id_0.0),
-            (token_1_expected, pool_id_0.1),
-            (token_2_expected, token_2_id)
-        ]
-    );
 
     assert_eq!(
         wallet_balances_0_after.asset_a,

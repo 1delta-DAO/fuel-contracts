@@ -57,7 +57,7 @@ pub async fn setup() -> (
     let deadline = provider.latest_block_height().await.unwrap() + 10;
 
     let configurables = AddLiquidityScriptConfigurables::default()
-        .with_AMM_CONTRACT_ID(ContractId::from_str(&amm.id.to_string()).unwrap())
+        .with_MIRA_AMM_CONTRACT_ID(ContractId::from_str(&amm.id.to_string()).unwrap())
         .unwrap();
 
     let mut script_instance =

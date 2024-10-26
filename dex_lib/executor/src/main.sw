@@ -13,7 +13,7 @@ pub struct ExactInSwapStep {
     pub dex_id: u64,
     pub asset_in: AssetId,
     pub asset_out: AssetId,
-    pub receiver: Option<Identity>,
+    pub receiver: Identity,
     pub data: Option<Bytes>,
 }
 
@@ -34,7 +34,6 @@ const INVALID_DEX: u64 = 0;
 pub fn execute_exact_in(
     amount_in: u64,
     swap_step: ExactInSwapStep,
-    resolved_receiver: Identity,
     MIRA_AMM_CONTRACT_ID: ContractId,
 ) -> u64 {
     match swap_step.dex_id {
@@ -44,7 +43,7 @@ pub fn execute_exact_in(
                 .asset_in,
             swap_step
                 .asset_out,
-            resolved_receiver,
+            swap_step.receiver,
             swap_step
                 .data,
             MIRA_AMM_CONTRACT_ID,
@@ -53,6 +52,18 @@ pub fn execute_exact_in(
     }
 }
 
+////////////////////////////////////////////////////
+// get dex address
+////////////////////////////////////////////////////
+pub fn get_dex_input_receiver(
+    dex_id: u64,
+    MIRA_AMM_CONTRACT_ID: ContractId,
+) -> Identity {
+    match dex_id {
+        MIRA_V1_ID => Identity::ContractId(MIRA_AMM_CONTRACT_ID),
+        _ => revert(INVALID_DEX),
+    }
+}
 
 ////////////////////////////////////////////////////
 // swap functions - mira v1

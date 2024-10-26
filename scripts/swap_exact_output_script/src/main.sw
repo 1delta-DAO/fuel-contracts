@@ -6,7 +6,7 @@ use utils::blockchain_utils::check_deadline;
 use std::{asset::transfer, bytes::Bytes};
 
 configurable {
-    AMM_CONTRACT_ID: ContractId = ContractId::zero(),
+    MIRA_AMM_CONTRACT_ID: ContractId = ContractId::zero(),
 }
 
 fn main(
@@ -19,16 +19,16 @@ fn main(
 ) -> Vec<(u64, AssetId)> {
     check_deadline(deadline);
 
-    let amounts_in = get_amounts_in(AMM_CONTRACT_ID, amount_out, asset_out, pools);
+    let amounts_in = get_amounts_in(MIRA_AMM_CONTRACT_ID, amount_out, asset_out, pools);
     let (first_amount_in, first_asset) = amounts_in.get(amounts_in.len() - 1).unwrap();
     require(first_amount_in <= amount_in_max, "Exceeding input amount");
 
     transfer(
-        Identity::ContractId(AMM_CONTRACT_ID),
+        Identity::ContractId(MIRA_AMM_CONTRACT_ID),
         first_asset,
         first_amount_in,
     );
-    let amm = abi(MiraAMM, AMM_CONTRACT_ID.into());
+    let amm = abi(MiraAMM, MIRA_AMM_CONTRACT_ID.into());
 
     let mut i = 0;
     while i < pools.len() {
@@ -37,7 +37,7 @@ fn main(
         let to = if i == pools.len() - 1 {
             recipient
         } else {
-            Identity::ContractId(AMM_CONTRACT_ID)
+            Identity::ContractId(MIRA_AMM_CONTRACT_ID)
         };
         let (amount_0_out, amount_1_out) = if asset_out == pool_id.0 {
             (amount_out, 0)

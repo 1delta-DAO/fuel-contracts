@@ -5,7 +5,7 @@ use std::asset::transfer;
 use utils::blockchain_utils::check_deadline;
 
 configurable {
-    AMM_CONTRACT_ID: ContractId = ContractId::zero(),
+    MIRA_AMM_CONTRACT_ID: ContractId = ContractId::zero(),
 }
 
 fn main(
@@ -20,7 +20,7 @@ fn main(
     deadline: u32,
 ) -> Asset {
     check_deadline(deadline);
-    let amm = abi(MiraAMM, AMM_CONTRACT_ID.into());
+    let amm = abi(MiraAMM, MIRA_AMM_CONTRACT_ID.into());
 
     let pool_id = amm.create_pool(
         token_0_contract_id,
@@ -31,12 +31,12 @@ fn main(
     );
 
     transfer(
-        Identity::ContractId(AMM_CONTRACT_ID),
+        Identity::ContractId(MIRA_AMM_CONTRACT_ID),
         pool_id.0,
         amount_0_desired,
     );
     transfer(
-        Identity::ContractId(AMM_CONTRACT_ID),
+        Identity::ContractId(MIRA_AMM_CONTRACT_ID),
         pool_id.1,
         amount_1_desired,
     );

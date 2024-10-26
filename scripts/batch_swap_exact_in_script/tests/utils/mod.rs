@@ -90,7 +90,7 @@ pub async fn setup() -> (
     let deadline = provider.latest_block_height().await.unwrap() + 10;
 
     let add_liquidity_script_configurables = AddLiquidityScriptConfigurables::default()
-        .with_AMM_CONTRACT_ID(ContractId::from_str(&amm.id.to_string()).unwrap())
+        .with_MIRA_AMM_CONTRACT_ID(ContractId::from_str(&amm.id.to_string()).unwrap())
         .unwrap();
     let mut add_liquidity_script_instance =
         AddLiquidityScript::new(wallet.clone(), ADD_LIQUIDITY_SCRIPT_BINARY_PATH)
@@ -102,7 +102,7 @@ pub async fn setup() -> (
         .unwrap();
 
     let swap_exact_input_script_configurables = BatchSwapExactInScriptConfigurables::default()
-        .with_AMM_CONTRACT_ID(ContractId::from_str(&amm.id.to_string()).unwrap())
+        .with_MIRA_AMM_CONTRACT_ID(ContractId::from_str(&amm.id.to_string()).unwrap())
         .unwrap();
     let mut swap_exact_input_script_instance =
         BatchSwapExactInScript::new(wallet.clone(), BATCH_SWAP_EXACT_IN_SCRIPT_BINARY_PATH)

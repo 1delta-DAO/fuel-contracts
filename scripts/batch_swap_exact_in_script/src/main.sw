@@ -3,35 +3,29 @@ script;
 use interfaces::{data_structures::PoolId, mira_amm::MiraAMM};
 use mira_v1_swap::swap::swap_mira_exact_in;
 use utils::blockchain_utils::check_deadline;
-use executor::{ExactInSwapStep, execute_exact_in};
+use executor::{ExactInSwapStep, execute_exact_in, get_dex_input_receiver};
 use std::{asset::transfer, bytes::Bytes};
 
 configurable {
-    AMM_CONTRACT_ID: ContractId = ContractId::zero(),
+    MIRA_AMM_CONTRACT_ID: ContractId = ContractId::zero(),
 }
 
 fn main(
-    recipient: Identity,
+    swap_path: Vec<(u64, u64, bool, Vec<ExactInSwapStep>)>,
     deadline: u32,
-    path: Option<Vec<(u64, u64, Vec<ExactInSwapStep>)>>,
 ) {
     check_deadline(deadline);
 
-    let mut i = 0;
-    let swap_path = match path {
-        Option::Some(v) => v,
-        Option::None => Vec::new(),
-    };
-
-    // 
-    let mut amount_cached = 0;
+    // use ached amount for split swaps
+    let mut amount_cached = 0u64;
 
     // start to swap through paths
+    let mut i = 0;
     while i < swap_path.len() {
-        // get current path, input amount and amount to slippage-check
-        let (current_amount_in, minimum_out, current_path) = match swap_path.get(i) {
+        // get current path, input amount, slippage_check, transfer_in flag and path
+        let (current_amount_in, minimum_out, transfer_in, current_path) = match swap_path.get(i) {
             Option::Some(v) => v,
-            Option::None => (0u64, 0u64, Vec::new()),
+            Option::None => (0u64, 0u64, false, Vec::new()),
         };
 
         // get the amount to be used
@@ -55,23 +49,20 @@ fn main(
 
         // initialize first swap step
         let mut swap_step = current_path.get(0).unwrap();
-        transfer(
-            Identity::ContractId(AMM_CONTRACT_ID),
-            swap_step
-                .asset_in,
-            amount_in_used,
-        );
+
+        // transfer to first DEX if needed
+        if transfer_in {
+            transfer(
+                get_dex_input_receiver(swap_step.dex_id, MIRA_AMM_CONTRACT_ID),
+                swap_step
+                    .asset_in,
+                amount_in_used,
+            );
+        }
         // start swapping the path
         while true {
-            // get intermediary receiver
-            let receiver: Identity = if j == path_length - 1 {
-                recipient
-            } else {
-                Identity::ContractId(AMM_CONTRACT_ID)
-            };
-
             //=============================================
-            //      DEX swap implemnentation  
+            //      DEX swap execution  
             //=============================================
 
             // execute swap
@@ -79,8 +70,7 @@ fn main(
                 u64::try_from(amount_in_used)
                     .unwrap(),
                 swap_step,
-                receiver,
-                AMM_CONTRACT_ID,
+                MIRA_AMM_CONTRACT_ID,
             );
 
             //=============================================

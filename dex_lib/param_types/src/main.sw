@@ -6,7 +6,6 @@ use core::codec::abi_decode_in_place;
 
 // order object
 pub struct ExactInSwapStep {
-    pub amount: Option<u64>,
     pub asset_in: AssetId,
     pub asset_out: AssetId,
     pub receiver: Option<Identity>,

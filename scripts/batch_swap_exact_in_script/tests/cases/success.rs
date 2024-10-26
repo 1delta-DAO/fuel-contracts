@@ -67,13 +67,15 @@ async fn swap_between_two_volatile_tokens() {
     let pool_metadata_before = pool_metadata(&amm.instance, pool_id).await.value.unwrap();
 
     // execute swap
-    let path = vec![vec![ExactInSwapStep {
-        amount: Some(0),
-        asset_in: token_0_id,
-        asset_out: token_1_id,
-        receiver: Some(wallet.address().into()),
-        data: Some(encode_mira_params(swap_fees.0, false)),
-    }]];
+    let path = vec![(
+        token_0_to_swap,
+        vec![ExactInSwapStep {
+            asset_in: token_0_id,
+            asset_out: token_1_id,
+            receiver: Some(wallet.address().into()),
+            data: Some(encode_mira_params(swap_fees.0, false)),
+        }],
+    )];
     let res = swap_exact_input_script
         .main(
             token_0_to_swap,
@@ -215,22 +217,23 @@ async fn swap_between_three_volatile_tokens() {
     let pool_metadata_0_before = pool_metadata(&amm.instance, pool_id_0).await.value.unwrap();
     let pool_metadata_1_before = pool_metadata(&amm.instance, pool_id_1).await.value.unwrap();
 
-    let path = vec![vec![
-        ExactInSwapStep {
-            amount: Some(0),
-            asset_in: token_0_id,
-            asset_out: token_1_id,
-            receiver: Option::None,
-            data: Some(encode_mira_params(swap_fees.0, false)),
-        },
-        ExactInSwapStep {
-            amount: Some(0),
-            asset_in: token_1_id,
-            asset_out: token_2_id,
-            receiver: Some(wallet.address().into()),
-            data: Some(encode_mira_params(swap_fees.0, false)),
-        },
-    ]];
+    let path = vec![(
+        token_0_to_swap,
+        vec![
+            ExactInSwapStep {
+                asset_in: token_0_id,
+                asset_out: token_1_id,
+                receiver: Option::None,
+                data: Some(encode_mira_params(swap_fees.0, false)),
+            },
+            ExactInSwapStep {
+                asset_in: token_1_id,
+                asset_out: token_2_id,
+                receiver: Some(wallet.address().into()),
+                data: Some(encode_mira_params(swap_fees.0, false)),
+            },
+        ],
+    )];
 
     let (amounts_out, amount_out) = swap_exact_input_script
         .main(

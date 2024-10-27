@@ -1,6 +1,5 @@
 use crate::utils::setup;
 use fuels::prelude::VariableOutputPolicy;
-use test_harness::interface::amm::fees;
 use test_harness::interface::amm::pool_metadata;
 use test_harness::interface::scripts::get_transaction_inputs_outputs;
 use test_harness::interface::ExactInSwapStep;
@@ -13,11 +12,11 @@ async fn swap_between_two_volatile_tokens() {
         add_liquidity_script,
         swap_exact_input_script,
         amm,
-        pool_id,
-        _,
+        (pool_id,_,_,_,_),
         wallet,
         deadline,
-        (token_0_id, token_1_id, _),
+        (token_0_id, token_1_id,_,_,_),
+        swap_fees
     ) = setup().await;
 
     let amount_0_desired: u64 = 1_000_000;
@@ -32,9 +31,6 @@ async fn swap_between_two_volatile_tokens() {
         ],
     )
     .await;
-
-    let swap_fees = fees(&amm.instance).await.value;
-    println!("swap fee config {:?}", swap_fees);
 
     // adds initial liquidity
     let added_liquidity = add_liquidity_script
@@ -118,15 +114,12 @@ async fn swap_between_three_volatile_tokens() {
         add_liquidity_script,
         swap_exact_input_script,
         amm,
-        pool_id_0,
-        pool_id_1,
+        (pool_id_0_1 , pool_id_1_2,_,_,_),
         wallet,
         deadline,
-        (token_0_id, token_1_id, token_2_id),
+        (token_0_id, token_1_id, token_2_id,_,_),
+        swap_fees
     ) = setup().await;
-
-    let swap_fees = fees(&amm.instance).await.value;
-    println!("swap fee config {:?}", swap_fees);
 
     let amount_0_desired: u64 = 1_000_000;
     let amount_1_desired: u64 = 1_000_000;
@@ -144,7 +137,7 @@ async fn swap_between_three_volatile_tokens() {
     // adds initial liquidity
     let added_liquidity = add_liquidity_script
         .main(
-            pool_id_0,
+            pool_id_0_1,
             amount_0_desired,
             amount_1_desired,
             0,
@@ -175,7 +168,7 @@ async fn swap_between_three_volatile_tokens() {
     // adds initial liquidity
     let added_liquidity = add_liquidity_script
         .main(
-            pool_id_1,
+            pool_id_1_2,
             amount_0_desired,
             amount_1_desired,
             0,
@@ -201,10 +194,10 @@ async fn swap_between_three_volatile_tokens() {
     let (inputs, outputs) =
         get_transaction_inputs_outputs(&wallet, &vec![(token_0_id, token_0_to_swap)]).await;
 
-    let wallet_balances_0_before = pool_assets_balance(&wallet, &pool_id_0, amm.id).await;
-    let wallet_balances_1_before = pool_assets_balance(&wallet, &pool_id_1, amm.id).await;
-    let pool_metadata_0_before = pool_metadata(&amm.instance, pool_id_0).await.value.unwrap();
-    let pool_metadata_1_before = pool_metadata(&amm.instance, pool_id_1).await.value.unwrap();
+    let wallet_balances_0_before = pool_assets_balance(&wallet, &pool_id_0_1, amm.id).await;
+    let wallet_balances_1_before = pool_assets_balance(&wallet, &pool_id_1_2, amm.id).await;
+    let pool_metadata_0_before = pool_metadata(&amm.instance, pool_id_0_1).await.value.unwrap();
+    let pool_metadata_1_before = pool_metadata(&amm.instance, pool_id_1_2).await.value.unwrap();
 
     let path = vec![(
         token_0_to_swap,
@@ -241,10 +234,10 @@ async fn swap_between_three_volatile_tokens() {
         .await
         .unwrap()
         .value;
-    let pool_metadata_0_after = pool_metadata(&amm.instance, pool_id_0).await.value.unwrap();
-    let pool_metadata_1_after = pool_metadata(&amm.instance, pool_id_1).await.value.unwrap();
-    let wallet_balances_0_after = pool_assets_balance(&wallet, &pool_id_0, amm.id).await;
-    let wallet_balances_1_after = pool_assets_balance(&wallet, &pool_id_1, amm.id).await;
+    let pool_metadata_0_after = pool_metadata(&amm.instance, pool_id_0_1).await.value.unwrap();
+    let pool_metadata_1_after = pool_metadata(&amm.instance, pool_id_1_2).await.value.unwrap();
+    let wallet_balances_0_after = pool_assets_balance(&wallet, &pool_id_0_1, amm.id).await;
+    let wallet_balances_1_after = pool_assets_balance(&wallet, &pool_id_1_2, amm.id).await;
 
     assert_eq!(
         wallet_balances_0_after.asset_a,

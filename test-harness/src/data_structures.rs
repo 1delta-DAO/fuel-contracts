@@ -4,9 +4,9 @@ use super::interface::MiraAMM;
 
 pub type PoolId = (AssetId, AssetId);
 
-const AMOUNT_PER_COIN: u64 = 1_000_000;
+const AMOUNT_PER_COIN: u64 = 1_000_000_000;
 const COINS_PER_ASSET: u64 = 100;
-pub const NUMBER_OF_ASSETS: u64 = 5;
+pub const NUMBER_OF_ASSETS: u64 = 8;
 
 pub struct MiraAMMContract {
     pub id: ContractId,

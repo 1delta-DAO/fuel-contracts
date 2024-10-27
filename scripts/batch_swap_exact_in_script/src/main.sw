@@ -64,7 +64,7 @@ fn main(
             //=============================================
             //      DEX swap execution  
             //=============================================
-
+            
             // execute swap
             amount_in_used = execute_exact_in(
                 u64::try_from(amount_in_used)
@@ -90,7 +90,7 @@ fn main(
                 // increment cache
                 amount_cached += amount_in_used;
                 // check for slippage on path
-                require(amount_cached >= minimum_out, "Insufficient output amount");
+                require(amount_in_used >= minimum_out, "Insufficient output amount");
                 // break and start next path
                 break;
             }

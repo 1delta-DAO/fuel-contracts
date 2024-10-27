@@ -44,7 +44,7 @@ pub fn swap_mira_exact_in(
         );
         am_out
     } else {
-        let pool_id: PoolId = (asset_in, asset_out, is_stable_pool);
+        let pool_id: PoolId = (asset_out, asset_in, is_stable_pool);
         let pool_opt = amm.pool_metadata(pool_id);
         require(pool_opt.is_some(), "Pool not present");
         let pool = pool_opt.unwrap();

@@ -244,7 +244,7 @@ pub async fn add_dex_liquidity(
     (token_0_id, token_1_id, token_2_id, token_3_id): (AssetId, AssetId, AssetId, AssetId),
     deadline: u32,
 ) {
-    println!("add dex liquidity");
+    println!("add dex liquidity {:?}", amm.contract_id());
     ////////////////////////////////////////////////////
     // add dex liquidity
     ////////////////////////////////////////////////////
@@ -281,8 +281,6 @@ pub async fn add_dex_liquidity(
         .await
         .unwrap()
         .value;
-
-    println!("ADD-COMPLETE");
 
     assert_eq!(added_liquidity.amount, expected_liquidity);
 
@@ -330,6 +328,37 @@ pub async fn add_dex_liquidity(
     let added_liquidity = add_liquidity_script_instance
         .main(
             pool_id_0_2,
+            amount_0_desired,
+            amount_1_desired,
+            0,
+            0,
+            wallet.address().into(),
+            deadline,
+        )
+        .with_contracts(&[&amm])
+        .with_inputs(inputs)
+        .with_outputs(outputs)
+        .with_variable_output_policy(VariableOutputPolicy::Exactly(2))
+        .call()
+        .await
+        .unwrap()
+        .value;
+
+    assert_eq!(added_liquidity.amount, expected_liquidity);
+
+    let (inputs, outputs) = get_transaction_inputs_outputs(
+        &wallet,
+        &vec![
+            (token_2_id, amount_0_desired),
+            (token_3_id, amount_1_desired),
+        ],
+    )
+    .await;
+
+    // adds initial liquidity
+    let added_liquidity = add_liquidity_script_instance
+        .main(
+            pool_id_2_3,
             amount_0_desired,
             amount_1_desired,
             0,

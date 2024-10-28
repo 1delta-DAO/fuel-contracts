@@ -2,6 +2,7 @@ library;
 
 use std::{bytes::Bytes, bytes_conversions::{b256::*, u16::*, u256::*, u32::*, u64::*},};
 use std::revert::revert;
+use std::asset::transfer;
 use core::raw_slice::*;
 use core::codec::abi_decode_in_place;
 use mira_v1_swap::swap::swap_mira_exact_in;
@@ -43,7 +44,8 @@ pub fn execute_exact_in(
                 .asset_in,
             swap_step
                 .asset_out,
-            swap_step.receiver,
+            swap_step
+                .receiver,
             swap_step
                 .data,
             MIRA_AMM_CONTRACT_ID,
@@ -52,13 +54,99 @@ pub fn execute_exact_in(
     }
 }
 
+pub fn execute_exact_out(
+    swap_path: Vec<(u64, u64, bool, Vec<ExactInSwapStep>)>,
+    MIRA_AMM_CONTRACT_ID: ContractId,
+) {
+    // use ached amount for split swaps
+    let mut amount_cached = 0u64;
+
+    // start to swap through paths
+    let mut i = 0;
+    while i < swap_path.len() {
+        // get current path, input amount, slippage_check, transfer_in flag and path
+        let (current_amount_out, maximum_in, transfer_in, current_path) = match swap_path.get(i) {
+            Option::Some(v) => v,
+            Option::None => (0u64, 0u64, false, Vec::new()),
+        };
+
+        // get the amount to be used
+        // if zero, we use the last cached amount to swap splits
+        // after a single swap
+        // if the cached amount is used, we reset it to zero
+        let mut amount_in_used = if current_amount_out != 0 {
+            current_amount_out
+        } else {
+            // TEMP: make sure that assignment is via values
+            let am = amount_cached + 0;
+            // reset amount cached after it was used
+            amount_cached = 0;
+            am
+        };
+
+        // initialize the swap path
+        let mut j = 0;
+
+        // get path length for iteration
+        let path_length = current_path.len();
+
+        // initialize first swap step
+        let mut swap_step = current_path.get(0).unwrap();
+
+        // transfer to first DEX if needed
+        if transfer_in {
+            transfer(
+                get_dex_input_receiver(swap_step.dex_id, MIRA_AMM_CONTRACT_ID),
+                swap_step
+                    .asset_in,
+                amount_in_used,
+            );
+        }
+        // start swapping the path
+        while true {
+            //=============================================
+            //      DEX swap execution  
+            //=============================================
+
+            // execute swap
+            amount_in_used = execute_exact_in(
+                u64::try_from(amount_in_used)
+                    .unwrap(),
+                swap_step,
+                MIRA_AMM_CONTRACT_ID,
+            );
+
+            //=============================================
+            //      DEX swap end  
+            //=============================================
+
+            // increment swap step index
+            j += 1;
+
+            // check if we need to continue
+            if j < path_length {
+                // get next swap_step
+                swap_step = current_path.get(j).unwrap();
+            } else {
+                // in this block, we completed a path
+                // we record / increment the cached amount and check for slippage
+                // increment cache
+                amount_cached += amount_in_used;
+                // check for slippage on path
+                require(amount_in_used >= maximum_in, "Insufficient output amount");
+                // break and start next path
+                break;
+            }
+        }
+        // increment path index
+        i += 1;
+    }
+}
+
 ////////////////////////////////////////////////////
 // get dex address
 ////////////////////////////////////////////////////
-pub fn get_dex_input_receiver(
-    dex_id: u64,
-    MIRA_AMM_CONTRACT_ID: ContractId,
-) -> Identity {
+pub fn get_dex_input_receiver(dex_id: u64, MIRA_AMM_CONTRACT_ID: ContractId) -> Identity {
     match dex_id {
         MIRA_V1_ID => Identity::ContractId(MIRA_AMM_CONTRACT_ID),
         _ => revert(INVALID_DEX),

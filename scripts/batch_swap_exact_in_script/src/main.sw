@@ -16,7 +16,7 @@ fn main(
 ) {
     check_deadline(deadline);
 
-    // use ached amount for split swaps
+    // use cached amount for split swaps
     let mut amount_cached = 0u64;
 
     // start to swap through paths
@@ -78,7 +78,7 @@ fn main(
             //      DEX swap end  
             //=============================================
 
-            // increment index
+            // increment swap step index within path
             j += 1;
 
             // check if we need to continue

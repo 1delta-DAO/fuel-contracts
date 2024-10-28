@@ -1,8 +1,9 @@
 [project]
-authors = ["Acthar"]
+authors = ["1delta"]
 entry = "main.sw"
 license = "Apache-2.0"
 name = "executor"
 
 [dependencies]
 mira_v1_swap = { path = "../mira_v1/swap" }
+interfaces = { path = "../mira_v1/interfaces" }

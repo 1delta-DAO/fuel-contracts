@@ -20,6 +20,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "batch_swap_exact_out_script"
+source = "member"
+dependencies = [
+    "executor",
+    "interfaces",
+    "mira_v1_swap",
+    "std",
+    "utils",
+]
+
+[[package]]
 name = "core"
 source = "path+from-root-7053AAA90CC5E690"
 
@@ -36,6 +47,7 @@ dependencies = [
 name = "executor"
 source = "member"
 dependencies = [
+    "interfaces",
     "mira_v1_swap",
     "std",
 ]

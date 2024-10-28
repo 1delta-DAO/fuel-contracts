@@ -27,6 +27,10 @@ abigen!(
         abi = "./scripts/batch_swap_exact_in_script/out/debug/batch_swap_exact_in_script-abi.json"
     ),
     Script(
+        name = "BatchSwapExactOutScript",
+        abi = "./scripts/batch_swap_exact_out_script/out/debug/batch_swap_exact_out_script-abi.json"
+    ),
+    Script(
         name = "SwapExactOutputScript",
         abi = "./scripts/swap_exact_output_script/out/debug/swap_exact_output_script-abi.json"
     ),

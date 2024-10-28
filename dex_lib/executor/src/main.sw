@@ -6,6 +6,7 @@ use std::asset::transfer;
 use core::raw_slice::*;
 use core::codec::abi_decode_in_place;
 use mira_v1_swap::swap::{get_mira_amount_in, swap_mira_exact_in, swap_mira_exact_out,};
+use interfaces::{data_structures::PoolId,};
 
 ////////////////////////////////////////////////////
 // structs
@@ -16,6 +17,12 @@ pub struct BatchSwapStep {
     pub asset_out: AssetId,
     pub receiver: Identity,
     pub data: Option<Bytes>,
+}
+
+pub struct ComputedAmount {
+    pub zero_for_one: bool,
+    pub amount_in: u64,
+    pub pool_id: PoolId,
 }
 
 ////////////////////////////////////////////////////
@@ -54,7 +61,117 @@ pub fn execute_exact_in(
     }
 }
 
-pub fn execute_exact_out_recursive(
+// temporary function to calculate swap input amounts
+pub fn calculate_amounts_exact_out_and_fund(
+    amount_out: u64,
+    maximum_in: u64,
+    current_path: Vec<BatchSwapStep>,
+    MIRA_AMM_CONTRACT_ID: ContractId,
+) -> Vec<ComputedAmount> {
+    let mut amounts: Vec<ComputedAmount> = Vec::new();
+    let mut current_amount_out = amount_out;
+
+    let mut i = 0;
+    // do all steps but the last one
+    while i < current_path.len() - 1 {
+        let swap_step = current_path.get(i).unwrap();
+        let (fee, is_stable) = match swap_step.data {
+            Option::Some(v) => get_mira_params(v),
+            Option::None => (0, false),
+        };
+        let (pool_id, amount0, amount1, zero_for_one) = get_mira_amount_in(
+            MIRA_AMM_CONTRACT_ID,
+            swap_step
+                .asset_in,
+            swap_step
+                .asset_out,
+            is_stable,
+            fee,
+            current_amount_out,
+        );
+        current_amount_out = if zero_for_one { amount0 } else { amount1 };
+        amounts.push(ComputedAmount {
+            zero_for_one: zero_for_one,
+            amount_in: current_amount_out,
+            pool_id: pool_id,
+        });
+
+        i += 1;
+    };
+    // do the last step manually
+    let swap_step = current_path.get(i).unwrap();
+    let (fee, is_stable) = match swap_step.data {
+        Option::Some(v) => get_mira_params(v),
+        Option::None => (0, false),
+    };
+    let (pool_id, amount0, amount1, zero_for_one) = get_mira_amount_in(
+        MIRA_AMM_CONTRACT_ID,
+        swap_step
+            .asset_in,
+        swap_step
+            .asset_out,
+        is_stable,
+        fee,
+        current_amount_out,
+    );
+    // map amount
+    current_amount_out = if zero_for_one { amount0 } else { amount1 };
+    // check slippage
+    require(current_amount_out <= maximum_in, "Exceeding input amount");
+    // transfer first funds
+    transfer(
+        Identity::ContractId(MIRA_AMM_CONTRACT_ID),
+        swap_step.asset_in,
+        current_amount_out,
+    );
+
+    amounts.push(ComputedAmount {
+        zero_for_one: zero_for_one,
+        amount_in: current_amount_out,
+        pool_id: pool_id,
+    });
+
+    amounts
+}
+
+// temporary to forward-swap exact out
+pub fn forward_swap_exact_out(
+    amount_out: u64,
+    current_path: Vec<BatchSwapStep>,
+    computed_amounts: Vec<ComputedAmount>,
+    MIRA_AMM_CONTRACT_ID: ContractId,
+) {
+    let mut current_amount_out = amount_out;
+    let mut i = 0;
+    let path_length = current_path.len();
+    log(computed_amounts.len());
+    log(path_length);
+    while i < path_length {
+        let swap_step = current_path.get(i).unwrap();
+        let current_amount = computed_amounts.get(i).unwrap();
+
+        let (amount0, amount1) = if current_amount.zero_for_one {
+            (current_amount.amount_in, 0)
+        } else {
+            (0, current_amount.amount_in)
+        };
+        // execute_exact_out
+        swap_mira_exact_out(
+            current_amount
+                .pool_id,
+            swap_step
+                .receiver,
+            amount0,
+            amount1,
+            MIRA_AMM_CONTRACT_ID,
+        );
+
+        i += 1;
+    };
+}
+
+// cannot work with this forc version as recursive functions are not supported
+fn execute_exact_out_recursive(
     receiver: Identity,
     ref mut current_amount_out: u64,
     maximum_in: u64,

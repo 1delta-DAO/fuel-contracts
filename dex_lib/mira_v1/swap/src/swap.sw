@@ -82,7 +82,7 @@ pub fn get_mira_amount_in(
     is_stable_pool: bool,
     swap_fee: u64,
     amount_out: u64,
-) -> (PoolId, u64, u64, ContractCaller<MiraAMM>) {
+) -> (PoolId, u64, u64, bool) {
     let amm = abi(MiraAMM, amm_contract.into());
     if asset_in.bits() < asset_out.bits() {
         let pool_id: PoolId = (asset_in, asset_out, is_stable_pool);
@@ -101,7 +101,7 @@ pub fn get_mira_amount_in(
             subtract_fee(amount_out, swap_fee)
                 .as_u256(),
         );
-        return (pool_id, 0u64, u64::try_from(am_in).unwrap(), amm);
+        return (pool_id, 0u64, u64::try_from(am_in).unwrap(), true);
     } else {
         let pool_id: PoolId = (asset_out, asset_in, is_stable_pool);
         let pool_opt = amm.pool_metadata(pool_id);
@@ -119,6 +119,19 @@ pub fn get_mira_amount_in(
             subtract_fee(amount_out, swap_fee)
                 .as_u256(),
         );
-        return (pool_id, u64::try_from(am_in).unwrap(), 0u64, amm);
+        return (pool_id, u64::try_from(am_in).unwrap(), 0u64, false);
     }
+}
+
+/// mira exact out calculator
+pub fn swap_mira_exact_out(
+    pool_id: PoolId,
+    receiver: Identity,
+    amount0: u64,
+    amount1: u64,
+    amm_contract: ContractId,
+) {
+    abi(MiraAMM, amm_contract
+        .into())
+        .swap(pool_id, amount0, amount1, receiver, Option::None);
 }

@@ -91,7 +91,7 @@ fn main(
                 // increment cache
                 amount_cached += amount_in_used;
                 // check for slippage on path
-                require(amount_in_used >= minimum_out, "Insufficient output amount");
+                require(amount_in_used > minimum_out, "Insufficient output amount");
                 // break and start next path
                 break;
             }

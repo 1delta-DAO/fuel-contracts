@@ -5,7 +5,7 @@ use std::revert::revert;
 use std::asset::transfer;
 use core::raw_slice::*;
 use core::codec::abi_decode_in_place;
-use mira_v1_swap::swap::swap_mira_exact_in;
+use mira_v1_swap::swap::{get_mira_amount_in, swap_mira_exact_in, swap_mira_exact_out,};
 
 ////////////////////////////////////////////////////
 // structs
@@ -55,92 +55,64 @@ pub fn execute_exact_in(
 }
 
 pub fn execute_exact_out(
-    swap_path: Vec<(u64, u64, bool, Vec<ExactInSwapStep>)>,
+    receiver: Identity,
+    ref mut current_amount_out: u64,
+    maximum_in: u64,
+    ref mut current_path: Vec<ExactInSwapStep>,
     MIRA_AMM_CONTRACT_ID: ContractId,
 ) {
-    // use ached amount for split swaps
-    let mut amount_cached = 0u64;
-
     // start to swap through paths
-    let mut i = 0;
-    while i < swap_path.len() {
-        // get current path, input amount, slippage_check, transfer_in flag and path
-        let (current_amount_out, maximum_in, transfer_in, current_path) = match swap_path.get(i) {
-            Option::Some(v) => v,
-            Option::None => (0u64, 0u64, false, Vec::new()),
-        };
 
-        // get the amount to be used
-        // if zero, we use the last cached amount to swap splits
-        // after a single swap
-        // if the cached amount is used, we reset it to zero
-        let mut amount_in_used = if current_amount_out != 0 {
-            current_amount_out
-        } else {
-            // TEMP: make sure that assignment is via values
-            let am = amount_cached + 0;
-            // reset amount cached after it was used
-            amount_cached = 0;
-            am
-        };
+    // initialize first swap step
+    let mut swap_step = current_path.get(0).unwrap();
 
-        // initialize the swap path
-        let mut j = 0;
+    // start swapping the path
+    match swap_step.dex_id {
+        MIRA_V1_ID => {
+            // get parameters
+            let (fee, is_stable) = match swap_step.data {
+                Option::Some(v) => get_mira_params(v),
+                Option::None => (0, false),
+            };
 
-        // get path length for iteration
-        let path_length = current_path.len();
-
-        // initialize first swap step
-        let mut swap_step = current_path.get(0).unwrap();
-
-        // transfer to first DEX if needed
-        if transfer_in {
-            transfer(
-                get_dex_input_receiver(swap_step.dex_id, MIRA_AMM_CONTRACT_ID),
+            let (pool_id, amount0, amount1, zero_for_one) = get_mira_amount_in(
+                MIRA_AMM_CONTRACT_ID,
                 swap_step
                     .asset_in,
-                amount_in_used,
+                swap_step
+                    .asset_out,
+                is_stable,
+                fee,
+                current_amount_out,
             );
-        }
-        // start swapping the path
-        while true {
-            //=============================================
-            //      DEX swap execution  
-            //=============================================
+            current_amount_out = if zero_for_one { amount0 } else { amount1 };
 
-            // execute swap
-            amount_in_used = execute_exact_in(
-                u64::try_from(amount_in_used)
-                    .unwrap(),
-                swap_step,
-                MIRA_AMM_CONTRACT_ID,
-            );
-
-            //=============================================
-            //      DEX swap end  
-            //=============================================
-
-            // increment swap step index
-            j += 1;
-
-            // check if we need to continue
-            if j < path_length {
-                // get next swap_step
-                swap_step = current_path.get(j).unwrap();
+            // if we still have a swap step left, we remove the current one and continue
+            if current_path.len() > 1 {
+                current_path.remove(0);
+                //  UNSUPPORTED - Recursive
+                // execute_exact_out(
+                //     Identity::ContractId(MIRA_AMM_CONTRACT_ID),
+                //     current_amount_out,
+                //     maximum_in,
+                //     current_path,
+                //     MIRA_AMM_CONTRACT_ID,
+                // );
             } else {
-                // in this block, we completed a path
-                // we record / increment the cached amount and check for slippage
-                // increment cache
-                amount_cached += amount_in_used;
-                // check for slippage on path
-                require(amount_in_used >= maximum_in, "Insufficient output amount");
-                // break and start next path
-                break;
+                // otherwise, we fund the swap
+                transfer(
+                    Identity::ContractId(MIRA_AMM_CONTRACT_ID),
+                    swap_step
+                        .asset_in,
+                    current_amount_out,
+                );
             }
-        }
-        // increment path index
-        i += 1;
-    }
+
+            // execute_exact_out
+            swap_mira_exact_out(pool_id, receiver, amount0, amount1, MIRA_AMM_CONTRACT_ID);
+        },
+        _ => revert(INVALID_DEX),
+    };
 }
 
 ////////////////////////////////////////////////////

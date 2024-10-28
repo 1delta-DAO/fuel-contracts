@@ -1,10 +1,9 @@
 script;
 
-use interfaces::{data_structures::PoolId, mira_amm::MiraAMM};
-use mira_v1_swap::swap::swap_mira_exact_in;
+use interfaces::mira_amm::MiraAMM;
 use utils::blockchain_utils::check_deadline;
 use executor::{ExactInSwapStep, execute_exact_in, get_dex_input_receiver};
-use std::{asset::transfer, bytes::Bytes};
+use std::asset::transfer;
 
 configurable {
     MIRA_AMM_CONTRACT_ID: ContractId = ContractId::zero(),
@@ -66,7 +65,7 @@ fn main(
             //=============================================
             //      DEX swap execution  
             //=============================================
-            
+
             // execute swap
             amount_in_used = execute_exact_in(
                 u64::try_from(amount_in_used)

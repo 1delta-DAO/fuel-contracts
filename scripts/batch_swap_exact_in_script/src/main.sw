@@ -2,7 +2,7 @@ script;
 
 use interfaces::mira_amm::MiraAMM;
 use utils::blockchain_utils::check_deadline;
-use executor::{ExactInSwapStep, execute_exact_in, get_dex_input_receiver};
+use executor::{BatchSwapStep, execute_exact_in, get_dex_input_receiver};
 use std::asset::transfer;
 
 configurable {
@@ -11,7 +11,7 @@ configurable {
 
 // Swap split paths exact in
 fn main(
-    swap_path: Vec<(u64, u64, bool, Vec<ExactInSwapStep>)>,
+    swap_path: Vec<(u64, u64, bool, Vec<BatchSwapStep>)>,
     deadline: u32,
 ) {
     check_deadline(deadline);

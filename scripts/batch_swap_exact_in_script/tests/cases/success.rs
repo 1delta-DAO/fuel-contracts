@@ -2,7 +2,7 @@ use crate::utils::setup;
 use fuels::prelude::VariableOutputPolicy;
 use test_harness::interface::amm::pool_metadata;
 use test_harness::interface::scripts::get_transaction_inputs_outputs;
-use test_harness::interface::ExactInSwapStep;
+use test_harness::interface::BatchSwapStep;
 use test_harness::types::encode_mira_params;
 use test_harness::utils::common::{asset_balance, pool_assets_balance};
 
@@ -35,7 +35,7 @@ async fn swap_between_two_volatile_tokens() {
         token_0_to_swap,
         0u64,
         true,
-        vec![ExactInSwapStep {
+        vec![BatchSwapStep {
             dex_id: 0,
             asset_in: token_0_id,
             asset_out: token_1_id,
@@ -112,14 +112,14 @@ async fn swap_between_three_volatile_tokens() {
         0u64,
         true,
         vec![
-            ExactInSwapStep {
+            BatchSwapStep {
                 dex_id: 0,
                 asset_in: token_0_id,
                 asset_out: token_1_id,
                 receiver: amm.id.into(),
                 data: Some(encode_mira_params(swap_fees.0, false)),
             },
-            ExactInSwapStep {
+            BatchSwapStep {
                 dex_id: 0,
                 asset_in: token_1_id,
                 asset_out: token_2_id,
@@ -212,14 +212,14 @@ async fn swap_split_routes() {
             0u64,
             true,
             vec![
-                ExactInSwapStep {
+                BatchSwapStep {
                     dex_id: 0,
                     asset_in: token_0_id,
                     asset_out: token_1_id,
                     receiver: amm.id.into(),
                     data: Some(encode_mira_params(swap_fees.0, false)),
                 },
-                ExactInSwapStep {
+                BatchSwapStep {
                     dex_id: 0,
                     asset_in: token_1_id,
                     asset_out: token_2_id,
@@ -232,7 +232,7 @@ async fn swap_split_routes() {
             token_0_to_swap_split_1, // 75%
             0u64,
             true,
-            vec![ExactInSwapStep {
+            vec![BatchSwapStep {
                 dex_id: 0,
                 asset_in: token_0_id,
                 asset_out: token_2_id,
@@ -306,7 +306,7 @@ async fn swap_split_segment() {
             token_0_to_swap_split_0, // 25%
             0u64,
             true,
-            vec![ExactInSwapStep {
+            vec![BatchSwapStep {
                 dex_id: 0,
                 asset_in: token_0_id,
                 asset_out: token_2_id,
@@ -319,14 +319,14 @@ async fn swap_split_segment() {
             0u64,
             true,
             vec![
-                ExactInSwapStep {
+                BatchSwapStep {
                     dex_id: 0,
                     asset_in: token_0_id,
                     asset_out: token_1_id,
                     receiver: amm.id.into(),
                     data: Some(encode_mira_params(swap_fees.0, false)),
                 },
-                ExactInSwapStep {
+                BatchSwapStep {
                     dex_id: 0,
                     asset_in: token_1_id,
                     asset_out: token_2_id,
@@ -339,7 +339,7 @@ async fn swap_split_segment() {
             0, // 100%
             0u64,
             false,
-            vec![ExactInSwapStep {
+            vec![BatchSwapStep {
                 dex_id: 0,
                 asset_in: token_2_id,
                 asset_out: token_3_id,

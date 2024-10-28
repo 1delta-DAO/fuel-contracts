@@ -10,7 +10,7 @@ use mira_v1_swap::swap::{get_mira_amount_in, swap_mira_exact_in, swap_mira_exact
 ////////////////////////////////////////////////////
 // structs
 ////////////////////////////////////////////////////
-pub struct ExactInSwapStep {
+pub struct BatchSwapStep {
     pub dex_id: u64,
     pub asset_in: AssetId,
     pub asset_out: AssetId,
@@ -34,7 +34,7 @@ const INVALID_DEX: u64 = 0;
 
 pub fn execute_exact_in(
     amount_in: u64,
-    swap_step: ExactInSwapStep,
+    swap_step: BatchSwapStep,
     MIRA_AMM_CONTRACT_ID: ContractId,
 ) -> u64 {
     match swap_step.dex_id {
@@ -54,11 +54,11 @@ pub fn execute_exact_in(
     }
 }
 
-pub fn execute_exact_out(
+pub fn execute_exact_out_recursive(
     receiver: Identity,
     ref mut current_amount_out: u64,
     maximum_in: u64,
-    ref mut current_path: Vec<ExactInSwapStep>,
+    ref mut current_path: Vec<BatchSwapStep>,
     MIRA_AMM_CONTRACT_ID: ContractId,
 ) {
     // start to swap through paths
@@ -91,7 +91,7 @@ pub fn execute_exact_out(
             if current_path.len() > 1 {
                 current_path.remove(0);
                 //  UNSUPPORTED - Recursive
-                // execute_exact_out(
+                // execute_exact_out_recursive(
                 //     Identity::ContractId(MIRA_AMM_CONTRACT_ID),
                 //     current_amount_out,
                 //     maximum_in,

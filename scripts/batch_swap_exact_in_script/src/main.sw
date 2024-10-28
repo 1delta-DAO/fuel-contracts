@@ -10,6 +10,7 @@ configurable {
     MIRA_AMM_CONTRACT_ID: ContractId = ContractId::zero(),
 }
 
+// Swap split paths exact in
 fn main(
     swap_path: Vec<(u64, u64, bool, Vec<ExactInSwapStep>)>,
     deadline: u32,
@@ -35,7 +36,8 @@ fn main(
         let mut amount_in_used = if current_amount_in != 0 {
             current_amount_in
         } else {
-            let am = amount_cached;
+            // TEMP: make sure that assignment is via values
+            let am = amount_cached + 0;
             // reset amount cached after it was used
             amount_cached = 0;
             am

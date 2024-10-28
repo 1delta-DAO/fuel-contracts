@@ -28,6 +28,10 @@ pub mod common {
         }
     }
 
+    pub async fn asset_balance(wallet: &WalletUnlocked, asset_id: &AssetId) -> u64 {
+        wallet.get_asset_balance(&asset_id).await.unwrap()
+    }
+
     pub fn get_lp_asset_id(contract_id: ContractId, pool_id: &PoolId) -> AssetId {
         let sub_id = get_pool_sub_id(pool_id);
         get_contract_asset_id(sub_id, contract_id)

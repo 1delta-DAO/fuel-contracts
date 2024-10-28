@@ -28,10 +28,10 @@ use test_harness::utils::common::MINIMUM_LIQUIDITY;
 // 1-3 [3]
 // 2-3 [4]
 // For paths:
-// [0-1-2]                  solo
-// [0-1-2]; [0-2]           multi-path
-// [0-1] - [1-2-3]; [1-3]   multi-segment
-// [0-1-2]; [0-2] - [2-3]     multi-segment
+// [0-1-2]                      solo
+// [0-1-2]; [0-2]               multi-path
+// [0-1] - [1-2-3]; [1-3]       multi-segment
+// [0-1-2]; [0-2] - [2-3]       multi-segment
 ////////////////////////////////////////////////////
 pub async fn setup() -> (
     AddLiquidityScript<WalletUnlocked>,
@@ -167,7 +167,7 @@ pub async fn setup() -> (
     .await
     .value;
 
-    let deadline = provider.latest_block_height().await.unwrap() + 10;
+    let deadline = provider.latest_block_height().await.unwrap() + 30;
 
     let add_liquidity_script_configurables = AddLiquidityScriptConfigurables::default()
         .with_MIRA_AMM_CONTRACT_ID(ContractId::from_str(&amm.id.to_string()).unwrap())
@@ -359,6 +359,37 @@ pub async fn add_dex_liquidity(
     let added_liquidity = add_liquidity_script_instance
         .main(
             pool_id_2_3,
+            amount_0_desired,
+            amount_1_desired,
+            0,
+            0,
+            wallet.address().into(),
+            deadline,
+        )
+        .with_contracts(&[&amm])
+        .with_inputs(inputs)
+        .with_outputs(outputs)
+        .with_variable_output_policy(VariableOutputPolicy::Exactly(2))
+        .call()
+        .await
+        .unwrap()
+        .value;
+
+    assert_eq!(added_liquidity.amount, expected_liquidity);
+
+    let (inputs, outputs) = get_transaction_inputs_outputs(
+        &wallet,
+        &vec![
+            (token_1_id, amount_0_desired),
+            (token_3_id, amount_1_desired),
+        ],
+    )
+    .await;
+
+    // adds initial liquidity
+    let added_liquidity = add_liquidity_script_instance
+        .main(
+            pool_id_1_3,
             amount_0_desired,
             amount_1_desired,
             0,

@@ -20,6 +20,10 @@ Run tests: `cargo test` and `cargo test -- --nocapture` for tests with logs.
 
 Execute complex exact input and exact output batch swaps.
 
+- Allow for multi path, e.g. [a-b-c]; [a-c]
+- Allow for multi-segment, e.g. [a-c]; [a-b-c]; [c-d]
+- Allow for reverted multi segment, e.g. [a-b]; [b-c]; [b-d-c];
+
 Swap multiple paths and path-fragments dynamically across multiple DEXs. Currenly we integrate the following DEXs:
 - Mira V1 Volatile
 - Mira V1 Stable

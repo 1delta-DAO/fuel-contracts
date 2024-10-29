@@ -8,7 +8,6 @@ members = [
     "dex_lib/mira_v1/interfaces",
     "dex_lib/mira_v1/math",
     "dex_lib/mira_v1/utils",
-    "scripts/swap_exact_output_script",
     "scripts/add_liquidity_script",
     "scripts/create_pool_and_add_liquidity_script",
     "contracts/mocks/mock_token",

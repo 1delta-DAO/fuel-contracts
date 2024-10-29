@@ -14,7 +14,7 @@ use test_harness::interface::{
     AddLiquidityScript, AddLiquidityScriptConfigurables, BatchSwapExactOutScript,
     BatchSwapExactOutScriptConfigurables,
 };
-use test_harness::paths::{ADD_LIQUIDITY_SCRIPT_BINARY_PATH, SWAP_EXACT_OUTPUT_SCRIPT_BINARY_PATH};
+use test_harness::paths::{ADD_LIQUIDITY_SCRIPT_BINARY_PATH, BATCH_SWAP_EXACT_OUTPUT_SCRIPT_BINARY_PATH};
 use test_harness::setup::common::{deploy_amm, setup_wallet_and_provider};
 use test_harness::types::PoolId;
 use test_harness::utils::common::order_sub_ids;
@@ -172,7 +172,7 @@ pub async fn setup() -> (
         .with_MIRA_AMM_CONTRACT_ID(ContractId::from_str(&amm.id.to_string()).unwrap())
         .unwrap();
     let mut swap_exact_output_script_instance =
-        BatchSwapExactOutScript::new(wallet.clone(), SWAP_EXACT_OUTPUT_SCRIPT_BINARY_PATH)
+        BatchSwapExactOutScript::new(wallet.clone(), BATCH_SWAP_EXACT_OUTPUT_SCRIPT_BINARY_PATH)
             .with_configurables(swap_exact_output_script_configurables);
 
     swap_exact_output_script_instance

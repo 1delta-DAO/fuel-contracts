@@ -13,15 +13,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "add_liquidity_script"
-version = "0.0.0"
-dependencies = [
- "fuels",
- "test-harness",
- "tokio",
-]
-
-[[package]]
 name = "addr2line"
 version = "0.24.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"

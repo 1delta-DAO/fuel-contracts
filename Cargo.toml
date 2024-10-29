@@ -9,8 +9,7 @@ resolver = "2"
 members = [
     "./test-harness",
     "./scripts/batch_swap_exact_in_script",
-    "./scripts/batch_swap_exact_out_script",
-    "./scripts/add_liquidity_script",
+    "./scripts/batch_swap_exact_out_script"
 ]
 
 [workspace.dependencies]

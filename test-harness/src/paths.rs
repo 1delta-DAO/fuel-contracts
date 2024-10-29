@@ -1,9 +1,5 @@
 pub const ADD_LIQUIDITY_SCRIPT_BINARY_PATH: &str =
     "../../scripts/add_liquidity_script/out/debug/add_liquidity_script.bin";
-pub const REMOVE_LIQUIDITY_SCRIPT_BINARY_PATH: &str =
-    "../../scripts/remove_liquidity_script/out/debug/remove_liquidity_script.bin";
-pub const SWAP_EXACT_INPUT_SCRIPT_BINARY_PATH: &str =
-    "../../scripts/swap_exact_input_script/out/debug/swap_exact_input_script.bin";
 
 // 1delta tests
 pub const BATCH_SWAP_EXACT_IN_SCRIPT_BINARY_PATH: &str =

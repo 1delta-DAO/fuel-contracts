@@ -1,6 +1,5 @@
 use crate::utils::setup;
 use fuels::prelude::VariableOutputPolicy;
-// use fuels::types::Bits256;
 use test_harness::interface::amm::pool_metadata;
 use test_harness::interface::scripts::get_transaction_inputs_outputs;
 use test_harness::interface::BatchSwapStep;
@@ -33,10 +32,6 @@ async fn swap_between_two_volatile_tokens() {
         .value
         .unwrap();
 
-    println!("token_0 {:?}", token_0_id);
-    println!("token_1 {:?}", token_1_id);
-
-    println!("pool_metadata_before {:?}", pool_metadata_before);
     // execute swap
     let path: Vec<(u64, u64, bool, Vec<BatchSwapStep>)> = vec![(
         token_1_output,
@@ -122,33 +117,31 @@ async fn swap_between_three_volatile_tokens() {
         vec![
             BatchSwapStep {
                 dex_id: 0,
-                asset_in: token_0_id,
-                asset_out: token_1_id,
-                receiver: amm.id.into(),
-                data: Some(encode_mira_params(swap_fees.0, false)),
-            },
-            BatchSwapStep {
-                dex_id: 0,
                 asset_in: token_1_id,
                 asset_out: token_2_id,
                 receiver: wallet.address().into(),
                 data: Some(encode_mira_params(swap_fees.0, false)),
             },
+            BatchSwapStep {
+                dex_id: 0,
+                asset_in: token_0_id,
+                asset_out: token_1_id,
+                receiver: amm.id.into(),
+                data: Some(encode_mira_params(swap_fees.0, false)),
+            },
         ],
     )];
 
-    println!("start");
-    let res = swap_exact_output_script
+    swap_exact_output_script
         .main(path, deadline)
         .with_contracts(&[&amm.instance])
         .with_inputs(inputs)
         .with_outputs(outputs)
         .with_variable_output_policy(VariableOutputPolicy::Exactly(1))
         .call()
-        .await;
+        .await
+        .unwrap();
 
-    println!("res {:?}", res);
-    println!("end");
     let pool_metadata_0_after = pool_metadata(&amm.instance, pool_id_0_1)
         .await
         .value

@@ -5,6 +5,14 @@ use utils::blockchain_utils::check_deadline;
 use executor::{BatchSwapStep, execute_exact_in, get_dex_input_receiver};
 use std::asset::transfer;
 
+////////////////////////////////////////////////////
+// Error codes
+////////////////////////////////////////////////////
+const EMPTY_PATH_ENTRY: u64 = 100;
+
+////////////////////////////////////////////////////
+// DEX references
+////////////////////////////////////////////////////
 configurable {
     MIRA_AMM_CONTRACT_ID: ContractId = ContractId::zero(),
 }
@@ -25,7 +33,7 @@ fn main(
         // get current path, input amount, slippage_check, transfer_in flag and path
         let (current_amount_in, minimum_out, transfer_in, current_path) = match swap_path.get(i) {
             Option::Some(v) => v,
-            Option::None => (0u64, 0u64, false, Vec::new()),
+            Option::None => revert(EMPTY_PATH_ENTRY),
         };
 
         // get the amount to be used

@@ -1,11 +1,17 @@
 script;
 
-use interfaces::{data_structures::PoolId, mira_amm::MiraAMM};
 use executor::{BatchSwapStep, calculate_amounts_exact_out_and_fund, forward_swap_exact_out};
-use math::pool_math::get_amounts_in;
 use utils::blockchain_utils::check_deadline;
-use std::{asset::transfer, bytes::Bytes};
+use std::asset::transfer;
 
+////////////////////////////////////////////////////
+// Error codes
+////////////////////////////////////////////////////
+const EMPTY_PATH_ENTRY: u64 = 100;
+
+////////////////////////////////////////////////////
+// DEX references
+////////////////////////////////////////////////////
 configurable {
     MIRA_AMM_CONTRACT_ID: ContractId = ContractId::zero(),
 }
@@ -20,7 +26,7 @@ fn main(
     while i < swap_path.len() {
         let (current_amount_out, minimum_out, transfer_in, current_path) = match swap_path.get(i) {
             Option::Some(v) => v,
-            Option::None => (0u64, 0u64, false, Vec::new()),
+            Option::None => revert(EMPTY_PATH_ENTRY),
         };
         // compute path input amounts
         let amounts_in = calculate_amounts_exact_out_and_fund(

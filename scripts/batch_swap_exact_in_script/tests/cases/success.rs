@@ -7,7 +7,7 @@ use test_harness::types::encode_mira_params;
 use test_harness::utils::common::{asset_balance, pool_assets_balance};
 
 #[tokio::test]
-async fn swap_between_two_volatile_tokens() {
+async fn exact_in_swap_between_two_volatile_tokens() {
     let (
         _,
         swap_exact_input_script,
@@ -77,7 +77,7 @@ async fn swap_between_two_volatile_tokens() {
 }
 
 #[tokio::test]
-async fn swap_between_three_volatile_tokens() {
+async fn exact_in_swap_between_three_volatile_tokens() {
     let (
         _,
         swap_exact_input_script,
@@ -182,7 +182,7 @@ async fn swap_between_three_volatile_tokens() {
 }
 
 #[tokio::test]
-async fn swap_split_routes() {
+async fn exact_in_swap_split_routes() {
     let (
         _,
         swap_exact_input_script,
@@ -272,7 +272,7 @@ async fn swap_split_routes() {
 }
 
 #[tokio::test]
-async fn swap_split_segment() {
+async fn exact_in_swap_split_segment() {
     let (
         _,
         swap_exact_input_script,

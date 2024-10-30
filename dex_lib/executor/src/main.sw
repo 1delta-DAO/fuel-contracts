@@ -34,6 +34,7 @@ const MIRA_V1_ID: u64 = 0;
 // Revert error codes
 ////////////////////////////////////////////////////
 const INVALID_DEX: u64 = 1;
+const INVALID_PARAMS: u64 = 50;
 
 ////////////////////////////////////////////////////
 // swap functions - general
@@ -86,7 +87,7 @@ pub fn calculate_amounts_exact_out_and_fund(
     while true {
         let (fee, is_stable) = match swap_step.data {
             Option::Some(v) => get_mira_params(v),
-            Option::None => (0, false),
+            Option::None => revert(INVALID_PARAMS),
         };
         // calculate input amount
         let (pool_id, amount_in, zero_for_one) = get_mira_amount_in(
@@ -160,7 +161,7 @@ pub fn forward_swap_exact_out(
 }
 
 // cannot work with this forc version as recursive functions are not supported
-fn execute_exact_out_recursive(
+pub fn execute_exact_out_recursive(
     receiver: Identity,
     ref mut current_amount_out: u64,
     maximum_in: u64,
@@ -170,7 +171,7 @@ fn execute_exact_out_recursive(
     // start to swap through paths
 
     // initialize first swap step
-    let mut swap_step = current_path.get(0).unwrap();
+    let swap_step = current_path.remove(0);
 
     // start swapping the path
     match swap_step.dex_id {
@@ -178,7 +179,7 @@ fn execute_exact_out_recursive(
             // get parameters
             let (fee, is_stable) = match swap_step.data {
                 Option::Some(v) => get_mira_params(v),
-                Option::None => (0, false),
+                Option::None => revert(INVALID_PARAMS),
             };
 
             let (pool_id, amount_in, zero_for_one) = get_mira_amount_in(
@@ -194,7 +195,6 @@ fn execute_exact_out_recursive(
 
             // if we still have a swap step left, we remove the current one and continue
             if current_path.len() > 1 {
-                current_path.remove(0);
                 //  UNSUPPORTED - Recursive
                 // execute_exact_out_recursive(
                 //     Identity::ContractId(MIRA_AMM_CONTRACT_ID),
@@ -204,6 +204,8 @@ fn execute_exact_out_recursive(
                 //     MIRA_AMM_CONTRACT_ID,
                 // );
             } else {
+                // check slippage
+                require(amount_in <= maximum_in, "Exceeding input amount");
                 // otherwise, we fund the swap
                 transfer(
                     Identity::ContractId(MIRA_AMM_CONTRACT_ID),

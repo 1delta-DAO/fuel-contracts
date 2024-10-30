@@ -1,5 +1,6 @@
 use crate::utils::setup;
 use fuels::prelude::VariableOutputPolicy;
+// use fuels::types::Bits256;
 use test_harness::interface::amm::pool_metadata;
 use test_harness::interface::scripts::get_transaction_inputs_outputs;
 use test_harness::interface::BatchSwapStep;
@@ -20,20 +21,26 @@ async fn swap_between_two_volatile_tokens() {
     ) = setup().await;
 
     let token_1_output = 1_000;
+    let token_0_input_max = 1030;
     let token_0_input_expected = 1006;
 
     let (inputs, outputs) =
-        get_transaction_inputs_outputs(&wallet, &vec![(token_0_id, token_0_input_expected)]).await;
+        get_transaction_inputs_outputs(&wallet, &vec![(token_0_id, token_0_input_max)]).await;
 
     let wallet_balances_before = pool_assets_balance(&wallet, &pool_id_0_1, amm.id).await;
     let pool_metadata_before = pool_metadata(&amm.instance, pool_id_0_1)
         .await
         .value
         .unwrap();
+
+    println!("token_0 {:?}", token_0_id);
+    println!("token_1 {:?}", token_1_id);
+
+    println!("pool_metadata_before {:?}", pool_metadata_before);
     // execute swap
     let path: Vec<(u64, u64, bool, Vec<BatchSwapStep>)> = vec![(
         token_1_output,
-        1030,
+        token_0_input_max,
         true,
         vec![BatchSwapStep {
             dex_id: 0,
@@ -43,18 +50,16 @@ async fn swap_between_two_volatile_tokens() {
             data: Some(encode_mira_params(swap_fees.0, false)),
         }],
     )];
-    println!("start");
-    let res = swap_exact_output_script
+    swap_exact_output_script
         .main(path, deadline)
         .with_contracts(&[&amm.instance])
         .with_inputs(inputs)
         .with_outputs(outputs)
         .with_variable_output_policy(VariableOutputPolicy::Exactly(1))
         .call()
-        .await;
+        .await
+        .unwrap();
 
-    println!("res {:?}", res);
-    println!("end");
     let wallet_balances_after = pool_assets_balance(&wallet, &pool_id_0_1, amm.id).await;
     let pool_metadata_after = pool_metadata(&amm.instance, pool_id_0_1)
         .await
@@ -132,16 +137,18 @@ async fn swap_between_three_volatile_tokens() {
         ],
     )];
 
-    swap_exact_output_script
+    println!("start");
+    let res = swap_exact_output_script
         .main(path, deadline)
         .with_contracts(&[&amm.instance])
         .with_inputs(inputs)
         .with_outputs(outputs)
         .with_variable_output_policy(VariableOutputPolicy::Exactly(1))
         .call()
-        .await
-        .unwrap()
-        .value;
+        .await;
+
+    println!("res {:?}", res);
+    println!("end");
     let pool_metadata_0_after = pool_metadata(&amm.instance, pool_id_0_1)
         .await
         .value

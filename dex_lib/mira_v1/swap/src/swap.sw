@@ -3,7 +3,7 @@ library;
 use std::{math::*, primitive_conversions::u64::*};
 use utils::blockchain_utils::is_stable;
 use interfaces::{data_structures::{Asset, PoolId, PoolMetadata}, mira_amm::MiraAMM};
-use math::pool_math::{get_amount_in, get_amount_out, pow_decimals, subtract_fee};
+use math::pool_math::{add_fee, get_amount_in, get_amount_out, pow_decimals, subtract_fee};
 
 /// mira exact in swapper
 pub fn swap_mira_exact_in(
@@ -82,7 +82,7 @@ pub fn get_mira_amount_in(
     is_stable_pool: bool,
     swap_fee: u64,
     amount_out: u64,
-) -> (PoolId, u64, u64, bool) {
+) -> (PoolId, u64, bool) {
     let amm = abi(MiraAMM, amm_contract.into());
     if asset_in.bits() < asset_out.bits() {
         let pool_id: PoolId = (asset_in, asset_out, is_stable_pool);
@@ -98,10 +98,10 @@ pub fn get_mira_amount_in(
                 .as_u256(),
             pow_decimals(pool.decimals_0),
             pow_decimals(pool.decimals_1),
-            subtract_fee(amount_out, swap_fee)
+            amount_out
                 .as_u256(),
         );
-        return (pool_id, 0u64, u64::try_from(am_in).unwrap(), true);
+        return (pool_id, add_fee(u64::try_from(am_in).unwrap(), swap_fee), true);
     } else {
         let pool_id: PoolId = (asset_out, asset_in, is_stable_pool);
         let pool_opt = amm.pool_metadata(pool_id);
@@ -116,10 +116,10 @@ pub fn get_mira_amount_in(
                 .as_u256(),
             pow_decimals(pool.decimals_1),
             pow_decimals(pool.decimals_0),
-            subtract_fee(amount_out, swap_fee)
+            amount_out
                 .as_u256(),
         );
-        return (pool_id, u64::try_from(am_in).unwrap(), 0u64, false);
+        return (pool_id, add_fee(u64::try_from(am_in).unwrap(), swap_fee), false);
     }
 }
 

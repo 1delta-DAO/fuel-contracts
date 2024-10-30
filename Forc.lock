@@ -25,6 +25,7 @@ source = "member"
 dependencies = [
     "executor",
     "interfaces",
+    "math",
     "mira_v1_swap",
     "std",
     "utils",

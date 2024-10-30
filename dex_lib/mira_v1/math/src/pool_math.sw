@@ -360,7 +360,7 @@ pub fn subtract_fee(amount: u64, fee: u64) -> u64 {
     amount - calculate_fee_to_subtract(amount, fee)
 }
 
-fn add_fee(amount: u64, fee: u64) -> u64 {
+pub fn add_fee(amount: u64, fee: u64) -> u64 {
     amount + calculate_fee_to_add(amount, fee)
 }
 

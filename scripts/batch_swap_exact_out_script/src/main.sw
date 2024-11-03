@@ -13,7 +13,7 @@ const EMPTY_PATH_ENTRY: u64 = 100;
 // DEX references
 ////////////////////////////////////////////////////
 configurable {
-    MIRA_AMM_CONTRACT_ID: ContractId = ContractId::zero(),
+    MIRA_AMM_CONTRACT_ID: ContractId = ContractId::from(0x2e40f2b244b98ed6b8204b3de0156c6961f98525c8162f80162fcf53eebd90e7),
 }
 
 fn main(
@@ -24,7 +24,7 @@ fn main(
 
     let mut i = 0;
     while i < swap_path.len() {
-        let (current_amount_out, minimum_out, transfer_in, current_path) = match swap_path.get(i) {
+        let (current_amount_out, minimum_out, _, current_path) = match swap_path.get(i) {
             Option::Some(v) => v,
             Option::None => revert(EMPTY_PATH_ENTRY),
         };

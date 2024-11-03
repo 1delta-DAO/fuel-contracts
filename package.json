@@ -1,0 +1,23 @@
+{
+  "name": "fuels-contracts",
+  "version": "0.0.1",
+  "description": "Interact with 1delta using TypeScript",
+  "scripts": {
+    "test": "jest",
+    "build": "tsc",
+    "types": "fuels typegen -i scripts/*/out/release/*-abi.json -o ./ts-scripts/typegen --contract & fuels typegen -i fixtures/*/*-abi.json -o ./ts-scripts/typegen --contract"
+  },
+  "keywords": [],
+  "author": "1delta",
+  "license": "MIT",
+  "peerDependencies": {
+    "fuels": "^0.96.1"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.13",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.2.5",
+    "typescript": "^5.6.3",
+    "tsx": "^4.19.2"
+  }
+}

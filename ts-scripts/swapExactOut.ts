@@ -1,7 +1,7 @@
 import { BigNumberish, CoinQuantityLike, Provider, Wallet } from "fuels";
 import { TestnetData } from "./contexts";
 import { MNEMONIC } from "./env";
-import { BatchSwapExactInScript, BatchSwapStepInput } from "./typegen/BatchSwapExactInScript";
+import { BatchSwapExactOutScript, BatchSwapStepInput } from "./typegen/BatchSwapExactOutScript";
 import { DexId, txParams } from "./utils/constants";
 import { MiraAmmContract } from "./typegen/MiraAmmContract";
 import { addressInput, assetIdInput, contractIdInput, prepareRequest } from "./utils";
@@ -11,8 +11,8 @@ async function main() {
     const provider = await Provider.create(TestnetData.RPC);
     const wallet = Wallet.fromMnemonic(MNEMONIC!, undefined, undefined, provider);
 
-    const SwapExactInScript = new BatchSwapExactInScript(wallet)
-    SwapExactInScript.setConfigurableConstants({ MIRA_AMM_CONTRACT_ID: { bits: TestnetData.MIRA_AMM } })
+    const SwapExactOutScript = new BatchSwapExactOutScript(wallet)
+    SwapExactOutScript.setConfigurableConstants({ MIRA_AMM_CONTRACT_ID: { bits: TestnetData.MIRA_AMM } })
 
     const miraAmm = new MiraAmmContract(TestnetData.MIRA_AMM, provider)
     const ammFees = (await miraAmm.functions.fees().get()).value
@@ -20,19 +20,21 @@ async function main() {
 
     const getMiraParams = (isStable: boolean) => isStable ? encodeMiraParams(ammFees[1], true) : encodeMiraParams(ammFees[0], false)
 
+    const amountInMax0 = 18_000000000;
+    const amountInMax1 = 10_000000000;
 
-    const amountIn0 = 14_000000000;
-    const amountIn1 = 6_000000000;
+    const amountOut0 = 14_000000000;
+    const amountOut1 = 6_000000000;
 
-    const tokenIn = TestnetData.USDT
-    const tokenOut = TestnetData.USDC
+    const tokenIn = TestnetData.USDC
+    const tokenOut = TestnetData.USDT
     const tokenMid = TestnetData.ETH
 
     // console.log("getMiraParams(false)", getMiraParams(false))
 
     const path: [BigNumberish, BigNumberish, boolean, BatchSwapStepInput[]][] = [
         [
-            amountIn0, "1", true, [
+            amountOut0, amountInMax0, true, [
                 {
                     dex_id: DexId.MiraV1,
                     asset_in: assetIdInput(tokenIn.assetId),
@@ -43,7 +45,14 @@ async function main() {
             ]
         ],
         [
-            amountIn1, "1", true, [
+            amountOut1, amountInMax1, true, [
+                {
+                    dex_id: DexId.MiraV1,
+                    asset_in: assetIdInput(tokenMid.assetId),
+                    asset_out: assetIdInput(tokenOut.assetId),
+                    receiver: addressInput(wallet.address),
+                    data: getMiraParams(false),
+                },
                 {
                     dex_id: DexId.MiraV1,
                     asset_in: assetIdInput(tokenIn.assetId),
@@ -51,18 +60,11 @@ async function main() {
                     receiver: contractIdInput(TestnetData.MIRA_AMM),
                     data: getMiraParams(false),
                 },
-                {
-                    dex_id: DexId.MiraV1,
-                    asset_in: assetIdInput(tokenMid.assetId),
-                    asset_out: assetIdInput(tokenOut.assetId),
-                    receiver: addressInput(wallet.address),
-                    data: getMiraParams(false),
-                }
             ]
         ],
     ]
 
-    const request = await SwapExactInScript.functions.main(
+    const request = await SwapExactOutScript.functions.main(
         path,
         99999999
     ).addContracts(
@@ -72,11 +74,11 @@ async function main() {
     const inputAssets: CoinQuantityLike[] = [
         {
             assetId: tokenIn.assetId,
-            amount: amountIn1 + amountIn1,
-        }
+            amount: amountInMax0 + amountInMax1,
+        },
     ];
     try {
-        const finalRequest = await prepareRequest(wallet, request, 3, inputAssets, [TestnetData.MIRA_AMM])
+        const finalRequest = await prepareRequest(wallet, request, 2, inputAssets, [TestnetData.MIRA_AMM])
         console.log("swap request", finalRequest)
         const tx = await wallet.sendTransaction(finalRequest, { estimateTxDependencies: true })
         await tx.waitForResult()

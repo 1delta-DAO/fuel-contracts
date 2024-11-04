@@ -1,23 +1,19 @@
 import { AbstractAddress, Account, Address, arrayify, AssetId, BN, CoinQuantityLike, concat, ScriptTransactionRequest, sha256, Wallet } from "fuels";
-import { AssetIdInput, ContractIdInput, IdentityInput } from "./typegen/BatchSwapExactInScript";
+import { ContractIdInput, IdentityInput } from "./typegen/BatchSwapExactInScript";
 
 /** This is for contracts as receiver addresses  */
 export function contractIdInput(contractId: string | AbstractAddress): IdentityInput {
-  return { ContractId: { bits:  Address.fromAddressOrString(contractId).toB256() } };
+  return { ContractId: { bits: Address.fromAddressOrString(contractId).toB256() } };
 }
-
 
 /** This is for EOAs as receiver addresses  */
 export function addressInput(address: string | AbstractAddress): IdentityInput {
   return { Address: { bits: Address.fromAddressOrString(address).toB256() } };
 }
 
+/** get a valid assetID input from hex string */
 export function assetIdInput(contractId: string): ContractIdInput {
   return { bits: contractId };
-}
-
-export function assetInput(asset: AssetId): AssetIdInput {
-  return asset;
 }
 
 export function getAssetId(contractId: string, subId: string): AssetId {

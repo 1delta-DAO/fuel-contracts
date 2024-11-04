@@ -2,7 +2,7 @@ use fuels::types::{AssetId, Bytes};
 pub type PoolId = (AssetId, AssetId, bool);
 
 pub fn encode_mira_params(fee: u64, is_stable: bool) -> Bytes {
-    let feeb: [u8; 2] = (fee as u16).to_le_bytes();
+    let feeb: [u8; 2] = (fee as u16).to_be_bytes();
 
     let x: [u8; 3] = if is_stable {
         [

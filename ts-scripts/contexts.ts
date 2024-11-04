@@ -7,7 +7,7 @@ export namespace TestnetData {
 
     export const MIRA_ADD_LIQUIDITY_SCRIPT = "0xf81922cb5fdc213d65b4843140f635cd4d034ea384626c834cbcfec9e10ebd05"
 
-    export const BATCH_SWAP_EXACT_IN = "0x2a731d1089c99dabe0cfe0f5d2ddb03928ea40e9c6c1cce174031024ba036c37"
+    export const BATCH_SWAP_EXACT_IN = "0xc44cfe70ea520a251da0e5a4cfd22f3acc21c406fae15db3d2dff38c707ec5c4"
 
     export const MIRA_AMM ="0x8dca6db9dfaeed9825f547d2b0d609c255a0f516f806ed829474fda8d7dff969"
 

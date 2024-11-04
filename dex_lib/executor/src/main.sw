@@ -269,16 +269,21 @@ pub fn get_mira_params(data: Bytes) -> (u64, bool) {
         Option::Some(v) => v != 0, // check if value is nonzero
         Option::None => false,
     };
-    let fee = u64::from(first_le_bytes_to_u16(data));
+    let fee = u64::from(first_be_bytes_to_u16(data));
     // return parsed fees as u64 and flag
     (fee, is_stable)
 }
+
+////////////////////////////////////////////////////
+// encoding functions (mainly for tests)
+////////////////////////////////////////////////////
+
 
 pub fn encode_mira_params(fee: u16, is_stable: bool) -> Bytes {
     let mut bytes = Bytes::with_capacity(17);
 
     // add fee parameter
-    bytes.append(fee.to_le_bytes());
+    bytes.append(fee.to_be_bytes());
 
     // add boolean parameter
     if is_stable {
@@ -290,6 +295,10 @@ pub fn encode_mira_params(fee: u16, is_stable: bool) -> Bytes {
     bytes
 }
 
+////////////////////////////////////////////////////
+// decoding functions
+////////////////////////////////////////////////////
+
 // custon bytes decoder - read first 2 bytes as u16
 pub fn first_le_bytes_to_u16(bytes: Bytes) -> u16 {
     assert(bytes.len() > 1);
@@ -300,6 +309,19 @@ pub fn first_le_bytes_to_u16(bytes: Bytes) -> u16 {
     asm(a: a, b: b, i: i, r1) {
         sll r1 b i;
         or r1 a r1;
+        r1: u16
+    }
+}
+
+pub fn first_be_bytes_to_u16(bytes: Bytes) -> u16 {
+    assert(bytes.len() > 1);
+    let ptr = bytes.ptr();
+    let a = ptr.read_byte();
+    let b = (ptr.add_uint_offset(1)).read_byte();
+
+    asm(a: a, b: b, i: 0x8, r1) {
+        sll r1 a i;
+        or r1 r1 b;
         r1: u16
     }
 }
@@ -346,6 +368,7 @@ fn test_get_mira_params() {
     let fee0: u16 = 30;
     let is_stable0 = true;
     let data0 = encode_mira_params(fee0, is_stable0);
+    log(data0);
     let (fee0_decoded, is_stable0_decoded) = get_mira_params(data0);
     assert_eq(fee0_decoded, u64::from(fee0));
     assert_eq(is_stable0, is_stable0_decoded);
@@ -357,4 +380,13 @@ fn test_get_mira_params() {
     let (fee1_decoded, is_stable1_decoded) = get_mira_params(data1);
     assert_eq(fee1_decoded, u64::from(fee1));
     assert_eq(is_stable1, is_stable1_decoded);
+
+    // fee as zero
+    let fee2: u16 = 0;
+    let is_stable2 = true;
+
+    let data2 = encode_mira_params(fee2, is_stable2);
+    let (fee2_decoded, is_stable2_decoded) = get_mira_params(data2);
+    assert_eq(fee2_decoded, u64::from(fee2));
+    assert_eq(is_stable2, is_stable2_decoded);
 }

@@ -2,7 +2,7 @@ import { Provider, Wallet } from "fuels";
 import { MNEMONIC } from "../env";
 import { TestnetData } from "../contexts";
 import { MockToken } from "../typegen/MockToken";
-import { contractIdInput } from "../utils";
+import { assetIdInput } from "../utils";
 
 const assetId: string = TestnetData.USDT.assetId
 const amount = "1000000000000000" // 1m in 9 decmals
@@ -13,7 +13,7 @@ async function main() {
 
     const MockTokenContract = new MockToken(TestnetData.MOCK_TOKEN, wallet)
 
-    const tx = await MockTokenContract.functions.mint_tokens(contractIdInput(assetId), amount).call()
+    const tx = await MockTokenContract.functions.mint_tokens(assetIdInput(assetId), amount).call()
     await tx.waitForResult()
     console.log("assetId", assetId)
 }

@@ -1,10 +1,10 @@
 import { BigNumberish, CoinQuantityLike, Provider, Wallet } from "fuels";
 import { TestnetData } from "./contexts";
 import { MNEMONIC } from "./env";
-import { BatchSwapExactInScript, BatchSwapStepInput } from "./typegen/BatchSwapExactInScript";
+import { BatchSwapExactInScript, BatchSwapStepInput, IdentityInput } from "./typegen/BatchSwapExactInScript";
 import { DexId, txParams } from "./utils/constants";
 import { MiraAmmContract } from "./typegen/MiraAmmContract";
-import { addressInput, contractIdInput, prepareRequest } from "./utils";
+import { addressInput, assetIdInput, contractIdInput, prepareRequest } from "./utils";
 import { encodeMiraParams } from "./utils/coder";
 
 async function main() {
@@ -35,8 +35,8 @@ async function main() {
             amountIn0, "1", true, [
                 {
                     dex_id: DexId.MiraV1,
-                    asset_in: contractIdInput(tokenIn.assetId),
-                    asset_out: contractIdInput(tokenOut.assetId),
+                    asset_in: assetIdInput(tokenIn.assetId),
+                    asset_out: assetIdInput(tokenOut.assetId),
                     receiver: addressInput(wallet.address),
                     data: getMiraParams(true),
                 }
@@ -46,15 +46,15 @@ async function main() {
             amountIn1, "1", true, [
                 {
                     dex_id: DexId.MiraV1,
-                    asset_in: contractIdInput(tokenIn.assetId),
-                    asset_out: contractIdInput(tokenMid.assetId),
-                    receiver: addressInput(TestnetData.MIRA_AMM),
+                    asset_in: assetIdInput(tokenIn.assetId),
+                    asset_out: assetIdInput(tokenMid.assetId),
+                    receiver: contractIdInput(TestnetData.MIRA_AMM),
                     data: getMiraParams(false),
                 },
                 {
                     dex_id: DexId.MiraV1,
-                    asset_in: contractIdInput(tokenMid.assetId),
-                    asset_out: contractIdInput(tokenOut.assetId),
+                    asset_in: assetIdInput(tokenMid.assetId),
+                    asset_out: assetIdInput(tokenOut.assetId),
                     receiver: addressInput(wallet.address),
                     data: getMiraParams(false),
                 }
@@ -72,11 +72,19 @@ async function main() {
     const inputAssets: CoinQuantityLike[] = [
         {
             assetId: tokenIn.assetId,
+            amount: amountIn1 + amountIn1,
+        },
+        {
+            assetId: tokenMid.assetId,
+            amount: amountIn1  // + amountIn1,
+        },
+        {
+            assetId: tokenOut.assetId,
             amount: amountIn1  // + amountIn1,
         },
     ];
     try {
-        const finalRequest = await prepareRequest(wallet, request, 2, inputAssets, [TestnetData.MIRA_AMM, TestnetData.MOCK_TOKEN])
+        const finalRequest = await prepareRequest(wallet, request, 3, inputAssets, [TestnetData.MIRA_AMM, TestnetData.MOCK_TOKEN])
         console.log("swap request", finalRequest)
         const tx = await wallet.sendTransaction(finalRequest, { estimateTxDependencies: true })
         await tx.waitForResult()

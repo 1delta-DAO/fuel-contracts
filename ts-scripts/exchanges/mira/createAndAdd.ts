@@ -2,7 +2,7 @@ import { CoinQuantityLike, Provider, Wallet } from "fuels";
 import { MNEMONIC } from "../../env";
 import { TestnetData } from "../../contexts";
 import { CreatePoolAndAddLiquidityScript } from "../../typegen/CreatePoolAndAddLiquidityScript";
-import { addressInput, contractIdInput, getAssetId, getLPAssetId, PoolId, prepareRequest } from "../../utils";
+import { addressInput, assetIdInput, getAssetId, getLPAssetId, PoolId, prepareRequest } from "../../utils";
 import { MiraAmmContract } from "../../typegen/MiraAmmContract";
 import { MockToken } from "../../typegen/MockToken";
 import { txParams } from "../../utils/constants";
@@ -49,9 +49,9 @@ async function main() {
     console.log("lpAsset", lpAsset)
 
     const request = await LiqContract.functions.main(
-        contractIdInput(TestnetData.MOCK_TOKEN),
+        assetIdInput(TestnetData.MOCK_TOKEN),
         subId0!,
-        contractIdInput(TestnetData.MOCK_TOKEN),
+        assetIdInput(TestnetData.MOCK_TOKEN),
         subId1!,
         isStable,
         amount0,

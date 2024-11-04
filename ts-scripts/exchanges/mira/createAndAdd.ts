@@ -7,6 +7,12 @@ import { MiraAmmContract } from "../../typegen/MiraAmmContract";
 import { MockToken } from "../../typegen/MockToken";
 import { txParams } from "../../utils/constants";
 
+const amountA = 3000_000000000n.toString()
+const amountB = 1_000000000n.toString()
+const tokenA = TestnetData.USDT.assetId
+const tokenB = TestnetData.ETH.assetId
+const isStable = false;
+
 async function main() {
     const provider = await Provider.create(TestnetData.RPC);
     const wallet = Wallet.fromMnemonic(MNEMONIC!, undefined, undefined, provider);
@@ -17,14 +23,14 @@ async function main() {
     const miraAmm = new MiraAmmContract(TestnetData.MIRA_AMM, provider)
     const ammFees = (await miraAmm.functions.fees().get()).value
     console.log(ammFees)
-    const amount = "100000000000";
+  
 
     const tokenContract = new MockToken(TestnetData.MOCK_TOKEN, wallet)
 
-    const [token0, token1] = TestnetData.USDC.assetId < TestnetData.USDT.assetId ? [
-        TestnetData.USDC.assetId, TestnetData.USDT.assetId
+    const [token0, token1, amount0, amount1] = tokenA < tokenB ? [
+        tokenA, tokenB, amountA, amountB
     ] : [
-        TestnetData.USDT.assetId, TestnetData.USDC.assetId
+        tokenB, tokenA, amountB, amountA
     ]
 
     const subId0 = (await tokenContract.functions.get_sub_id({ bits: token0 }).get()).value
@@ -37,7 +43,7 @@ async function main() {
     const token1Asset = getAssetId(TestnetData.MOCK_TOKEN, subId1!);
     console.log({ token0Asset, token1Asset })
 
-    const isStable = true
+
     const poolId: PoolId = [token0Asset, token1Asset, isStable]
     const lpAsset = getLPAssetId(TestnetData.MIRA_AMM, poolId)
     console.log("lpAsset", lpAsset)
@@ -48,8 +54,8 @@ async function main() {
         contractIdInput(TestnetData.MOCK_TOKEN),
         subId1!,
         isStable,
-        amount,
-        amount,
+        amount0,
+        amount1,
         addressInput(wallet.address),
         99999999
     ).addContracts(
@@ -59,11 +65,11 @@ async function main() {
     const inputAssets: CoinQuantityLike[] = [
         {
             assetId: token0Asset.bits,
-            amount: amount,
+            amount: amount0,
         },
         {
             assetId: token1Asset.bits,
-            amount: amount,
+            amount: amount1,
         },
     ];
     try {

@@ -4,8 +4,8 @@ import { TestnetData } from "../contexts";
 import { MockToken } from "../typegen/MockToken";
 import { contractIdInput } from "../utils";
 
-const assetId: string = ""
-const amount = "1"
+const assetId: string = TestnetData.USDT.assetId
+const amount = "1000000000000000" // 1m in 9 decmals
 
 async function main() {
     const provider = await Provider.create(TestnetData.RPC);

@@ -1,4 +1,4 @@
-import { CoinQuantityLike, Provider, Wallet } from "fuels";
+import { BigNumberish, CoinQuantityLike, Provider, Wallet } from "fuels";
 import { TestnetData } from "./contexts";
 import { MNEMONIC } from "./env";
 import { BatchSwapExactInScript, BatchSwapStepInput } from "./typegen/BatchSwapExactInScript";
@@ -16,35 +16,54 @@ async function main() {
 
     const miraAmm = new MiraAmmContract(TestnetData.MIRA_AMM, provider)
     const ammFees = (await miraAmm.functions.fees().get()).value
-    console.log(ammFees)
+    console.log(ammFees.map(s => s.toString()))
 
-    const isStable = true
+    const getMiraParams = (isStable: boolean) => isStable ? encodeMiraParams(ammFees[1], true) : encodeMiraParams(ammFees[0], false)
 
-    const fee = isStable ? ammFees[1] : ammFees[0]
 
-    const miraParams = encodeMiraParams(fee, isStable)
-
-    console.log("miraParams", miraParams)
-
-    const amountIn = 10_000000000;
+    const amountIn0 = 14_000000000;
+    const amountIn1 = 6_000000000;
 
     const tokenIn = TestnetData.USDT
     const tokenOut = TestnetData.USDC
+    const tokenMid = TestnetData.ETH
 
-    let swapSteps: BatchSwapStepInput[] = [
-        {
-            dex_id: DexId.MiraV1,
-            asset_in: contractIdInput(tokenIn.assetId),
-            asset_out: contractIdInput(tokenOut.assetId),
-            receiver: addressInput(wallet.address),
-            data: miraParams,
-        }
+    // console.log("getMiraParams(false)", getMiraParams(false))
+
+    const path: [BigNumberish, BigNumberish, boolean, BatchSwapStepInput[]][] = [
+        [
+            amountIn0, "1", true, [
+                {
+                    dex_id: DexId.MiraV1,
+                    asset_in: contractIdInput(tokenIn.assetId),
+                    asset_out: contractIdInput(tokenOut.assetId),
+                    receiver: addressInput(wallet.address),
+                    data: getMiraParams(true),
+                }
+            ]
+        ],
+        [
+            amountIn1, "1", true, [
+                {
+                    dex_id: DexId.MiraV1,
+                    asset_in: contractIdInput(tokenIn.assetId),
+                    asset_out: contractIdInput(tokenMid.assetId),
+                    receiver: addressInput(TestnetData.MIRA_AMM),
+                    data: getMiraParams(false),
+                },
+                {
+                    dex_id: DexId.MiraV1,
+                    asset_in: contractIdInput(tokenMid.assetId),
+                    asset_out: contractIdInput(tokenOut.assetId),
+                    receiver: addressInput(wallet.address),
+                    data: getMiraParams(false),
+                }
+            ]
+        ],
     ]
 
     const request = await SwapExactInScript.functions.main(
-        [
-            [amountIn, "0", true, swapSteps]
-        ],
+        path,
         99999999
     ).addContracts(
         [miraAmm]
@@ -53,11 +72,11 @@ async function main() {
     const inputAssets: CoinQuantityLike[] = [
         {
             assetId: tokenIn.assetId,
-            amount: amountIn,
+            amount: amountIn1  // + amountIn1,
         },
     ];
     try {
-        const finalRequest = await prepareRequest(wallet, request, 1, inputAssets)
+        const finalRequest = await prepareRequest(wallet, request, 2, inputAssets, [TestnetData.MIRA_AMM, TestnetData.MOCK_TOKEN])
         console.log("swap request", finalRequest)
         const tx = await wallet.sendTransaction(finalRequest, { estimateTxDependencies: true })
         await tx.waitForResult()

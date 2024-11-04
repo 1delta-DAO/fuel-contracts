@@ -9,7 +9,7 @@ export namespace TestnetData {
 
     export const BATCH_SWAP_EXACT_IN = "0xc44cfe70ea520a251da0e5a4cfd22f3acc21c406fae15db3d2dff38c707ec5c4"
 
-    export const MIRA_AMM ="0x8dca6db9dfaeed9825f547d2b0d609c255a0f516f806ed829474fda8d7dff969"
+    export const MIRA_AMM = "0x8dca6db9dfaeed9825f547d2b0d609c255a0f516f806ed829474fda8d7dff969"
 
     export const RPC = "https://testnet.fuel.network/v1/graphql"
 
@@ -21,13 +21,28 @@ export namespace TestnetData {
         symbol: 'T_USDT',
         assetId: '0xd32c48692227082c03c4db7d6b51e7f25dca1d83d6f60c2992181baa4ddb09c9'
     }
-    
+
     export const USDC = {
         decimals: 9,
         name: 'Test_USDC',
         symbol: 'T_USDC',
         assetId: '0xb277fee45cb10e7eaa721d0598f83430d87f1d7c50e5d1e672f3fe1dcf32b148'
     }
+
+    export const BTC = {
+        decimals: 9,
+        name: 'Test_BTC',
+        symbol: 'T_BTC',
+        assetId: '0x2fde73c2689a87fa44f2f0f23d6d110e80890ae9939938bffc0989b5b4697601'
+    }
+
+    export const ETH = {
+        decimals: 9,
+        name: 'Test_ETH',
+        symbol: 'T_ETH',
+        assetId: '0xe059c6380d9cd768957ef9081d229e64ae641256f5ec4d98191b8b5cc9b91b72'
+    }
+
 }
 
 // TOKEN_GATEWAY = 0x4ea6ccef1215d9479f1024dff70fc055ca538215d2c8c348beddffd54583d0e8

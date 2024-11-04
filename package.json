@@ -5,7 +5,7 @@
   "scripts": {
     "test": "jest",
     "build": "tsc",
-    "types": "fuels typegen -i scripts/*/out/release/*-abi.json -o ./ts-scripts/typegen --contract & fuels typegen -i fixtures/*/*-abi.json -o ./ts-scripts/typegen --contract"
+    "types": "fuels typegen -i scripts/*/out/release/*-abi.json -o ./ts-scripts/typegen --script & fuels typegen -i fixtures/*/*-abi.json -o ./ts-scripts/typegen --contract"
   },
   "keywords": [],
   "author": "1delta",
@@ -15,9 +15,10 @@
   },
   "devDependencies": {
     "@types/jest": "^29.5.13",
+    "dotenv": "^16.4.5",
     "jest": "^29.7.0",
     "ts-jest": "^29.2.5",
-    "typescript": "^5.6.3",
-    "tsx": "^4.19.2"
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
   }
 }

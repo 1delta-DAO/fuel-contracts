@@ -16,7 +16,7 @@ pub struct BatchSwapStep {
     pub asset_in: AssetId,
     pub asset_out: AssetId,
     pub receiver: Identity,
-    pub data: Option<Bytes>,
+    pub data: Bytes,
 }
 
 pub struct ComputedAmount {
@@ -34,7 +34,6 @@ const MIRA_V1_ID: u64 = 0;
 // Revert error codes
 ////////////////////////////////////////////////////
 const INVALID_DEX: u64 = 1;
-const INVALID_PARAMS: u64 = 50;
 
 ////////////////////////////////////////////////////
 // swap functions - general
@@ -85,10 +84,7 @@ pub fn calculate_amounts_exact_out_and_fund(
     // require(false, current_amount_out);
     // do all steps but the last one
     while true {
-        let (fee, is_stable) = match swap_step.data {
-            Option::Some(v) => get_mira_params(v),
-            Option::None => revert(INVALID_PARAMS),
-        };
+        let (fee, is_stable) = get_mira_params(swap_step.data);
         // calculate input amount
         let (pool_id, amount_in, zero_for_one) = get_mira_amount_in(
             MIRA_AMM_CONTRACT_ID,
@@ -115,7 +111,7 @@ pub fn calculate_amounts_exact_out_and_fund(
             swap_step = current_path.get(i).unwrap();
         };
     };
-    
+
     // check slippage
     require(current_amount_out <= maximum_in, "Exceeding input amount");
     // transfer first funds
@@ -177,10 +173,7 @@ pub fn execute_exact_out_recursive(
     match swap_step.dex_id {
         MIRA_V1_ID => {
             // get parameters
-            let (fee, is_stable) = match swap_step.data {
-                Option::Some(v) => get_mira_params(v),
-                Option::None => revert(INVALID_PARAMS),
-            };
+            let (fee, is_stable) = get_mira_params(swap_step.data);
 
             let (pool_id, amount_in, zero_for_one) = get_mira_amount_in(
                 MIRA_AMM_CONTRACT_ID,
@@ -204,16 +197,16 @@ pub fn execute_exact_out_recursive(
                 //     MIRA_AMM_CONTRACT_ID,
                 // );
             } else {
-                // check slippage
-                require(amount_in <= maximum_in, "Exceeding input amount");
-                // otherwise, we fund the swap
-                transfer(
-                    Identity::ContractId(MIRA_AMM_CONTRACT_ID),
-                    swap_step
-                        .asset_in,
-                    amount_in,
-                );
-            }
+            // check slippage
+            require(amount_in <= maximum_in, "Exceeding input amount");
+            // otherwise, we fund the swap
+            transfer(
+                Identity::ContractId(MIRA_AMM_CONTRACT_ID),
+                swap_step
+                    .asset_in,
+                amount_in,
+            );
+        }
             let (amount0, amount1) = if zero_for_one {
                 (0u64, current_amount_out)
             } else {
@@ -245,14 +238,11 @@ pub fn execute_mira_v1_exact_in(
     asset_in: AssetId,
     asset_out: AssetId,
     receiver: Identity,
-    data: Option<Bytes>,
+    data: Bytes,
     MIRA_AMM_CONTRACT_ID: ContractId,
 ) -> u64 {
     // get parameters
-    let (fee, is_stable) = match data {
-        Option::Some(v) => get_mira_params(v),
-        Option::None => (0, false),
-    };
+    let (fee, is_stable) = get_mira_params(data);
 
     // execute swap
     swap_mira_exact_in(
@@ -267,25 +257,25 @@ pub fn execute_mira_v1_exact_in(
     )
 }
 
-// expect the data of 9 bytes be laid out as follows
-// 8 bytes  - for the fee as u64
+// expect the data of 3 bytes be laid out as follows
+// 2 bytes  - for the fee as u16
 // 1 byte   - for a flag as u8
 pub fn get_mira_params(data: Bytes) -> (u64, bool) {
     // let fee_bytes = Bytes::with_capacity(8);
     // // write to fee_bytes
     // abi_decode_in_place::<u64>(data.ptr(), 8, fee_bytes.ptr());
-    // read 9th byt9 - default to `false` if not provided
-    let is_stable = match data.get(8) {
+    // read 3rd byte - default to `false` if not provided
+    let is_stable = match data.get(2) {
         Option::Some(v) => v != 0, // check if value is nonzero
         Option::None => false,
     };
-    let fee = first_le_bytes_to_u64(data);
+    let fee = u64::from(first_le_bytes_to_u16(data));
     // return parsed fees as u64 and flag
     (fee, is_stable)
 }
 
-pub fn encode_mira_params(fee: u64, is_stable: bool) -> Bytes {
-    let mut bytes = Bytes::with_capacity(65);
+pub fn encode_mira_params(fee: u16, is_stable: bool) -> Bytes {
+    let mut bytes = Bytes::with_capacity(17);
 
     // add fee parameter
     bytes.append(fee.to_le_bytes());
@@ -299,6 +289,21 @@ pub fn encode_mira_params(fee: u64, is_stable: bool) -> Bytes {
 
     bytes
 }
+
+// custon bytes decoder - read first 2 bytes as u16
+pub fn first_le_bytes_to_u16(bytes: Bytes) -> u16 {
+    assert(bytes.len() > 1);
+    let ptr = bytes.ptr();
+    let a = ptr.read_byte();
+    let b = (ptr.add_uint_offset(1)).read_byte();
+    let i = 0x8;
+    asm(a: a, b: b, i: i, r1) {
+        sll r1 b i;
+        or r1 a r1;
+        r1: u16
+    }
+}
+
 // custon bytes decoder - read first 8 bytes as u64
 pub fn first_le_bytes_to_u64(bytes: Bytes) -> u64 {
     // we require at least 8 bytes
@@ -338,19 +343,18 @@ pub fn first_le_bytes_to_u64(bytes: Bytes) -> u64 {
 
 #[test]
 fn test_get_mira_params() {
-    let fee0: u64 = 30;
+    let fee0: u16 = 30;
     let is_stable0 = true;
     let data0 = encode_mira_params(fee0, is_stable0);
     let (fee0_decoded, is_stable0_decoded) = get_mira_params(data0);
-
-    assert_eq(fee0_decoded, fee0);
+    assert_eq(fee0_decoded, u64::from(fee0));
     assert_eq(is_stable0, is_stable0_decoded);
 
-    let fee1: u64 = 213432134;
+    let fee1: u16 = 65533;
     let is_stable1 = false;
 
     let data1 = encode_mira_params(fee1, is_stable1);
     let (fee1_decoded, is_stable1_decoded) = get_mira_params(data1);
-    assert_eq(fee1_decoded, fee1);
+    assert_eq(fee1_decoded, u64::from(fee1));
     assert_eq(is_stable1, is_stable1_decoded);
 }

@@ -42,7 +42,7 @@ async fn exact_out_swap_between_two_volatile_tokens() {
             asset_in: token_0_id,
             asset_out: token_1_id,
             receiver: wallet.address().into(),
-            data: Some(encode_mira_params(swap_fees.0, false)),
+            data: encode_mira_params(swap_fees.0, false),
         }],
     )];
     swap_exact_output_script
@@ -120,14 +120,14 @@ async fn exact_out_swap_between_three_volatile_tokens() {
                 asset_in: token_1_id,
                 asset_out: token_2_id,
                 receiver: wallet.address().into(),
-                data: Some(encode_mira_params(swap_fees.0, false)),
+                data: encode_mira_params(swap_fees.0, false),
             },
             BatchSwapStep {
                 dex_id: 0,
                 asset_in: token_0_id,
                 asset_out: token_1_id,
                 receiver: amm.id.into(),
-                data: Some(encode_mira_params(swap_fees.0, false)),
+                data: encode_mira_params(swap_fees.0, false),
             },
         ],
     )];
@@ -221,14 +221,14 @@ async fn exact_out_swap_split_routes() {
                     asset_in: token_1_id,
                     asset_out: token_2_id,
                     receiver: wallet.address().into(),
-                    data: Some(encode_mira_params(swap_fees.0, false)),
+                    data: encode_mira_params(swap_fees.0, false),
                 },
                 BatchSwapStep {
                     dex_id: 0,
                     asset_in: token_0_id,
                     asset_out: token_1_id,
                     receiver: amm.id.into(),
-                    data: Some(encode_mira_params(swap_fees.0, false)),
+                    data: encode_mira_params(swap_fees.0, false),
                 },
             ],
         ),
@@ -241,7 +241,7 @@ async fn exact_out_swap_split_routes() {
                 asset_in: token_0_id,
                 asset_out: token_2_id,
                 receiver: wallet.address().into(),
-                data: Some(encode_mira_params(swap_fees.0, false)),
+                data: encode_mira_params(swap_fees.0, false),
             }],
         ),
     ];

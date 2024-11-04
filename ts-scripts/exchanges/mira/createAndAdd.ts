@@ -5,11 +5,7 @@ import { CreatePoolAndAddLiquidityScript } from "../../typegen/CreatePoolAndAddL
 import { addressInput, contractIdInput, getAssetId, getLPAssetId, PoolId, prepareRequest } from "../../utils";
 import { MiraAmmContract } from "../../typegen/MiraAmmContract";
 import { MockToken } from "../../typegen/MockToken";
-
-const txParams = {
-    gasLimit: 999_999,
-    maxFee: 999_999,
-};
+import { txParams } from "../../utils/constants";
 
 async function main() {
     const provider = await Provider.create(TestnetData.RPC);

@@ -5,7 +5,9 @@ export namespace TestnetData {
         ETH: '0xf8f8b6283d7fa5b672b530cbb84fcccb4ff8dc40f8176ef4544ddb1f1952ad07'
     }
 
-    export const ADD_LIQUIDITY_SCRIPT = "0xf81922cb5fdc213d65b4843140f635cd4d034ea384626c834cbcfec9e10ebd05"
+    export const MIRA_ADD_LIQUIDITY_SCRIPT = "0xf81922cb5fdc213d65b4843140f635cd4d034ea384626c834cbcfec9e10ebd05"
+
+    export const BATCH_SWAP_EXACT_IN = "0x2a731d1089c99dabe0cfe0f5d2ddb03928ea40e9c6c1cce174031024ba036c37"
 
     export const MIRA_AMM ="0x8dca6db9dfaeed9825f547d2b0d609c255a0f516f806ed829474fda8d7dff969"
 

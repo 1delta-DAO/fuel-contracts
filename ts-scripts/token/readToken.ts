@@ -14,6 +14,14 @@ async function main() {
 
     const tx = await MockTokenContract.functions.symbol(assetIdInput(assetId)).simulate()
     console.log("tx", tx.value)
+
+    const tx2 = await MockTokenContract.multiCall(
+        [
+            MockTokenContract.functions.symbol(assetIdInput(assetId)),
+            MockTokenContract.functions.decimals(assetIdInput(assetId)),
+            MockTokenContract.functions.name(assetIdInput(assetId)),
+        ]).simulate()
+    console.log("tx2", tx2.value)
 }
 
 main()

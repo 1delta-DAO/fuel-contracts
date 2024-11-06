@@ -1,5 +1,5 @@
 import { CoinQuantityLike, Provider, Wallet } from "fuels";
-import { MNEMONIC } from "../../env";
+import { MNEMONIC } from "../../../env";
 import { TestnetData } from "../../contexts";
 import { CreatePoolAndAddLiquidityScript } from "../../typegen/CreatePoolAndAddLiquidityScript";
 import { addressInput, assetIdInput, getAssetId, getLPAssetId, PoolId, prepareRequest } from "../../utils";

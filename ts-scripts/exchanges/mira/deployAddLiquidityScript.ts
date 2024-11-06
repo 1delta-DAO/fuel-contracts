@@ -1,5 +1,5 @@
 import { Provider, Wallet } from "fuels";
-import { MNEMONIC } from "../../env";
+import { MNEMONIC } from "../../../env";
 import { TestnetData } from "../../contexts";
 import { CreatePoolAndAddLiquidityScriptFactory } from "../../typegen/CreatePoolAndAddLiquidityScriptFactory";
 

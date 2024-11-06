@@ -5,13 +5,13 @@
     "moduleResolution": "bundler",
     "declaration": true,
     "sourceMap": true,
-    "rootDir": "./ts-scripts",
+    "rootDir": "./",
     "outDir": "./dist",
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "strict": true,
     "skipLibCheck": true
   },
-  "include": ["ts-scripts"],
+  "include": ["ts-scripts", "ts-scripts/utils", "env.ts"],
   "exclude": ["node_modules"]
 }

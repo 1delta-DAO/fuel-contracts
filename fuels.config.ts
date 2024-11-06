@@ -1,0 +1,13 @@
+import { createConfig } from 'fuels';
+import { PRIVATE_KEY, RPC } from "./env"
+
+export default createConfig({
+  scripts: [
+    "./scripts/batch_swap_exact_in_script",
+    "./scripts/batch_swap_exact_out_script"
+  ],
+  output: './ts-scripts/sway_abis',
+  forcBuildFlags: ['--release'],
+  privateKey: PRIVATE_KEY ?? "0x001",
+  providerUrl: RPC ?? "https://testnet.fuel.network/v1/graphql"
+});

@@ -1,8 +1,8 @@
 import { Provider, Wallet } from "fuels";
-import { MNEMONIC } from "../env";
+import { MNEMONIC } from "../../env";
 import { MainnetData } from "../contexts";
-import { MockToken } from "../typegen/MockToken";
 import { assetIdInput } from "../utils";
+import { MockToken } from "../typegen";
 
 const assetId: string = MainnetData.USDT.address
 

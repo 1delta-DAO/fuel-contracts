@@ -1,7 +1,7 @@
-import { Account, Provider, ScriptTransactionRequest, Wallet } from "fuels";
-import { MNEMONIC } from "../env";
+import { Provider, Wallet } from "fuels";
+import { MNEMONIC } from "../../env";
 import { TestnetData } from "../contexts";
-import { MockToken } from "../typegen/MockToken";
+import { MockToken } from "../typegen";
 
 const TOKEN_INFO = {
     decimals: 9,

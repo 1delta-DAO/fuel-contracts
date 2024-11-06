@@ -3,4 +3,5 @@ target
 node_modules
 dist
 ts-scripts/typegen
+ts-scripts/sway_abis
 .env

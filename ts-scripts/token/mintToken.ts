@@ -1,8 +1,8 @@
 import { Provider, Wallet } from "fuels";
-import { MNEMONIC } from "../env";
+import { MNEMONIC } from "../../env";
 import { TestnetData } from "../contexts";
-import { MockToken } from "../typegen/MockToken";
 import { assetIdInput } from "../utils";
+import { MockToken } from "../typegen";
 
 const assetId: string = TestnetData.USDT.assetId
 const amount = "1000000000000000" // 1m in 9 decmals

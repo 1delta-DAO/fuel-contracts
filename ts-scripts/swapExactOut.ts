@@ -1,17 +1,18 @@
 import { BigNumberish, CoinQuantityLike, Provider, Wallet } from "fuels";
 import { TestnetData } from "./contexts";
-import { MNEMONIC } from "./env";
-import { BatchSwapExactOutScript, BatchSwapStepInput } from "./typegen/BatchSwapExactOutScript";
+import { MNEMONIC } from "../env";
 import { DexId, txParams } from "./utils/constants";
 import { MiraAmmContract } from "./typegen/MiraAmmContract";
 import { addressInput, assetIdInput, contractIdInput, prepareRequest } from "./utils";
 import { encodeMiraParams } from "./utils/coder";
+import { BatchSwapExactOutScriptLoader } from "./sway_abis";
+import { BatchSwapStepInput } from "./sway_abis/scripts/BatchSwapExactInScript";
 
 async function main() {
     const provider = await Provider.create(TestnetData.RPC);
     const wallet = Wallet.fromMnemonic(MNEMONIC!, undefined, undefined, provider);
 
-    const SwapExactOutScript = new BatchSwapExactOutScript(wallet)
+    const SwapExactOutScript = new BatchSwapExactOutScriptLoader(wallet)
     SwapExactOutScript.setConfigurableConstants({ MIRA_AMM_CONTRACT_ID: { bits: TestnetData.MIRA_AMM } })
 
     const miraAmm = new MiraAmmContract(TestnetData.MIRA_AMM, provider)

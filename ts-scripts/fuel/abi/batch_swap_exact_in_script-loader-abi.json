@@ -1,0 +1,256 @@
+{
+  "programType": "script",
+  "specVersion": "1",
+  "encodingVersion": "1",
+  "concreteTypes": [
+    {
+      "type": "()",
+      "concreteTypeId": "2e38e77b22c314a449e91fafed92a43826ac6aa403ae6a8acb6cf58239fbaf5d"
+    },
+    {
+      "type": "(u64, u64, bool, struct std::vec::Vec<struct executor::BatchSwapStep>)",
+      "concreteTypeId": "d92fbce49fc9ac385fdcdbb8bad061913a363bfa83c405e7194625e8a5639f76",
+      "metadataTypeId": 0
+    },
+    {
+      "type": "str",
+      "concreteTypeId": "8c25cb3686462e9a86d2883c5688a22fe738b0bbc85f458d2d2b5f3f667c6d5a"
+    },
+    {
+      "type": "struct std::contract_id::ContractId",
+      "concreteTypeId": "29c10735d33b5159f0c71ee1dbd17b36a3e69e41f00fab0d42e1bd9f428d8a54",
+      "metadataTypeId": 11
+    },
+    {
+      "type": "struct std::vec::Vec<(u64, u64, bool, struct std::vec::Vec<struct executor::BatchSwapStep>)>",
+      "concreteTypeId": "326cc48cff70b2dd19f1f375f4eeacadfd740a765b773399a2a193eae514b3e7",
+      "metadataTypeId": 13,
+      "typeArguments": [
+        "d92fbce49fc9ac385fdcdbb8bad061913a363bfa83c405e7194625e8a5639f76"
+      ]
+    },
+    {
+      "type": "u32",
+      "concreteTypeId": "d7649d428b9ff33d188ecbf38a7e4d8fd167fa01b2e10fe9a8f9308e52f1d7cc"
+    }
+  ],
+  "metadataTypes": [
+    {
+      "type": "(_, _, _, _)",
+      "metadataTypeId": 0,
+      "components": [
+        {
+          "name": "__tuple_element",
+          "typeId": 14
+        },
+        {
+          "name": "__tuple_element",
+          "typeId": 14
+        },
+        {
+          "name": "__tuple_element",
+          "typeId": 2
+        },
+        {
+          "name": "__tuple_element",
+          "typeId": 13,
+          "typeArguments": [
+            {
+              "name": "",
+              "typeId": 6
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "b256",
+      "metadataTypeId": 1
+    },
+    {
+      "type": "bool",
+      "metadataTypeId": 2
+    },
+    {
+      "type": "enum std::identity::Identity",
+      "metadataTypeId": 3,
+      "components": [
+        {
+          "name": "Address",
+          "typeId": 7
+        },
+        {
+          "name": "ContractId",
+          "typeId": 11
+        }
+      ]
+    },
+    {
+      "type": "generic T",
+      "metadataTypeId": 4
+    },
+    {
+      "type": "raw untyped ptr",
+      "metadataTypeId": 5
+    },
+    {
+      "type": "struct executor::BatchSwapStep",
+      "metadataTypeId": 6,
+      "components": [
+        {
+          "name": "dex_id",
+          "typeId": 14
+        },
+        {
+          "name": "asset_in",
+          "typeId": 8
+        },
+        {
+          "name": "asset_out",
+          "typeId": 8
+        },
+        {
+          "name": "receiver",
+          "typeId": 3
+        },
+        {
+          "name": "data",
+          "typeId": 9
+        }
+      ]
+    },
+    {
+      "type": "struct std::address::Address",
+      "metadataTypeId": 7,
+      "components": [
+        {
+          "name": "bits",
+          "typeId": 1
+        }
+      ]
+    },
+    {
+      "type": "struct std::asset_id::AssetId",
+      "metadataTypeId": 8,
+      "components": [
+        {
+          "name": "bits",
+          "typeId": 1
+        }
+      ]
+    },
+    {
+      "type": "struct std::bytes::Bytes",
+      "metadataTypeId": 9,
+      "components": [
+        {
+          "name": "buf",
+          "typeId": 10
+        },
+        {
+          "name": "len",
+          "typeId": 14
+        }
+      ]
+    },
+    {
+      "type": "struct std::bytes::RawBytes",
+      "metadataTypeId": 10,
+      "components": [
+        {
+          "name": "ptr",
+          "typeId": 5
+        },
+        {
+          "name": "cap",
+          "typeId": 14
+        }
+      ]
+    },
+    {
+      "type": "struct std::contract_id::ContractId",
+      "metadataTypeId": 11,
+      "components": [
+        {
+          "name": "bits",
+          "typeId": 1
+        }
+      ]
+    },
+    {
+      "type": "struct std::vec::RawVec",
+      "metadataTypeId": 12,
+      "components": [
+        {
+          "name": "ptr",
+          "typeId": 5
+        },
+        {
+          "name": "cap",
+          "typeId": 14
+        }
+      ],
+      "typeParameters": [
+        4
+      ]
+    },
+    {
+      "type": "struct std::vec::Vec",
+      "metadataTypeId": 13,
+      "components": [
+        {
+          "name": "buf",
+          "typeId": 12,
+          "typeArguments": [
+            {
+              "name": "",
+              "typeId": 4
+            }
+          ]
+        },
+        {
+          "name": "len",
+          "typeId": 14
+        }
+      ],
+      "typeParameters": [
+        4
+      ]
+    },
+    {
+      "type": "u64",
+      "metadataTypeId": 14
+    }
+  ],
+  "functions": [
+    {
+      "inputs": [
+        {
+          "name": "swap_path",
+          "concreteTypeId": "326cc48cff70b2dd19f1f375f4eeacadfd740a765b773399a2a193eae514b3e7"
+        },
+        {
+          "name": "deadline",
+          "concreteTypeId": "d7649d428b9ff33d188ecbf38a7e4d8fd167fa01b2e10fe9a8f9308e52f1d7cc"
+        }
+      ],
+      "name": "main",
+      "output": "2e38e77b22c314a449e91fafed92a43826ac6aa403ae6a8acb6cf58239fbaf5d",
+      "attributes": null
+    }
+  ],
+  "loggedTypes": [
+    {
+      "logId": "10098701174489624218",
+      "concreteTypeId": "8c25cb3686462e9a86d2883c5688a22fe738b0bbc85f458d2d2b5f3f667c6d5a"
+    }
+  ],
+  "messagesTypes": [],
+  "configurables": [
+    {
+      "name": "MIRA_AMM_CONTRACT_ID",
+      "concreteTypeId": "29c10735d33b5159f0c71ee1dbd17b36a3e69e41f00fab0d42e1bd9f428d8a54",
+      "offset": 88
+    }
+  ]
+}

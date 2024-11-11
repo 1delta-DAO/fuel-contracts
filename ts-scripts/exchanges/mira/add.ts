@@ -1,23 +1,23 @@
 import { CoinQuantityLike, Provider, Wallet } from "fuels";
 import { MNEMONIC } from "../../../env";
 import { TestnetData } from "../../contexts";
-import { CreatePoolAndAddLiquidityScript } from "../../typegen/CreatePoolAndAddLiquidityScript";
-import { addressInput, assetIdInput, getAssetId, getLPAssetId, PoolId, prepareRequest } from "../../utils";
+import { AddLiquidityScript } from "../../typegen/AddLiquidityScript";
+import { addressInput, getAssetId, getLPAssetId, PoolId, prepareRequest } from "../../utils";
 import { MiraAmmContract } from "../../typegen/MiraAmmContract";
 import { MockToken } from "../../typegen/MockToken";
 import { txParams } from "../../utils/constants";
 
-const amountA = 3000_000000000n.toString()
-const amountB = 1_000000000n.toString()
-const tokenA = TestnetData.USDC.assetId
-const tokenB = TestnetData.ETH.assetId
+const amountA = 100_000000000n.toString()
+const amountB = 300_000_000000000n.toString()
+const tokenA = TestnetData.ETH.assetId
+const tokenB = TestnetData.USDT.assetId
 const isStable = false;
 
 async function main() {
     const provider = await Provider.create(TestnetData.RPC);
     const wallet = Wallet.fromMnemonic(MNEMONIC!, undefined, undefined, provider);
 
-    const LiqContract = new CreatePoolAndAddLiquidityScript(wallet)
+    const LiqContract = new AddLiquidityScript(wallet)
     LiqContract.setConfigurableConstants({ MIRA_AMM_CONTRACT_ID: { bits: TestnetData.MIRA_AMM } })
 
     const miraAmm = new MiraAmmContract(TestnetData.MIRA_AMM, provider)
@@ -49,13 +49,11 @@ async function main() {
     console.log("lpAsset", lpAsset)
 
     const request = await LiqContract.functions.main(
-        assetIdInput(TestnetData.MOCK_TOKEN),
-        subId0!,
-        assetIdInput(TestnetData.MOCK_TOKEN),
-        subId1!,
-        isStable,
+        poolId,
         amount0,
         amount1,
+        0,
+        0,
         addressInput(wallet.address),
         99999999
     ).addContracts(

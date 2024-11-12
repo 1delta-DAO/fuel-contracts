@@ -3,7 +3,7 @@ export const DEFAULT_MIRA_AMM_CONTRACT_ID =
 
 export const txParams = {
   gasLimit: 999_999,
-  maxFee: 999_999,
+  maxFee: 5000,
 };
 
 

@@ -41,6 +41,7 @@ export namespace TestnetData {
 }
 
 export namespace MainnetData {
+    export const MIRA_AMM_ID = "0x2e40f2b244b98ed6b8204b3de0156c6961f98525c8162f80162fcf53eebd90e7"
 
     export const TOKEN_GATEWAY = "0x4ea6ccef1215d9479f1024dff70fc055ca538215d2c8c348beddffd54583d0e8"
 

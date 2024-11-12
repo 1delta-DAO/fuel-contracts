@@ -23,7 +23,9 @@
     "typescript": "^5.6.3"
   },
   "dependencies": {
-    "@1delta/base-sdk": "^0.0.9",
+    "@1delta/base-sdk": "^0.0.10",
+    "@1delta/pool-sdk": "^0.0.47",
+    "@1delta/calldata-sdk": "^0.0.1",
     "lodash": "^4.17.21"
   }
 }

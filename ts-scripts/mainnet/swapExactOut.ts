@@ -2,7 +2,7 @@ import { Provider, Wallet } from "fuels";
 import { MainnetData } from "../contexts";
 import { MNEMONIC } from "../../env";
 import { prepareRequest } from "../utils";
-import { getSwapExactInScope } from "./calldata";
+import { getSwapExactOutScope } from "./calldata";
 import { TRADE } from "./path";
 import { Percent, TradeType } from "@1delta/base-sdk";
 import { FuelPathConverter } from "@1delta/calldata-sdk";
@@ -12,23 +12,23 @@ async function main() {
 
     const wallet = Wallet.fromMnemonic(MNEMONIC!, undefined, undefined, provider);
 
-    const amountIn0 = 100_000n;
-    const amountIn1 = 100_000n;
+    const maximumAmountIn0 = 100_000n;
+    const maximumAmountIn1 = 100_000n;
 
-    const minimumOut0 = 300_000n;
-    const minimumOut1 = 300_000n;
+    const amountOut0 = 300_000n;
+    const amountOut1 = 300_000n;
 
 
     const deadline = 99999999
 
     const datas = FuelPathConverter.encodeFuelPaths(
-        TRADE(amountIn0, amountIn1, minimumOut0, minimumOut1, TradeType.EXACT_INPUT),
+        TRADE(maximumAmountIn0, maximumAmountIn1, amountOut0, amountOut1, TradeType.EXACT_OUTPUT),
         wallet.address.toAddress(),
         new Percent(3, 1000),
         deadline
     )
 
-    const request = await getSwapExactInScope()
+    const request = await getSwapExactOutScope()
 
     request.scriptData = datas.params
 
@@ -45,8 +45,8 @@ async function main() {
         )
 
         console.log("swap request", finalRequest)
-        const tx = await wallet.simulateTransaction(finalRequest, { estimateTxDependencies: true })
-        // await tx.waitForResult()
+        const tx = await wallet.sendTransaction(finalRequest, { estimateTxDependencies: true })
+        await tx.waitForResult()
         console.log("completed")
     } catch (e: any) {
         console.log(e?.metadata?.receipts)

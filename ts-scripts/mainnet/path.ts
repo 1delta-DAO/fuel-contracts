@@ -98,7 +98,9 @@ export const TRADE = (
         route
     }
     const args = {
-        amount: (amountIn0 + amountIn1).toString(), // 1 ETH
+        amount: tradeType === TradeType.EXACT_INPUT ?
+            (amountIn0 + amountIn1).toString() :
+            (amountOut0 + amountOut1).toString(),
         tokenInAddress: "0xf8f8b6283d7fa5b672b530cbb84fcccb4ff8dc40f8176ef4544ddb1f1952ad07",
         tokenInChainId: -1,
         tokenInDecimals: 9,

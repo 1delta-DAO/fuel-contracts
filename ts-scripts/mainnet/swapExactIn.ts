@@ -12,12 +12,11 @@ async function main() {
 
     const wallet = Wallet.fromMnemonic(MNEMONIC!, undefined, undefined, provider);
 
-    const amountIn0 = 100_000n;
+    const amountIn0 = 100_000n; // 0.0001 ETH
     const amountIn1 = 100_000n;
 
-    const minimumOut0 = 300_000n;
+    const minimumOut0 = 300_000n; // 0.3 USDT
     const minimumOut1 = 300_000n;
-
 
     const deadline = 99999999
 

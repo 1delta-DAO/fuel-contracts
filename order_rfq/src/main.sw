@@ -18,11 +18,15 @@ use std::{asset::transfer, call_frames::msg_asset_id, context::msg_amount,};
 use std::storage::storage_vec::*;
 use std::revert::require;
 
-enum OrderValidationStatus {
-    Valid: (),
+enum Error {
+    None: (),
     InvalidOrderSignature: (),
     InvalidNonce: (),
     Expired: (),
+    InvalidTakerAsset: (),
+    TakerAmountTooHigh: (),
+    MakerInsufficientBalance: (),
+    WithdrawTooMuch: (),
 }
 
 // The storage variables for the contract.
@@ -34,7 +38,6 @@ storage {
 }
 
 impl OneDeltaRfq for Contract {
-
     fn get_order_hash(order: RfqOrder) -> b256 {
         compute_rfq_order_hash(order)
     }
@@ -50,20 +53,20 @@ impl OneDeltaRfq for Contract {
         taker_receiver: Identity,
     ) -> OrderFillReturn {
         // check expiry first
-        require(order.expiry >= height(), "Expired");
+        require(order.expiry >= height(), Error::Expired);
 
         // compute hash
         let order_hash = compute_rfq_order_hash(order);
-        
+
         // get and validate signer
         let signer = recover_signer(order_signature, order_hash);
-        require(signer.bits() == order.maker, "InvalidOrderSignature");
+        require(signer.bits() == order.maker, Error::InvalidOrderSignature);
 
         // get current maker nonce
         let mut current_nonce: u64 = storage.nonces.get(order.maker).get(order.maker_asset).get(order.taker_asset).try_read().unwrap_or(0u64);
 
         // valdiate nonce
-        require(order.nonce >= current_nonce, "InvalidNonce");
+        require(order.nonce >= current_nonce, Error::InvalidNonce);
 
         // increment nonce
         current_nonce += 1;
@@ -79,7 +82,7 @@ impl OneDeltaRfq for Contract {
         require(
             msg_asset_id()
                 .bits() == order.taker_asset,
-            "InvalidTakerAsset",
+            Error::InvalidTakerAsset,
         );
 
         let taker_fill_amount = msg_amount();
@@ -87,7 +90,7 @@ impl OneDeltaRfq for Contract {
         // validate amount sent
         require(
             taker_fill_amount <= order.taker_amount,
-            "TakerAmountTooHigh",
+            Error::TakerAmountTooHigh,
         );
 
         // compute maker fill amount relative to input amount
@@ -99,7 +102,7 @@ impl OneDeltaRfq for Contract {
 
         require(
             maker_maker_asset_balance >= maker_fill_amount,
-            "MakerInsufficientBalance",
+            Error::MakerInsufficientBalance,
         );
 
         // maker_token::maker -> receiver
@@ -153,7 +156,7 @@ impl OneDeltaRfq for Contract {
         let owner = msg_sender().unwrap();
         let mut owner_asset_balance = storage.balances.get(owner.bits()).get(asset).try_read().unwrap_or(0u64);
 
-        require(owner_asset_balance >= amount, "WithdrawTooMuch");
+        require(owner_asset_balance >= amount, Error::WithdrawTooMuch);
 
         owner_asset_balance -= amount;
 
@@ -173,7 +176,7 @@ impl OneDeltaRfq for Contract {
         let mut current_nonce: u64 = storage.nonces.get(owner).get(maker_asset).get(taker_asset).try_read().unwrap_or(0u64);
 
         // valdiate nonce
-        require(new_nonce >= current_nonce, "InvalidNonce");
+        require(new_nonce >= current_nonce, Error::InvalidNonce);
 
         // set new nonce
         storage
@@ -184,15 +187,15 @@ impl OneDeltaRfq for Contract {
     }
 
     #[storage(read)]
-    fn validate_order(order: RfqOrder, order_signature: B512) -> OrderValidationStatus {
+    fn validate_order(order: RfqOrder, order_signature: B512) -> Error {
         if order.expiry < height() {
-            return OrderValidationStatus::Expired;
+            return Error::Expired;
         }
 
         let order_hash = compute_rfq_order_hash(order);
         let signer = recover_signer(order_signature, order_hash);
         if signer.bits() != order.maker {
-            return OrderValidationStatus::InvalidOrderSignature;
+            return Error::InvalidOrderSignature;
         }
 
         // get current maker nonce
@@ -200,10 +203,10 @@ impl OneDeltaRfq for Contract {
 
         // valdiate nonce
         if order.nonce < current_nonce {
-            return OrderValidationStatus::InvalidNonce;
+            return Error::InvalidNonce;
         }
 
-        return OrderValidationStatus::Valid;
+        return Error::None;
     }
 
     fn get_signer_of_order(order: RfqOrder, order_signature: B512) -> b256 {
@@ -250,7 +253,7 @@ abi OneDeltaRfq {
     fn invalidate_nonce(maker_asset: b256, taker_asset: b256, new_nonce: u64);
 
     #[storage(read)]
-    fn validate_order(order: RfqOrder, order_signature: B512) -> OrderValidationStatus;
+    fn validate_order(order: RfqOrder, order_signature: B512) -> Error;
 
     fn recover_signer(signature: B512, msg_hash: b256) -> Address;
 

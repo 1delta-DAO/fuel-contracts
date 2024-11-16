@@ -7,11 +7,32 @@ import { describe, test, expect } from 'vitest';
  *
  * Can't find these imports? Make sure you've run `fuels build` to generate these with typegen.
  */
-import { OrderValidationStatusInput, RfqOrderInput } from '../ts-scripts/typegen/OrderRfq';
+import { OrderRfq, ErrorInput, RfqOrderInput } from '../ts-scripts/typegen/OrderRfq';
 import { OrderRfqFactory } from '../ts-scripts/typegen/OrderRfqFactory';
-import { concatBytes, hashMessage, Signer, toBytes } from 'fuels';
+import { concatBytes, hashMessage, Signer, toBytes, WalletUnlocked } from 'fuels';
+import { MockTokenFactory } from '../ts-scripts/typegen/MockTokenFactory';
 
 const MAX_EXPIRY = 4_294_967_295
+
+async function fixture(deployer: WalletUnlocked) {
+
+  const deployTokenTx = await MockTokenFactory.deploy(deployer)
+
+  const { contract: tokens } = await deployTokenTx.waitForResult()
+
+  const deployRfqTx = await OrderRfqFactory.deploy(deployer)
+
+  const { contract: rfqOrders } = await deployRfqTx.waitForResult()
+
+  return {
+    tokens,
+    rfqOrders
+  }
+}
+
+function getRfqOrders(signer: WalletUnlocked, orderAddr: string) {
+  return new OrderRfq(orderAddr, signer)
+}
 
 /**
  * Contract Testing
@@ -30,29 +51,27 @@ describe('RFQ Orders', () => {
 
     // We can now destructure the contract from the launched object.
     const {
-      wallets: [user]
+      wallets: [maker, deployer, taker]
     } = launched;
 
-    const deployTx = await OrderRfqFactory.deploy(user)
-
-    const { contract } = await deployTx.waitForResult()
+    const { rfqOrders } = await fixture(deployer)
 
     const order: RfqOrderInput = {
-      maker_asset: user.address.toB256(),
-      taker_asset: user.address.toB256(),
+      maker_asset: maker.address.toB256(),
+      taker_asset: maker.address.toB256(),
       maker_amount: 10000,
       taker_amount: 10000,
-      maker: user.address.toB256(),
+      maker: maker.address.toB256(),
       nonce: '0',
       expiry: MAX_EXPIRY,
     }
 
     // We can now call the contract functions and test the results. Lets assert the initial value of the counter.
-    const { waitForResult: initWaitForResult } = await contract.functions.get_order_hash(order).call();
+    const { waitForResult: initWaitForResult } = await rfqOrders.functions.get_order_hash(order).call();
     const { value: order_hash_on_chain } = await initWaitForResult();
 
     // We can now call the contract functions and test the results. Lets assert the initial value of the counter.
-    const { waitForResult: initWaitForResultBytes } = await contract.functions.pack_order(order).call();
+    const { waitForResult: initWaitForResultBytes } = await rfqOrders.functions.pack_order(order).call();
     const { value: order_packed_on_chain } = await initWaitForResultBytes();
 
 
@@ -74,20 +93,20 @@ describe('RFQ Orders', () => {
     expect(hashMessage(data as any)).toBe(order_hash_on_chain);
 
 
-    const signatureRaw = await user.signMessage(order_hash_on_chain)
+    const signatureRaw = await maker.signMessage(order_hash_on_chain)
     console.log("sig", signatureRaw)
 
     const recoveredAddress = Signer.recoverAddress(order_hash_on_chain, signatureRaw);
     console.log("TS SDK EC Recover: ", recoveredAddress.toB256())
 
-    const { waitForResult: checkSig } = await contract.functions.recover_signer(
+    const { waitForResult: checkSig } = await rfqOrders.functions.recover_signer(
       signatureRaw,
       hashMessage(order_hash_on_chain)
     ).call()
     const { value: signerOfHash } = await checkSig()
-    console.log("gotten signer", signerOfHash, user.address.toB256())
+    console.log("gotten signer", signerOfHash, maker.address.toB256())
 
-    expect(signerOfHash.bits).to.equal(user.address.toB256())
+    expect(signerOfHash.bits).to.equal(maker.address.toB256())
 
   });
 
@@ -99,32 +118,32 @@ describe('RFQ Orders', () => {
 
     // We can now destructure the contract from the launched object.
     const {
-      wallets: [user]
+      wallets: [maker, deployer, taker]
     } = launched;
 
-    const deployTx = await OrderRfqFactory.deploy(user)
 
-    const { contract } = await deployTx.waitForResult()
+    const { rfqOrders } = await fixture(deployer)
 
     const order: RfqOrderInput = {
-      maker_asset: user.address.toB256(),
-      taker_asset: user.address.toB256(),
+      maker_asset: maker.address.toB256(),
+      taker_asset: maker.address.toB256(),
       maker_amount: 10000,
       taker_amount: 10000,
-      maker: user.address.toB256(),
+      maker: maker.address.toB256(),
       nonce: '0',
       expiry: MAX_EXPIRY,
     }
 
-    const signatureRaw = await user.signMessage(packOrder(order))
+    const signatureRaw = await maker.signMessage(packOrder(order))
 
-    const { waitForResult: getStatus } = await contract.functions.validate_order(
+    const { waitForResult: getStatus } = await rfqOrders.functions.validate_order(
       order,
       signatureRaw
-    ).call()
+    ).addSigners(maker).call()
+
     const { value: status } = await getStatus()
 
-    expect(status).to.equal(OrderValidationStatusInput.Valid)
+    expect(status).to.equal(ErrorInput.None)
 
   });
 
@@ -137,32 +156,31 @@ describe('RFQ Orders', () => {
 
     // We can now destructure the contract from the launched object.
     const {
-      wallets: [user]
+      wallets: [maker, deployer, taker]
     } = launched;
 
-    const deployTx = await OrderRfqFactory.deploy(user)
 
-    const { contract } = await deployTx.waitForResult()
+    const { rfqOrders } = await fixture(deployer)
 
     const order: RfqOrderInput = {
-      maker_asset: user.address.toB256(),
-      taker_asset: user.address.toB256(),
+      maker_asset: maker.address.toB256(),
+      taker_asset: maker.address.toB256(),
       maker_amount: 10000,
       taker_amount: 10000,
-      maker: user.address.toB256(),
+      maker: maker.address.toB256(),
       nonce: '0',
       expiry: 0,
     }
 
-    const signatureRaw = await user.signMessage(packOrder(order))
+    const signatureRaw = await maker.signMessage(packOrder(order))
 
-    const { waitForResult: getStatus } = await contract.functions.validate_order(
+    const { waitForResult: getStatus } = await rfqOrders.functions.validate_order(
       order,
       signatureRaw
     ).call()
     const { value: status } = await getStatus()
 
-    expect(status).to.equal(OrderValidationStatusInput.Expired)
+    expect(status).to.equal(ErrorInput.Expired)
 
   });
 
@@ -174,38 +192,38 @@ describe('RFQ Orders', () => {
 
     // We can now destructure the contract from the launched object.
     const {
-      wallets: [user]
+      wallets: [maker, deployer, taker]
     } = launched;
 
-    const deployTx = await OrderRfqFactory.deploy(user)
 
-    const { contract } = await deployTx.waitForResult()
+    const { rfqOrders } = await fixture(deployer)
 
     const order: RfqOrderInput = {
-      maker_asset: user.address.toB256(),
-      taker_asset: user.address.toB256(),
+      maker_asset: maker.address.toB256(),
+      taker_asset: maker.address.toB256(),
       maker_amount: 10000,
       taker_amount: 10000,
-      maker: user.address.toB256(),
+      maker: maker.address.toB256(),
       nonce: '0',
       expiry: MAX_EXPIRY,
     }
 
-    const signatureRaw = await user.signMessage(packOrder(order))
+    const signatureRaw = await maker.signMessage(packOrder(order))
 
-     await contract.functions.invalidate_nonce(
+    await getRfqOrders(maker, rfqOrders.id.toB256()).functions.invalidate_nonce(
       order.maker_asset,
       order.taker_asset,
       1
     ).call()
 
-    const { waitForResult: getStatus } = await contract.functions.validate_order(
+    const { waitForResult: getStatus } = await rfqOrders.functions.validate_order(
       order,
       signatureRaw
     ).call()
+
     const { value: status } = await getStatus()
 
-    expect(status).to.equal(OrderValidationStatusInput.InvalidNonce)
+    expect(status).to.equal(ErrorInput.InvalidNonce)
 
   });
 });

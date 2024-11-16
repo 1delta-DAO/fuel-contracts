@@ -13,15 +13,21 @@ use order_utils::{
         RfqOrder,
     },
 };
-
-use std::block::height;
-use std::{b512::B512,};
-use std::hash::*;
-use std::bytes::Bytes;
-use std::{asset::transfer, call_frames::msg_asset_id, context::{msg_amount, this_balance},};
-use std::storage::storage_vec::*;
-use std::revert::require;
 use sway_libs::reentrancy::reentrancy_guard;
+use std::{
+    asset::transfer,
+    b512::B512,
+    block::height,
+    bytes::Bytes,
+    call_frames::msg_asset_id,
+    context::{
+        msg_amount,
+        this_balance,
+    },
+    hash::*,
+    revert::require,
+    storage::storage_vec::*,
+};
 
 storage {
     // maker -> maker_asset -> taker_asset -> nonce_value
@@ -110,7 +116,7 @@ impl OneDeltaRfq for Contract {
         let maker_taker_asset_balance = storage.maker_balances.get(order.maker).get(order.taker_asset).try_read().unwrap_or(0u64);
         let maker_maker_asset_balance = storage.maker_balances.get(order.maker).get(order.maker_asset).try_read().unwrap_or(0u64);
 
-        // make sure that the maker amount is nonzero
+        // make sure that the maker has enough balance
         require(
             maker_fill_amount <= maker_maker_asset_balance,
             Error::MakerBalanceTooLow,
@@ -127,6 +133,7 @@ impl OneDeltaRfq for Contract {
             maker_fill_amount,
         );
 
+        // update accounting state
         update_internal_balances(
             order.maker_asset,
             order.taker_asset,
@@ -218,6 +225,7 @@ impl OneDeltaRfq for Contract {
         // the fill amount is derived by the received amount
         let (taker_asset_balance, taker_fill_amount_received) = get_amount_delta(order.taker_asset, taker_fill_amount);
 
+        // update accounting state
         update_internal_balances(
             order.maker_asset,
             order.taker_asset,

@@ -173,6 +173,38 @@ describe('RFQ Orders', () => {
 
     });
 
+    test('Disallow manipulated order', async () => {1
+      const launched = await launchTestNode();
+
+      const {
+        wallets: [maker, deployer, taker]
+      } = launched;
+
+      const { rfqOrders } = await fixture(deployer)
+
+      let order: RfqOrderInput = {
+        maker_asset: maker.address.toB256(),
+        taker_asset: maker.address.toB256(),
+        maker_amount: 10000,
+        taker_amount: 10000,
+        maker: maker.address.toB256(),
+        nonce: '0',
+        expiry: MAX_EXPIRY,
+      }
+
+      const signatureRaw = await maker.signMessage(packOrder(order))
+
+      order.maker_amount = getRandomAmount()
+
+      const result = await rfqOrders.functions.validate_order(
+        order,
+        signatureRaw
+      ).simulate()
+
+      expect(result.value).to.equal(ErrorInput.InvalidOrderSignature)
+
+    });
+
     test('Respects expiry', async () => {
 
       const launched = await launchTestNode();

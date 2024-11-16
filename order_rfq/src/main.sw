@@ -34,7 +34,7 @@ storage {
     // maker -> maker_asset -> taker_asset -> nonce_value
     nonces: StorageMap<b256, StorageMap<b256, StorageMap<b256, u64>>> = StorageMap {},
     // owner -> assetId -> balance
-    balances: StorageMap<b256, StorageMap<b256, u64>> = StorageMap {},
+    maker_balances: StorageMap<b256, StorageMap<b256, u64>> = StorageMap {},
 }
 
 impl OneDeltaRfq for Contract {
@@ -96,9 +96,9 @@ impl OneDeltaRfq for Contract {
         // compute maker fill amount relative to input amount
         let maker_fill_amount = taker_fill_amount * order.maker_amount / order.taker_amount;
 
-        // get stored balances
-        let mut maker_taker_asset_balance = storage.balances.get(order.maker).get(order.taker_asset).try_read().unwrap_or(0u64);
-        let mut maker_maker_asset_balance = storage.balances.get(order.maker).get(order.maker_asset).try_read().unwrap_or(0u64);
+        // get stored maker_balances
+        let mut maker_taker_asset_balance = storage.maker_balances.get(order.maker).get(order.taker_asset).try_read().unwrap_or(0u64);
+        let mut maker_maker_asset_balance = storage.maker_balances.get(order.maker).get(order.maker_asset).try_read().unwrap_or(0u64);
 
         require(
             maker_maker_asset_balance >= maker_fill_amount,
@@ -117,13 +117,13 @@ impl OneDeltaRfq for Contract {
         // decrement maker balance by maker amount
         maker_maker_asset_balance -= maker_fill_amount;
 
-        // update balances
+        // update maker_balances
         storage
-            .balances
+            .maker_balances
             .get(order.maker)
             .insert(order.taker_asset, maker_taker_asset_balance);
         storage
-            .balances
+            .maker_balances
             .get(order.maker)
             .insert(order.maker_asset, maker_maker_asset_balance);
 
@@ -141,12 +141,12 @@ impl OneDeltaRfq for Contract {
         let deposit_amount = msg_amount();
 
         let owner = msg_sender().unwrap().bits();
-        let mut owner_asset_balance = storage.balances.get(owner).get(asset).try_read().unwrap_or(0u64);
+        let mut owner_asset_balance = storage.maker_balances.get(owner).get(asset).try_read().unwrap_or(0u64);
 
         owner_asset_balance += deposit_amount;
 
         storage
-            .balances
+            .maker_balances
             .get(owner)
             .insert(asset, owner_asset_balance);
     }
@@ -154,14 +154,14 @@ impl OneDeltaRfq for Contract {
     #[storage(write, read)]
     fn withdraw(asset: b256, amount: u64) {
         let owner = msg_sender().unwrap();
-        let mut owner_asset_balance = storage.balances.get(owner.bits()).get(asset).try_read().unwrap_or(0u64);
+        let mut owner_asset_balance = storage.maker_balances.get(owner.bits()).get(asset).try_read().unwrap_or(0u64);
 
         require(owner_asset_balance >= amount, Error::WithdrawTooMuch);
 
         owner_asset_balance -= amount;
 
         storage
-            .balances
+            .maker_balances
             .get(owner.bits())
             .insert(asset, owner_asset_balance);
 
@@ -226,7 +226,7 @@ impl OneDeltaRfq for Contract {
 
     #[storage(read)]
     fn get_balance(maker: b256, asset: b256) -> u64 {
-        storage.balances.get(maker).get(asset).try_read().unwrap_or(0u64)
+        storage.maker_balances.get(maker).get(asset).try_read().unwrap_or(0u64)
     }
 }
 

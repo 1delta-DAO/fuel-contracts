@@ -5,8 +5,7 @@ import { OrderRfqFactory } from '../ts-scripts/typegen/OrderRfqFactory';
 import { concatBytes, Contract, hashMessage, Signer, toBytes, WalletUnlocked } from 'fuels';
 import { MockTokenFactory } from '../ts-scripts/typegen/MockTokenFactory';
 import { MockToken } from '../ts-scripts/typegen';
-import { addressInput, assetIdInput, contractIdInput } from '../ts-scripts/utils';
-import { get } from 'lodash';
+import { addressInput, assetIdInput } from '../ts-scripts/utils';
 
 const MAX_EXPIRY = 4_294_967_295
 
@@ -113,7 +112,7 @@ function packOrder(order: RfqOrderInput) {
 async function getMakerBalances(maker: string, assets: string[], rfq: OrderRfq) {
   let bal: number[] = []
   for (let assetId of assets) {
-    const result = await rfq.functions.get_balance(maker, assetId).simulate()
+    const result = await rfq.functions.get_maker_balance(maker, assetId).simulate()
     bal.push(result.value.toNumber())
   }
 
@@ -131,7 +130,7 @@ async function getConventionalBalances(u: WalletUnlocked, assets: string[]) {
 
 describe('RFQ Orders', () => {
 
-  test('Hash and recover signature', async () => {
+  test('Order Hash', async () => {
 
     const launched = await launchTestNode();
 
@@ -151,40 +150,11 @@ describe('RFQ Orders', () => {
       expiry: MAX_EXPIRY,
     }
 
-    // We can now call the contract functions and test the results. Lets assert the initial value of the counter.
-    const { waitForResult: initWaitForResult } = await rfqOrders.functions.get_order_hash(order).call();
-    const { value: order_hash_on_chain } = await initWaitForResult();
-
-    // We can now call the contract functions and test the results. Lets assert the initial value of the counter.
-    const { waitForResult: initWaitForResultBytes } = await rfqOrders.functions.pack_order(order).call();
-    const { value: order_packed_on_chain } = await initWaitForResultBytes();
-
+    const result = await rfqOrders.functions.get_order_hash(order).simulate();
 
     const data = packOrder(order)
 
-    console.log("orderBytes-actual", hex(order_packed_on_chain))
-    console.log("orderBytes-manual", hex(data))
-    console.log("------------------")
-    console.log("hash      ", order_hash_on_chain)
-    console.log("off-chain ", hashMessage(data as any))
-    expect(hashMessage(data as any)).toBe(order_hash_on_chain);
-
-
-    const signatureRaw = await maker.signMessage(order_hash_on_chain)
-    console.log("sig", signatureRaw)
-
-    const recoveredAddress = Signer.recoverAddress(order_hash_on_chain, signatureRaw);
-    console.log("TS SDK EC Recover: ", recoveredAddress.toB256())
-
-    const { waitForResult: checkSig } = await rfqOrders.functions.recover_signer(
-      signatureRaw,
-      hashMessage(order_hash_on_chain)
-    ).call()
-    const { value: signerOfHash } = await checkSig()
-    console.log("gotten signer", signerOfHash, maker.address.toB256())
-
-    expect(signerOfHash.bits).to.equal(maker.address.toB256())
-
+    expect(hashMessage(data as any)).toBe(result.value);
   });
 
   test('Recover and validate order on signer', async () => {
@@ -316,7 +286,7 @@ describe('RFQ Orders', () => {
       .call()
 
 
-    const balance = await rfqOrders.functions.get_balance(maker.address.toB256(), maker_asset).simulate()
+    const balance = await rfqOrders.functions.get_maker_balance(maker.address.toB256(), maker_asset).simulate()
 
     const balanceReceived = balance.value
     expect(balanceReceived.toNumber()).to.equal(deposit_amount)

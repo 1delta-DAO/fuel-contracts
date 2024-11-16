@@ -1,5 +1,6 @@
 library;
 
+// definition of the rfq order
 pub struct RfqOrder {
     pub maker_asset: b256,
     pub taker_asset: b256,
@@ -10,20 +11,24 @@ pub struct RfqOrder {
     pub expiry: u32,
 }
 
-pub struct OrderFillReturn {
-    pub taker_fill_amount: u64,
+// we log the hash and the funds exchanged
+pub struct OrderFillEvent {
+    pub order_hash: b256,
     pub maker_fill_amount: u64,
+    pub taker_fill_amount: u64,
 }
 
 // errors
 pub enum Error {
-    OrderNotDefined: (),
-    OrderReenter: (),
-    TryToFillMoreThanRequired: (),
-    SentAssetIdDoesNotMatchMakerToken: (),
-    SentAssetAmountDoesNotMatchFillAmount: (),
-    InsufficientTakerTokensReceivedFromCallback: (),
-    OnlySettlementCanInteract: (),
-    AlreadyIntitialized: (),
-    MakerHasNotEnoughFunds: (),
+    None: (),
+    InvalidOrderSignature: (),
+    InvalidNonce: (),
+    Expired: (),
+    InvalidTakerAsset: (),
+    TakerAmountTooHigh: (),
+    InsufficientTakerAmountReceived: (),
+    MakerBalanceTooLow: (),
+    MakerInsufficientBalance: (),
+    WithdrawTooMuch: (),
+    NothingReceived: (),
 }

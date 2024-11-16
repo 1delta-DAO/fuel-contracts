@@ -1,12 +1,12 @@
 contract;
 
 use order_utils::{
+    compute_maker_fill_amount,
     compute_rfq_order_hash,
-    compute_taker_fill_amount,
-    pack_rfq_order,
-    recover_signer,
     IRfqFlashCallback,
     OneDeltaRfq,
+    pack_rfq_order,
+    recover_signer,
     structs::{
         Error,
         OrderFillEvent,
@@ -104,7 +104,7 @@ impl OneDeltaRfq for Contract {
         );
 
         // compute maker fill amount relative to input amount
-        let maker_fill_amount = compute_taker_fill_amount(taker_fill_amount, order.maker_amount, order.taker_amount);
+        let maker_fill_amount = compute_maker_fill_amount(taker_fill_amount, order.maker_amount, order.taker_amount);
 
         // get stored maker_balances
         let maker_taker_asset_balance = storage.maker_balances.get(order.maker).get(order.taker_asset).try_read().unwrap_or(0u64);
@@ -139,11 +139,14 @@ impl OneDeltaRfq for Contract {
             order.maker,
         );
 
+        // log the fill info and hash
         log(OrderFillEvent {
             order_hash,
             maker_fill_amount,
             taker_fill_amount,
         });
+
+        // return filled amounts
         (taker_fill_amount, maker_fill_amount)
     }
 
@@ -181,7 +184,7 @@ impl OneDeltaRfq for Contract {
         let maker_asset_balance = storage.balances.get(order.maker_asset).try_read().unwrap_or(0u64);
 
         // compute makerfill amount relative to input amount
-        let maker_fill_amount = compute_taker_fill_amount(taker_fill_amount, order.maker_amount, order.taker_amount);
+        let maker_fill_amount = compute_maker_fill_amount(taker_fill_amount, order.maker_amount, order.taker_amount);
 
         // make sure that the maker amount is nonzero
         require(
@@ -227,11 +230,14 @@ impl OneDeltaRfq for Contract {
             order.maker,
         );
 
+        // log the fill info and hash
         log(OrderFillEvent {
             order_hash,
             taker_fill_amount: taker_fill_amount_received,
             maker_fill_amount,
         });
+
+        // return filled amounts
         (taker_fill_amount_received, maker_fill_amount)
     }
 
@@ -277,10 +283,13 @@ impl OneDeltaRfq for Contract {
             .get(owner.bits())
             .insert(asset, owner_asset_balance);
 
-        let balance_before = this_balance(AssetId::from(asset));
+        // we sync the overall balance by 
+        let total_balance_before = storage.balances.get(asset).try_read().unwrap_or(0u64);
 
         // update total balance
-        storage.balances.insert(asset, balance_before - amount);
+        storage
+            .balances
+            .insert(asset, total_balance_before - amount);
 
         // asset -> owner
         transfer(owner, AssetId::from(asset), amount);
@@ -346,8 +355,7 @@ impl OneDeltaRfq for Contract {
     #[storage(read)]
     fn get_balance(asset: b256) -> u64 {
         storage.balances.get(asset).try_read().unwrap_or(0u64)
-    }
- /** Helper functions to validate behavior using on-chain data */
+    } /** Helper functions to validate behavior using on-chain data */
 
     // Gets the signer of an Rfq Order given a signature
     fn get_signer_of_order(order: RfqOrder, order_signature: B512) -> b256 {

@@ -4,7 +4,7 @@ pub mod structs;
 use std::{b512::B512,};
 use std::bytes::Bytes;
 use std::hash::*;
-use structs::{ RfqOrder, Error,};
+use structs::{RfqOrder, Error,};
 use std::{
     bytes_conversions::b256::*,
     bytes_conversions::u64::*,
@@ -55,7 +55,7 @@ pub fn pack_rfq_order(order: RfqOrder) -> Bytes {
 }
 
 // computes the maker amount relative to the rates given in the order and taker amount
-pub fn compute_taker_fill_amount(taker_fill_amount:u64, maker_amount:u64, taker_amount:u64) -> u64 {
+pub fn compute_maker_fill_amount(taker_fill_amount:u64, maker_amount:u64, taker_amount:u64) -> u64 {
     taker_fill_amount * maker_amount / taker_amount
 }
 

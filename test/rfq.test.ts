@@ -11,6 +11,8 @@ import { OrderValidationStatusInput, RfqOrderInput } from '../ts-scripts/typegen
 import { OrderRfqFactory } from '../ts-scripts/typegen/OrderRfqFactory';
 import { concatBytes, hashMessage, Signer, toBytes } from 'fuels';
 
+const MAX_EXPIRY = 4_294_967_295
+
 /**
  * Contract Testing
  * 
@@ -42,7 +44,7 @@ describe('RFQ Orders', () => {
       taker_amount: 10000,
       maker: user.address.toB256(),
       nonce: '0',
-      expriy: '0',
+      expiry: MAX_EXPIRY,
     }
 
     // We can now call the contract functions and test the results. Lets assert the initial value of the counter.
@@ -61,7 +63,7 @@ describe('RFQ Orders', () => {
       toBytes(order.taker_amount, 8),
       toBytes(order.maker, 32),
       toBytes(order.nonce, 8),
-      toBytes(order.expriy, 8),
+      toBytes(order.expiry, 4),
     ])
 
     console.log("orderBytes-actual", hex(order_packed_on_chain))
@@ -111,7 +113,7 @@ describe('RFQ Orders', () => {
       taker_amount: 10000,
       maker: user.address.toB256(),
       nonce: '0',
-      expriy: '0',
+      expiry: MAX_EXPIRY,
     }
 
     const signatureRaw = await user.signMessage(packOrder(order))
@@ -123,6 +125,87 @@ describe('RFQ Orders', () => {
     const { value: status } = await getStatus()
 
     expect(status).to.equal(OrderValidationStatusInput.Valid)
+
+  });
+
+
+  test('Respects expiry', async () => {
+
+    // First, we'll launch a test node, passing the contract factory and bytecode. This will deploy the contract
+    // to our test node so we can test against it.
+    const launched = await launchTestNode();
+
+    // We can now destructure the contract from the launched object.
+    const {
+      wallets: [user]
+    } = launched;
+
+    const deployTx = await OrderRfqFactory.deploy(user)
+
+    const { contract } = await deployTx.waitForResult()
+
+    const order: RfqOrderInput = {
+      maker_asset: user.address.toB256(),
+      taker_asset: user.address.toB256(),
+      maker_amount: 10000,
+      taker_amount: 10000,
+      maker: user.address.toB256(),
+      nonce: '0',
+      expiry: 0,
+    }
+
+    const signatureRaw = await user.signMessage(packOrder(order))
+
+    const { waitForResult: getStatus } = await contract.functions.validate_order(
+      order,
+      signatureRaw
+    ).call()
+    const { value: status } = await getStatus()
+
+    expect(status).to.equal(OrderValidationStatusInput.Expired)
+
+  });
+
+  test('Respects invalidation of order', async () => {
+
+    // First, we'll launch a test node, passing the contract factory and bytecode. This will deploy the contract
+    // to our test node so we can test against it.
+    const launched = await launchTestNode();
+
+    // We can now destructure the contract from the launched object.
+    const {
+      wallets: [user]
+    } = launched;
+
+    const deployTx = await OrderRfqFactory.deploy(user)
+
+    const { contract } = await deployTx.waitForResult()
+
+    const order: RfqOrderInput = {
+      maker_asset: user.address.toB256(),
+      taker_asset: user.address.toB256(),
+      maker_amount: 10000,
+      taker_amount: 10000,
+      maker: user.address.toB256(),
+      nonce: '0',
+      expiry: MAX_EXPIRY,
+    }
+
+    const signatureRaw = await user.signMessage(packOrder(order))
+
+     await contract.functions.invalidate_nonce(
+      order.maker_asset,
+      order.taker_asset,
+      1
+    ).call()
+
+    const { waitForResult: getStatus } = await contract.functions.validate_order(
+      order,
+      signatureRaw
+    ).call()
+    const { value: status } = await getStatus()
+
+    expect(status).to.equal(OrderValidationStatusInput.InvalidNonce)
 
   });
 });
@@ -154,6 +237,6 @@ function packOrder(order: RfqOrderInput) {
     toBytes(order.taker_amount, 8),
     toBytes(order.maker, 32),
     toBytes(order.nonce, 8),
-    toBytes(order.expriy, 8),
+    toBytes(order.expiry, 4),
   ]) as any
 }

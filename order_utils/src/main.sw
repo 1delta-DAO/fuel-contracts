@@ -8,8 +8,7 @@ use structs::{ OrderFillReturn, RfqOrder};
 use std::{
     bytes_conversions::b256::*,
     bytes_conversions::u64::*,
-    primitive_conversions::b256::*,
-    primitive_conversions::u64::*,
+    bytes_conversions::u32::*,
 };
 
 use std::{ecr::{ec_recover, ec_recover_address, EcRecoverError}};
@@ -42,7 +41,7 @@ pub fn pack_rfq_order(order: RfqOrder) -> Bytes {
     encoded_order.append(order.taker_amount.to_be_bytes());
     encoded_order.append(order.maker.to_be_bytes());
     encoded_order.append(order.nonce.to_be_bytes());
-    encoded_order.append(order.expriy.to_be_bytes());
+    encoded_order.append(order.expiry.to_be_bytes());
 
     encoded_order
 }

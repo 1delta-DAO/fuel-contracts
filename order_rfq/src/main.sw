@@ -10,25 +10,19 @@ use order_utils::{
     },
 };
 
+use std::block::height;
 use std::{b512::B512,};
 use std::hash::*;
 use std::bytes::Bytes;
 use std::{asset::transfer, call_frames::msg_asset_id, context::msg_amount,};
 use std::storage::storage_vec::*;
 use std::revert::require;
-use std::{
-    bytes_conversions::b256::*,
-    bytes_conversions::u256::*,
-    bytes_conversions::u64::*,
-    primitive_conversions::b256::*,
-    primitive_conversions::u256::*,
-    primitive_conversions::u64::*,
-};
 
 enum OrderValidationStatus {
     Valid: (),
     InvalidOrderSignature: (),
     InvalidNonce: (),
+    Expired: (),
 }
 
 // The storage variables for the contract.
@@ -55,7 +49,13 @@ impl OneDeltaRfq for Contract {
         order_signature: B512,
         taker_receiver: Identity,
     ) -> OrderFillReturn {
+        // check expiry first
+        require(order.expiry >= height(), "Expired");
+
+        // compute hash
         let order_hash = compute_rfq_order_hash(order);
+        
+        // get and validate signer
         let signer = recover_signer(order_signature, order_hash);
         require(signer.bits() == order.maker, "InvalidOrderSignature");
 
@@ -185,6 +185,10 @@ impl OneDeltaRfq for Contract {
 
     #[storage(read)]
     fn validate_order(order: RfqOrder, order_signature: B512) -> OrderValidationStatus {
+        if order.expiry < height() {
+            return OrderValidationStatus::Expired;
+        }
+
         let order_hash = compute_rfq_order_hash(order);
         let signer = recover_signer(order_signature, order_hash);
         if signer.bits() != order.maker {

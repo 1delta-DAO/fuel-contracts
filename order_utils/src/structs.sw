@@ -7,7 +7,7 @@ pub struct RfqOrder {
     pub taker_amount: u64,
     pub maker: b256,
     pub nonce: u64,
-    pub expriy: u64,
+    pub expiry: u32,
 }
 
 pub struct OrderFillReturn {

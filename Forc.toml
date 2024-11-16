@@ -11,7 +11,6 @@ members = [
     # "scripts/add_liquidity_script",
     # "scripts/create_pool_and_add_liquidity_script",
     # "contracts/mocks/mock_token",
-    # "order_settlement",
-    # "order_registry",
-    # "order_utils",
+    "order_utils",
+    "order_rfq",
 ]

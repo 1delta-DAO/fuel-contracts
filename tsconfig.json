@@ -12,6 +12,6 @@
     "strict": true,
     "skipLibCheck": true
   },
-  "include": ["ts-scripts", "ts-scripts/utils", "env.ts"],
+  "include": ["ts-scripts", "ts-scripts/utils", "env.ts", "test"],
   "exclude": ["node_modules"]
 }

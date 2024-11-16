@@ -1,20 +1,13 @@
 library;
 
-// order object
-pub struct LimitOrder {
-    pub maker_token: b256,
-    pub taker_token: b256,
+pub struct RfqOrder {
+    pub maker_asset: b256,
+    pub taker_asset: b256,
     pub maker_amount: u64,
     pub taker_amount: u64,
-    pub maker: Address,
-    pub taker: Address,
-    pub nonce: u256,
+    pub maker: b256,
+    pub nonce: u64,
     pub expriy: u64,
-}
-
-pub struct OrderState {
-    pub cancelled: bool,
-    pub filled_amount: u64,
 }
 
 pub struct OrderFillReturn {

@@ -59,6 +59,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "order_rfq"
+source = "member"
+dependencies = [
+    "order_utils",
+    "std",
+]
+
+[[package]]
+name = "order_utils"
+source = "member"
+dependencies = ["std"]
+
+[[package]]
 name = "standards"
 source = "git+https://github.com/FuelLabs/sway-standards?tag=v0.6.1#792639cdf391565e6e6a02482ea8a46d9604a6f5"
 dependencies = ["std"]

@@ -1,14 +1,18 @@
 import { launchTestNode } from 'fuels/test-utils';
 import { describe, test, expect } from 'vitest';
-import { BigNumberish, BN, concatBytes, Contract, hashMessage, toBytes, WalletUnlocked } from 'fuels';
-import { addressInput, assetIdInput, contractIdInput } from '../ts-scripts/utils';
+import { BigNumberish, BN, CoinQuantity, concatBytes, Contract, hashMessage, toBytes, WalletUnlocked } from 'fuels';
+import { addressInput, assetIdInput, contractIdInput, prepareRequest } from '../ts-scripts/utils';
 
 import { MockTokenFactory } from '../ts-scripts/typegen/MockTokenFactory';
 import { MockToken } from '../ts-scripts/typegen/MockToken';
 import { OrderRfq, ErrorInput, RfqOrderInput } from '../ts-scripts/typegen/OrderRfq';
 import { OrderRfqFactory } from '../ts-scripts/typegen/OrderRfqFactory';
+import { BatchSwapExactInScript } from '../ts-scripts/typegen';
+import { BatchSwapStepInput } from '../ts-scripts/typegen/BatchSwapExactInScript';
+import { txParams } from '../ts-scripts/utils/constants';
 
 const MAX_EXPIRY = 4_294_967_295
+const RFQ_DEX_ID = 100
 
 /** Utility functions */
 
@@ -27,6 +31,24 @@ async function fixture(deployer: WalletUnlocked) {
     tokens,
     rfqOrders
   }
+}
+
+
+async function callExactInScriptScope(
+  path: any,
+  deadline: number,
+  user: WalletUnlocked, rfqOrder: string) {
+
+
+  return await new BatchSwapExactInScript(user).setConfigurableConstants(
+    {
+      MIRA_AMM_CONTRACT_ID: contractIdInput(rfqOrder).ContractId,
+      ONE_DELTA_RFQ_CONTRACT_ID: contractIdInput(rfqOrder).ContractId,
+    }
+  ).functions.main(
+    path,
+    deadline
+  )
 }
 
 /** We randomize the amounts used for tests */
@@ -113,6 +135,25 @@ async function getConventionalBalances(u: WalletUnlocked, assets: string[]) {
   }
   return bal
 }
+
+function createRfqBatchSwapStep(order: RfqOrderInput, signature: string, receiver: string) {
+  const data: BatchSwapStepInput = {
+    asset_in: assetIdInput(order.taker_asset),
+    asset_out: assetIdInput(order.maker_asset),
+    dex_id: RFQ_DEX_ID,
+    data: concatBytes([
+      toBytes(order.maker_amount, 8),
+      toBytes(order.taker_amount, 8),
+      toBytes(order.maker, 32),
+      toBytes(order.nonce, 8),
+      toBytes(order.expiry, 4),
+      toBytes(signature, 64),
+    ]) as any,
+    receiver: addressInput(receiver)
+  }
+  return data
+}
+
 
 describe('RFQ Orders', () => {
   describe('Order Validation', async () => {
@@ -346,7 +387,7 @@ describe('RFQ Orders', () => {
   });
 
   describe('Rfq fill via `fill`', async () => {
-    test('Facilitates Order Full Fill', async () => {
+    test('Facilitates full order fill', async () => {
 
       const launched = await launchTestNode({ walletsConfig: { count: 3 } });
 
@@ -564,9 +605,8 @@ describe('RFQ Orders', () => {
     });
   });
 
-  describe('Rfq fill via `fill_funded`', async () => {
-    test('Facilitates Order Full Fill', async () => {
-
+  describe('Rfq fill via `fill_funded` through BatchSwapExactInScript', async () => {
+    test('Facilitates full order fill', async () => {
       const launched = await launchTestNode({ walletsConfig: { count: 3 } });
 
       const {
@@ -574,6 +614,8 @@ describe('RFQ Orders', () => {
       } = launched;
 
       const { rfqOrders, tokens } = await fixture(deployer)
+
+
 
       const [maker_asset, taker_asset] = await createTokens(deployer, contractIdBits(tokens))
 
@@ -585,25 +627,13 @@ describe('RFQ Orders', () => {
       )
 
       const maker_amount = getRandomAmount()
+      const taker_amount = getRandomAmount()
+
 
       await getRfqOrders(maker, contractIdBits(rfqOrders)).functions.deposit()
         .callParams({ forward: { assetId: maker_asset, amount: maker_amount } })
         .call()
 
-
-      const taker_amount = getRandomAmount()
-
-      const order: RfqOrderInput = {
-        maker_asset,
-        taker_asset,
-        maker_amount,
-        taker_amount,
-        maker: maker.address.toB256(),
-        nonce: '0',
-        expiry: MAX_EXPIRY,
-      }
-
-      const signatureRaw = await maker.signMessage(packOrder(order))
 
       const [
         maker_maker_asset_balance_before,
@@ -622,16 +652,49 @@ describe('RFQ Orders', () => {
         [maker_asset, taker_asset]
       )
 
-      await taker.transfer(contractIdBits(rfqOrders), taker_amount, taker_asset)
+      /** DEFINE PARAMETERS */
 
-      await getRfqOrders(taker, contractIdBits(rfqOrders)).functions.fill_funded(
-        order,
-        signatureRaw,
+      const order: RfqOrderInput = {
+        maker_asset,
+        taker_asset,
+        maker_amount,
         taker_amount,
-        addressInput(taker.address)
-      )
-        // .callParams({ forward: { assetId: taker_asset, amount: taker_amount } })
-        .call()
+        maker: maker.address.toB256(),
+        nonce: '0',
+        expiry: MAX_EXPIRY,
+      }
+
+      const signatureRaw = await maker.signMessage(packOrder(order))
+
+      const swap_step = createRfqBatchSwapStep(order, signatureRaw, taker.address.toB256())
+
+      const path: [BigNumberish, BigNumberish, boolean, BatchSwapStepInput[]][] = [
+        [
+          taker_amount, maker_amount.sub(1), true, [swap_step]
+        ]
+      ]
+
+      const deadline = MAX_EXPIRY
+
+      const request = await (await callExactInScriptScope(path, deadline, taker, rfqOrders.id.toB256()))
+        .addContracts([rfqOrders])
+        .txParams(txParams)
+        .getTransactionRequest()
+
+      const inputAssets: CoinQuantity[] = [
+        {
+          assetId: taker_asset,
+          amount: taker_amount,
+        }
+      ];
+
+
+      const finalRequest = await prepareRequest(taker, request, 3, inputAssets, [rfqOrders.id.toB256()])
+
+      /** EXECUTE TXN */
+
+      const tx = await taker.sendTransaction(finalRequest, { estimateTxDependencies: true })
+      await tx.waitForResult()
 
       const [
         maker_maker_asset_balance_after,
@@ -675,8 +738,8 @@ describe('RFQ Orders', () => {
       )
     });
 
-    test('Facilitates Order partial Fill', async () => {
 
+    test('Facilitates partial order fill', async () => {
       const launched = await launchTestNode({ walletsConfig: { count: 3 } });
 
       const {
@@ -684,6 +747,8 @@ describe('RFQ Orders', () => {
       } = launched;
 
       const { rfqOrders, tokens } = await fixture(deployer)
+
+
 
       const [maker_asset, taker_asset] = await createTokens(deployer, contractIdBits(tokens))
 
@@ -701,17 +766,6 @@ describe('RFQ Orders', () => {
       await getRfqOrders(maker, contractIdBits(rfqOrders)).functions.deposit()
         .callParams({ forward: { assetId: maker_asset, amount: maker_amount } })
         .call()
-
-      const order: RfqOrderInput = {
-        maker_asset,
-        taker_asset,
-        maker_amount,
-        taker_amount,
-        maker: maker.address.toB256(),
-        nonce: '0',
-        expiry: MAX_EXPIRY,
-      }
-      const signatureRaw = await maker.signMessage(packOrder(order))
 
 
       const [
@@ -731,20 +785,54 @@ describe('RFQ Orders', () => {
         [maker_asset, taker_asset]
       )
 
+      /** DEFINE PARAMETERS */
+
+      const order: RfqOrderInput = {
+        maker_asset,
+        taker_asset,
+        maker_amount,
+        taker_amount,
+        maker: maker.address.toB256(),
+        nonce: '0',
+        expiry: MAX_EXPIRY,
+      }
+
       const taker_fill_amount = getRandomAmount(1, Number(taker_amount.toString()))
 
       const maker_fill_amount = computeMakerFillAmount(taker_fill_amount, order.maker_amount, order.taker_amount.toString())
 
-      await taker.transfer(contractIdBits(rfqOrders), taker_fill_amount, taker_asset)
 
-      await getRfqOrders(taker, contractIdBits(rfqOrders)).functions.fill_funded(
-        order,
-        signatureRaw,
-        taker_fill_amount,
-        addressInput(taker.address)
-      )
-        // .callParams({ forward: { assetId: taker_asset, amount: taker_fill_amount } })
-        .call()
+      const signatureRaw = await maker.signMessage(packOrder(order))
+
+      const swap_step = createRfqBatchSwapStep(order, signatureRaw, taker.address.toB256())
+
+      const path: [BigNumberish, BigNumberish, boolean, BatchSwapStepInput[]][] = [
+        [
+          taker_fill_amount, maker_fill_amount.sub(1), true, [swap_step]
+        ]
+      ]
+
+      const deadline = MAX_EXPIRY
+
+      const request = await (await callExactInScriptScope(path, deadline, taker, rfqOrders.id.toB256()))
+        .addContracts([rfqOrders])
+        .txParams(txParams)
+        .getTransactionRequest()
+
+      const inputAssets: CoinQuantity[] = [
+        {
+          assetId: taker_asset,
+          amount: taker_fill_amount,
+        }
+      ];
+
+
+      const finalRequest = await prepareRequest(taker, request, 3, inputAssets, [rfqOrders.id.toB256()])
+
+      /** EXECUTE TXN */
+
+      const tx = await taker.sendTransaction(finalRequest, { estimateTxDependencies: true })
+      await tx.waitForResult()
 
       const [
         maker_maker_asset_balance_after,

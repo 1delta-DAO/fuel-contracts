@@ -7,6 +7,7 @@ use core::raw_slice::*;
 use core::codec::abi_decode_in_place;
 use mira_v1_swap::swap::{get_mira_amount_in, swap_mira_exact_in, swap_mira_exact_out,};
 use order_utils::structs::{RfqOrder,};
+use order_utils::{OneDeltaRfq,};
 use interfaces::{data_structures::PoolId,};
 
 ////////////////////////////////////////////////////
@@ -45,6 +46,7 @@ pub fn execute_exact_in(
     amount_in: u64,
     swap_step: BatchSwapStep,
     MIRA_AMM_CONTRACT_ID: ContractId,
+    ONE_DELTA_RFQ_CONTRACT_ID: ContractId,
 ) -> u64 {
     match swap_step.dex_id {
         MIRA_V1_ID => execute_mira_v1_exact_in(
@@ -58,6 +60,18 @@ pub fn execute_exact_in(
             swap_step
                 .data,
             MIRA_AMM_CONTRACT_ID,
+        ),
+        ONE_DELTA_RFQ_ID => execute_one_delta_rfq_exact_in(
+            amount_in,
+            swap_step
+                .asset_in,
+            swap_step
+                .asset_out,
+            swap_step
+                .receiver,
+            swap_step
+                .data,
+            ONE_DELTA_RFQ_CONTRACT_ID,
         ),
         _ => revert(INVALID_DEX),
     }
@@ -224,9 +238,14 @@ pub fn execute_exact_out_recursive(
 ////////////////////////////////////////////////////
 // get dex address
 ////////////////////////////////////////////////////
-pub fn get_dex_input_receiver(dex_id: u64, MIRA_AMM_CONTRACT_ID: ContractId) -> Identity {
+pub fn get_dex_input_receiver(
+    dex_id: u64,
+    MIRA_AMM_CONTRACT_ID: ContractId,
+    ONE_DELTA_RFQ_CONTRACT_ID: ContractId,
+) -> Identity {
     match dex_id {
         MIRA_V1_ID => Identity::ContractId(MIRA_AMM_CONTRACT_ID),
+        ONE_DELTA_RFQ_ID => Identity::ContractId(ONE_DELTA_RFQ_CONTRACT_ID),
         _ => revert(INVALID_DEX),
     }
 }
@@ -257,6 +276,24 @@ pub fn execute_mira_v1_exact_in(
         u64::try_from(amount_in)
             .unwrap(),
     )
+}
+
+pub fn execute_one_delta_rfq_exact_in(
+    amount_in: u64,
+    asset_in: AssetId,
+    asset_out: AssetId,
+    receiver: Identity,
+    data: Bytes,
+    ONE_DELTA_RFQ_CONTRACT_ID: ContractId,
+) -> u64 {
+    // decode order and signature
+    let (order, signature) = to_rfq_order(data, asset_in, asset_out);
+
+    // execute order fill
+    let (maker_amount, _) = abi(OneDeltaRfq, ONE_DELTA_RFQ_CONTRACT_ID.into()).fill_funded(order, signature, amount_in, receiver, Option::None);
+
+    // maker_amount is the amount received, ergo the output amount  
+    maker_amount
 }
 
 // expect the data of 3 bytes be laid out as follows
@@ -387,10 +424,10 @@ pub fn to_rfq_order(bytes: Bytes, asset_in: AssetId, asset_out: AssetId) -> (Rfq
     let (maker_bytes, rest) = rest.split_at(32);
     let (nonce_bytes, rest) = rest.split_at(8);
     let (expiry_bytes, rest) = rest.split_at(4);
-    
+
     // signature_a together with rest will form the B512 signature
     let (signature_a_bytes, rest) = rest.split_at(32); // the rest is now the signature
-    
+
     // convert remaining order fields
     let maker_amount = u64::from_be_bytes(maker_amount_bytes);
     let taker_amount = u64::from_be_bytes(taker_amount_bytes);
@@ -453,7 +490,7 @@ fn test_get_rfq_params() {
     let signature_a: b256 = 0x2da47aa4d7bacc8a8456ea19a0588af9dbb24bd352d44918690741a9b42dfbf0;
     let signature_b: b256 = 0x3d2e76594460054f00b86bfc43a944b8c7b739d2b604137aa427372819a2ee42;
 
-    let signature_expected = B512::from((asset_in, maker));
+    let signature_expected = B512::from((signature_a, signature_b));
 
     let mut encoded_order: Bytes = maker_amount.to_be_bytes();
     encoded_order.append(taker_amount.to_be_bytes());
@@ -461,8 +498,8 @@ fn test_get_rfq_params() {
     encoded_order.append(nonce.to_be_bytes());
     encoded_order.append(expiry.to_be_bytes());
     // signature
-    encoded_order.append(asset_in.to_be_bytes());
-    encoded_order.append(maker.to_be_bytes());
+    encoded_order.append(signature_a.to_be_bytes());
+    encoded_order.append(signature_b.to_be_bytes());
 
     let (order, signature) = to_rfq_order(
         encoded_order,

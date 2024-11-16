@@ -1,11 +1,12 @@
 library;
-
+use std::{b512::B512,};
 use std::{bytes::Bytes, bytes_conversions::{b256::*, u16::*, u256::*, u32::*, u64::*},};
 use std::revert::revert;
 use std::asset::transfer;
 use core::raw_slice::*;
 use core::codec::abi_decode_in_place;
 use mira_v1_swap::swap::{get_mira_amount_in, swap_mira_exact_in, swap_mira_exact_out,};
+use order_utils::structs::{RfqOrder,};
 use interfaces::{data_structures::PoolId,};
 
 ////////////////////////////////////////////////////
@@ -29,6 +30,7 @@ pub struct ComputedAmount {
 // DEX ids
 ////////////////////////////////////////////////////
 const MIRA_V1_ID: u64 = 0;
+const ONE_DELTA_RFQ_ID: u64 = 100;
 
 ////////////////////////////////////////////////////
 // Revert error codes
@@ -363,12 +365,59 @@ pub fn first_le_bytes_to_u64(bytes: Bytes) -> u64 {
     }
 }
 
+// The struct looks as follows
+// struct RfqOrder {
+//     pub maker_asset: b256,
+//     pub taker_asset: b256,
+//     pub maker_amount: u64,
+//     pub taker_amount: u64,
+//     pub maker: b256,
+//     pub nonce: u64,
+//     pub expiry: u32,
+// }
+
+// converts encoded rfq order and signature to parameters
+// rfq order will actually map
+//      asset_in  -> taker_asset
+//      asset_out -> maker_asset
+// we iteratively apply bytes splits
+pub fn to_rfq_order(bytes: Bytes, asset_in: AssetId, asset_out: AssetId) -> (RfqOrder, B512) {
+    let (maker_amount_bytes, rest) = bytes.split_at(8);
+    let (taker_amount_bytes, rest) = rest.split_at(8);
+    let (maker_bytes, rest) = rest.split_at(32);
+    let (nonce_bytes, rest) = rest.split_at(8);
+    let (expiry_bytes, rest) = rest.split_at(4);
+    
+    // signature_a together with rest will form the B512 signature
+    let (signature_a_bytes, rest) = rest.split_at(32); // the rest is now the signature
+    
+    // convert remaining order fields
+    let maker_amount = u64::from_be_bytes(maker_amount_bytes);
+    let taker_amount = u64::from_be_bytes(taker_amount_bytes);
+    let maker = b256::from_be_bytes(maker_bytes);
+    let nonce = u64::from_be_bytes(nonce_bytes);
+    let expiry = u32::from_be_bytes(expiry_bytes);
+
+    let signature = B512::from((b256::from_be_bytes(signature_a_bytes), b256::from_be_bytes(rest)));
+    (
+        RfqOrder {
+            maker_asset: asset_out.bits(),
+            taker_asset: asset_in.bits(),
+            maker_amount,
+            taker_amount,
+            maker,
+            nonce,
+            expiry,
+        },
+        signature,
+    )
+}
+
 #[test]
 fn test_get_mira_params() {
     let fee0: u16 = 30;
     let is_stable0 = true;
     let data0 = encode_mira_params(fee0, is_stable0);
-    log(data0);
     let (fee0_decoded, is_stable0_decoded) = get_mira_params(data0);
     assert_eq(fee0_decoded, u64::from(fee0));
     assert_eq(is_stable0, is_stable0_decoded);
@@ -389,4 +438,44 @@ fn test_get_mira_params() {
     let (fee2_decoded, is_stable2_decoded) = get_mira_params(data2);
     assert_eq(fee2_decoded, u64::from(fee2));
     assert_eq(is_stable2, is_stable2_decoded);
+}
+
+#[test]
+fn test_get_rfq_params() {
+    let asset_in: b256 = 0x4d3a44b2e2e53a5a452f3acac85bdd4f0e38a170a5cfbe4dfce2c79bf21a0f07;
+    let asset_out: b256 = 0xa1e88e8fba0e93b94bee471d7447dcc86967389e0a8bf875a0f638c631627127;
+    let maker: b256 = 0x0f46587a870bbffb7f00e5fbfbc967476388521e1378ab9c0693667a1a5adb94;
+    let maker_amount = 7843213424u64;
+    let taker_amount = 32758324u64;
+    let nonce = 89u64;
+    let expiry = 9999u32;
+
+    let signature_a: b256 = 0x2da47aa4d7bacc8a8456ea19a0588af9dbb24bd352d44918690741a9b42dfbf0;
+    let signature_b: b256 = 0x3d2e76594460054f00b86bfc43a944b8c7b739d2b604137aa427372819a2ee42;
+
+    let signature_expected = B512::from((asset_in, maker));
+
+    let mut encoded_order: Bytes = maker_amount.to_be_bytes();
+    encoded_order.append(taker_amount.to_be_bytes());
+    encoded_order.append(maker.to_be_bytes());
+    encoded_order.append(nonce.to_be_bytes());
+    encoded_order.append(expiry.to_be_bytes());
+    // signature
+    encoded_order.append(asset_in.to_be_bytes());
+    encoded_order.append(maker.to_be_bytes());
+
+    let (order, signature) = to_rfq_order(
+        encoded_order,
+        AssetId::from(asset_in),
+        AssetId::from(asset_out),
+    );
+
+    assert_eq(order.taker_asset, asset_in);
+    assert_eq(order.maker_asset, asset_out);
+    assert_eq(order.maker, maker);
+    assert_eq(order.nonce, nonce);
+    assert_eq(order.expiry, expiry);
+    assert_eq(order.taker_amount, taker_amount);
+    assert_eq(order.maker_amount, maker_amount);
+    assert_eq(signature, signature_expected);
 }

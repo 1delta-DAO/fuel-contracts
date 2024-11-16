@@ -133,14 +133,22 @@ impl OneDeltaRfq for Contract {
             maker_fill_amount,
         );
 
-        // update accounting state
-        update_internal_balances(
+        // update accounting state for totals
+        update_internal_total_balances(
+            order.maker_asset,
+            order.taker_asset,
+            taker_asset_balance,
+            maker_asset_balance,
+            maker_fill_amount,
+            taker_fill_amount,
+        );
+
+        // update accounting state for maker
+        update_maker_balances(
             order.maker_asset,
             order.taker_asset,
             maker_taker_asset_balance,
             maker_maker_asset_balance,
-            taker_asset_balance,
-            maker_asset_balance,
             maker_fill_amount,
             taker_fill_amount,
             order.maker,
@@ -222,17 +230,34 @@ impl OneDeltaRfq for Contract {
                 );
         }
 
-        // the fill amount is derived by the received amount
-        let (taker_asset_balance, taker_fill_amount_received) = get_amount_delta(order.taker_asset, taker_fill_amount);
+        // this internal balance is unadjusted for the amount received 
+        let taker_accounting_balance = get_asset_balance(order.taker_asset);
+        // fetch the real taker asset balance
+        let real_taker_balance = this_balance(AssetId::from(order.taker_asset));
+        // the funds received are real balance minus accounting balance
+        let taker_fill_amount_received = real_taker_balance - taker_accounting_balance;
 
-        // update accounting state
-        update_internal_balances(
+        // manually handle the error where the balance has not grown enough
+        require(
+            taker_fill_amount_received >= taker_fill_amount,
+            Error::InsufficientTakerAmountReceived,
+        );
+
+        // update accounting state for totals
+        update_internal_total_balances_funded(
+            order.maker_asset,
+            order.taker_asset,
+            maker_asset_balance,
+            real_taker_balance,
+            maker_fill_amount,
+        );
+
+        // update accounting state for maker
+        update_maker_balances(
             order.maker_asset,
             order.taker_asset,
             maker_taker_asset_balance,
             maker_maker_asset_balance,
-            taker_asset_balance,
-            maker_asset_balance,
             maker_fill_amount,
             taker_fill_amount_received,
             order.maker,
@@ -383,48 +408,19 @@ impl OneDeltaRfq for Contract {
     }
 }
 
-// Get the 
-#[storage(read)]
-fn get_amount_delta(asset_id: b256, amount_expected: u64) -> (u64, u64) {
-    let accounting_balance = get_asset_balance(asset_id);
-    let real_balance = this_balance(AssetId::from(asset_id));
-
-    // the funds received are real balance minus accounting balance
-    let amount_received = real_balance - accounting_balance;
-
-    // manually handle the error where the balance hajs not grown
-    require(
-        real_balance >= amount_expected,
-        Error::InsufficientTakerAmountReceived,
-    );
-    (real_balance, amount_received)
-}
-
-// opdate the internal balances based on order fill info
+// Update the internal balances based on order fill info
+// All `_balance` terms will be
+//      incremented for taker_asset
+//      decremented for maker_asset
 #[storage(read, write)]
-fn update_internal_balances(
+fn update_internal_total_balances(
     maker_asset: b256,
     taker_asset: b256,
-    maker_taker_asset_balance: u64,
-    maker_maker_asset_balance: u64,
     taker_asset_balance: u64,
     maker_asset_balance: u64,
     maker_fill_amount: u64,
     taker_fill_amount: u64,
-    maker: b256,
-) { /** update maker_balances */
-
-    // add taker asset filled amount to maker's balance
-    storage
-        .maker_balances
-        .get(maker)
-        .insert(taker_asset, maker_taker_asset_balance + taker_fill_amount);
-    // deduct maker asset filled amount from maker's balance
-    storage
-        .maker_balances
-        .get(maker)
-        .insert(maker_asset, maker_maker_asset_balance - maker_fill_amount); /** update balances */
-
+) {
     // add taker asset filled amount to total balance
     storage
         .balances
@@ -434,4 +430,52 @@ fn update_internal_balances(
     storage
         .balances
         .insert(maker_asset, maker_asset_balance - maker_fill_amount);
+}
+
+// Update the internal balances based on order fill info
+// for the case where the real_taker_asset_balance is provided
+#[storage(read, write)]
+fn update_internal_total_balances_funded(
+    maker_asset: b256,
+    taker_asset: b256,
+    maker_asset_balance: u64,
+    real_taker_asset_balance: u64,
+    maker_fill_amount: u64,
+) {
+    // add taker asset filled amount to total balance
+    storage
+        .balances
+        .insert(taker_asset, real_taker_asset_balance);
+
+    // deduct maker asset filled amount from total balance
+    storage
+        .balances
+        .insert(maker_asset, maker_asset_balance - maker_fill_amount);
+}
+
+// Update the internal balances based on order fill info
+// for the case where the real_taker_asset_balance is provided
+// all `_balance` terms will be
+//      incremented for taker_asset
+//      decremented for maker_asset
+#[storage(read, write)]
+fn update_maker_balances(
+    maker_asset: b256,
+    taker_asset: b256,
+    maker_taker_asset_balance: u64,
+    maker_maker_asset_balance: u64,
+    maker_fill_amount: u64,
+    taker_fill_amount: u64,
+    maker: b256,
+) {
+    // add taker asset filled amount to maker's balance
+    storage
+        .maker_balances
+        .get(maker)
+        .insert(taker_asset, maker_taker_asset_balance + taker_fill_amount);
+    // deduct maker asset filled amount from maker's balance
+    storage
+        .maker_balances
+        .get(maker)
+        .insert(maker_asset, maker_maker_asset_balance - maker_fill_amount);
 }

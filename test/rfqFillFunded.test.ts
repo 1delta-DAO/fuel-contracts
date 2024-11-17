@@ -429,7 +429,5 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactInScript', async () =
     ).to.equal(
       taker_fill_amount.toString()
     )
-
-
   });
 });

@@ -59,6 +59,10 @@ pub fn compute_maker_fill_amount(taker_fill_amount:u64, maker_amount:u64, taker_
     taker_fill_amount * maker_amount / taker_amount
 }
 
+// computes the taker amount relative to the rates given in the order and taker amount
+pub fn compute_taker_fill_amount(maker_fill_amount:u64, maker_amount:u64, taker_amount:u64) -> u64 {
+    maker_fill_amount * taker_amount / maker_amount + 1
+}
 
 // The interface for interacting with Rfq orders 
 abi OneDeltaRfq {

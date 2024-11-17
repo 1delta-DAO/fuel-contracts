@@ -33,7 +33,6 @@ async function fixture(deployer: WalletUnlocked) {
   }
 }
 
-
 async function callExactInScriptScope(
   path: any,
   deadline: number,
@@ -102,6 +101,12 @@ async function fundWallets(
 // computes the maker amount relative to the rates given in the order and taker amount
 function computeMakerFillAmount(taker_fill_amount: BigNumberish, maker_amount: BigNumberish, taker_amount: BigNumberish) {
   return new BN(taker_fill_amount).mul(maker_amount).div(taker_amount)
+}
+
+// computes the taker amount relative to the rates given in the order and taker amount
+// we need to add 1 to account for rounding errors
+function computeTakerFillAmount(maker_fill_amount: BigNumberish, maker_amount: BigNumberish, taker_amount: BigNumberish) {
+  return new BN(maker_fill_amount).mul(taker_amount).div(maker_amount).add(1)
 }
 
 function packOrder(order: RfqOrderInput) {
@@ -603,6 +608,116 @@ describe('RFQ Orders', () => {
         taker_fill_amount.toString()
       )
     });
+
+    test('Facilitates Order partial fill, specifying maker_amount', async () => {
+
+      const launched = await launchTestNode({ walletsConfig: { count: 3 } });
+
+      const {
+        wallets: [maker, deployer, taker]
+      } = launched;
+
+      const { rfqOrders, tokens } = await fixture(deployer)
+
+      const [maker_asset, taker_asset] = await createTokens(deployer, contractIdBits(tokens))
+
+      await fundWallets(
+        [maker, taker],
+        contractIdBits(tokens),
+        [maker_asset, taker_asset],
+        [DEFAULT_MINT_AMOUNT, DEFAULT_MINT_AMOUNT]
+      )
+
+      const maker_amount = getRandomAmount()
+      const taker_amount = getRandomAmount()
+
+
+      await getRfqOrders(maker, contractIdBits(rfqOrders)).functions.deposit()
+        .callParams({ forward: { assetId: maker_asset, amount: maker_amount } })
+        .call()
+
+      const order: RfqOrderInput = {
+        maker_asset,
+        taker_asset,
+        maker_amount,
+        taker_amount,
+        maker: maker.address.toB256(),
+        nonce: '0',
+        expiry: MAX_EXPIRY,
+      }
+      const signatureRaw = await maker.signMessage(packOrder(order))
+
+
+      const [
+        maker_maker_asset_balance_before,
+        maker_taker_asset_balance_before
+      ] = await getMakerBalances(
+        maker.address.toB256(),
+        [maker_asset, taker_asset],
+        rfqOrders
+      )
+
+      const [
+        taker_maker_asset_balance_before,
+        taker_taker_asset_balance_before
+      ] = await getConventionalBalances(
+        taker,
+        [maker_asset, taker_asset]
+      )
+
+      const maker_fill_amount = getRandomAmount(1, Number(maker_amount.toString()))
+
+      const taker_fill_amount = computeTakerFillAmount(maker_fill_amount, order.maker_amount, order.taker_amount.toString())
+
+      await getRfqOrders(taker, contractIdBits(rfqOrders)).functions.fill(
+        order,
+        signatureRaw,
+        addressInput(taker.address)
+      )
+        .callParams({ forward: { assetId: taker_asset, amount: taker_fill_amount } })
+        .call()
+
+      const [
+        maker_maker_asset_balance_after,
+        maker_taker_asset_balance_after
+      ] = await getMakerBalances(
+        maker.address.toB256(),
+        [maker_asset, taker_asset],
+        rfqOrders
+      )
+
+      const [
+        taker_maker_asset_balance_after,
+        taker_taker_asset_balance_after
+      ] = await getConventionalBalances(
+        taker,
+        [maker_asset, taker_asset]
+      )
+
+      // validate maker change
+      expect(
+        maker_maker_asset_balance_before.sub(maker_maker_asset_balance_after).toString()
+      ).to.equal(
+        maker_fill_amount.toString()
+      )
+      expect(
+        maker_taker_asset_balance_after.sub(maker_taker_asset_balance_before).toString()
+      ).to.equal(
+        taker_fill_amount.toString()
+      )
+
+      // validate taker cahnge
+      expect(
+        taker_maker_asset_balance_after.sub(taker_maker_asset_balance_before).toString()
+      ).to.equal(
+        maker_fill_amount.toString()
+      )
+      expect(
+        taker_taker_asset_balance_before.sub(taker_taker_asset_balance_after).toString()
+      ).to.equal(
+        taker_fill_amount.toString()
+      )
+    });
   });
 
   describe('Rfq fill via `fill_funded` through BatchSwapExactInScript', async () => {
@@ -825,7 +940,6 @@ describe('RFQ Orders', () => {
           amount: taker_fill_amount,
         }
       ];
-
 
       const finalRequest = await prepareRequest(taker, request, 3, inputAssets, [rfqOrders.id.toB256()])
 

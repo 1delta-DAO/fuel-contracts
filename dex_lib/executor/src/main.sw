@@ -7,7 +7,7 @@ use core::raw_slice::*;
 use core::codec::abi_decode_in_place;
 use mira_v1_swap::swap::{get_mira_amount_in, swap_mira_exact_in, swap_mira_exact_out,};
 use order_utils::structs::{RfqOrder,};
-use order_utils::{OneDeltaRfq,};
+use order_utils::{compute_taker_fill_amount, OneDeltaRfq,};
 use interfaces::{data_structures::PoolId,};
 
 ////////////////////////////////////////////////////
@@ -100,26 +100,41 @@ pub fn calculate_amounts_exact_out_and_fund(
     // require(false, current_amount_out);
     // do all steps but the last one
     while true {
-        let (fee, is_stable) = get_mira_params(swap_step.data);
-        // calculate input amount
-        let (pool_id, amount_in, zero_for_one) = get_mira_amount_in(
-            MIRA_AMM_CONTRACT_ID,
-            swap_step
-                .asset_in,
-            swap_step
-                .asset_out,
-            is_stable,
-            fee,
-            current_amount_out,
-        );
-        // insert the LAST amount out that is used for the swap 
-        amounts.push(ComputedAmount {
-            zero_for_one: zero_for_one,
-            amount_out: current_amount_out,
-            pool_id: pool_id,
-        });
-        current_amount_out = amount_in + 0;
+        match swap_step.dex_id {
+            MIRA_V1_ID => {
+                let (fee, is_stable) = get_mira_params(swap_step.data);
+                // calculate input amount
+                let (pool_id, amount_in, zero_for_one) = get_mira_amount_in(
+                    MIRA_AMM_CONTRACT_ID,
+                    swap_step
+                        .asset_in,
+                    swap_step
+                        .asset_out,
+                    is_stable,
+                    fee,
+                    current_amount_out,
+                );
+                // insert the LAST amount out that is used for the swap 
+                amounts.push(ComputedAmount {
+                    zero_for_one: zero_for_one,
+                    amount_out: current_amount_out,
+                    pool_id: pool_id,
+                });
+                current_amount_out = amount_in + 0;
+            },
+            ONE_DELTA_RFQ_ID => {
+                let amount_in = quote_rfq_exact_out(swap_step.data, current_amount_out);
 
+                // insert the LAST amount out that is used for the swap 
+                amounts.push(ComputedAmount {
+                    zero_for_one: false, // poulate trivially 
+                    amount_out: amount_in, // for rfq, we need the amount_in here
+                    pool_id: (swap_step.asset_in, swap_step.asset_out, false),
+                });
+                current_amount_out = amount_in + 0;
+            },
+            _ => revert(INVALID_DEX),
+        }
         if i == max_index {
             break;
         } else {
@@ -145,29 +160,48 @@ pub fn forward_swap_exact_out(
     current_path: Vec<BatchSwapStep>,
     computed_amounts: Vec<ComputedAmount>,
     MIRA_AMM_CONTRACT_ID: ContractId,
+    ONE_DELTA_RFQ_CONTRACT_ID: ContractId,
 ) {
     let path_length = current_path.len();
     let mut i = path_length - 1;
     while true {
         let swap_step = current_path.get(i).unwrap();
         let current_amount = computed_amounts.get(i).unwrap();
-
-        let (amount0, amount1) = if current_amount.zero_for_one {
-            (0u64, current_amount.amount_out)
-        } else {
-            (current_amount.amount_out, 0u64)
-        };
-        // execute_exact_out
-        swap_mira_exact_out(
-            current_amount
-                .pool_id,
-            swap_step
-                .receiver,
-            amount0,
-            amount1,
-            MIRA_AMM_CONTRACT_ID,
-        );
-
+        match swap_step.dex_id {
+            MIRA_V1_ID => {
+                let (amount0, amount1) = if current_amount.zero_for_one {
+                    (0u64, current_amount.amount_out)
+                } else {
+                    (current_amount.amount_out, 0u64)
+                };
+                // execute_exact_out
+                swap_mira_exact_out(
+                    current_amount
+                        .pool_id,
+                    swap_step
+                        .receiver,
+                    amount0,
+                    amount1,
+                    MIRA_AMM_CONTRACT_ID,
+                );
+            },
+            ONE_DELTA_RFQ_ID => {
+                execute_one_delta_rfq_exact_in(
+                    current_amount
+                        .amount_out,
+                    swap_step
+                        .asset_in,
+                    swap_step
+                        .asset_out,
+                    swap_step
+                        .receiver,
+                    swap_step
+                        .data,
+                    ONE_DELTA_RFQ_CONTRACT_ID,
+                );
+            },
+            _ => revert(INVALID_DEX),
+        }
         if i != 0 { i -= 1; } else { break; }
     };
 }
@@ -448,6 +482,15 @@ pub fn to_rfq_order(bytes: Bytes, asset_in: AssetId, asset_out: AssetId) -> (Rfq
         },
         signature,
     )
+}
+
+pub fn quote_rfq_exact_out(bytes: Bytes, amount_out: u64) -> u64 {
+    let (maker_amount_bytes, rest) = bytes.split_at(8);
+    let (taker_amount_bytes, _) = rest.split_at(8);
+    let maker_amount = u64::from_be_bytes(maker_amount_bytes);
+    let taker_amount = u64::from_be_bytes(taker_amount_bytes);
+
+    compute_taker_fill_amount(amount_out, maker_amount, taker_amount)
 }
 
 #[test]

@@ -25,7 +25,7 @@ pub enum Error {
     InvalidNonce: (),
     Expired: (),
     InvalidTakerAsset: (),
-    TakerAmountTooHigh: (),
+    TakerFillAmountTooHigh: (),
     InsufficientTakerAmountReceived: (),
     MakerBalanceTooLow: (),
     MakerInsufficientBalance: (),

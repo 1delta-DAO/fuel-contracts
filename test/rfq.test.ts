@@ -7,8 +7,7 @@ import { MockTokenFactory } from '../ts-scripts/typegen/MockTokenFactory';
 import { MockToken } from '../ts-scripts/typegen/MockToken';
 import { OrderRfq, ErrorInput, RfqOrderInput } from '../ts-scripts/typegen/OrderRfq';
 import { OrderRfqFactory } from '../ts-scripts/typegen/OrderRfqFactory';
-import { BatchSwapExactInScript } from '../ts-scripts/typegen';
-import { BatchSwapStepInput } from '../ts-scripts/typegen/BatchSwapExactInScript';
+import { BatchSwapStepInput, BatchSwapExactInScript, IdentityInput } from '../ts-scripts/typegen/BatchSwapExactInScript';
 import { txParams } from '../ts-scripts/utils/constants';
 
 const MAX_EXPIRY = 4_294_967_295
@@ -51,7 +50,7 @@ async function callExactInScriptScope(
 }
 
 /** We randomize the amounts used for tests */
-function getRandomAmount(min = 1, max = DEFAULT_MINT_AMOUNT) {
+function getRandomAmount(min = 1, max = DEFAULT_RANDOM_AMOUNT_LIMIT) {
   return new BN(Math.round((min + Math.random() * (max - min))))
 }
 
@@ -60,8 +59,11 @@ function getRfqOrders(signer: WalletUnlocked, orderAddr: string) {
   return new OrderRfq(orderAddr, signer)
 }
 
-const DEFAULT_MINT_AMOUNT = 1_000_000
+const DEFAULT_RANDOM_AMOUNT_LIMIT = 1_000_000
+const DEFAULT_MINT_AMOUNT = 10_000_000
 const DEFAULT_DECIMALS = 9
+const DEFAULT_NAMES = ["MakerToken", "TakerToken"]
+const EXTENDED_NAMES = [...DEFAULT_NAMES, "IntermediateToken"]
 
 async function createTokens(signer: WalletUnlocked, mockTokenAddr: string, names = ["MakerToken", "TakerToken"]): Promise<string[]> {
   const token = new MockToken(mockTokenAddr, signer)
@@ -94,6 +96,23 @@ async function fundWallets(
     const receiver = receivers[i]
     const tokenContract = new MockToken(mockTokenAddr, receiver)
     await tokenContract.functions.mint_tokens(assetIdInput(token), amounts[i]).call()
+    i++;
+  }
+}
+
+async function createMakerDeposits(
+  maker: WalletUnlocked,
+  orders: OrderRfq,
+  tokens = ["0x", "0x"],
+  amounts = [DEFAULT_MINT_AMOUNT, DEFAULT_MINT_AMOUNT]
+) {
+  if (tokens.length !== amounts.length)
+    throw new Error("createTakerDeposits: inconsistent input lengths")
+  let i = 0
+  for (let token of tokens) {
+    await getRfqOrders(maker, contractIdBits(orders)).functions.deposit()
+      .callParams({ forward: { assetId: token, amount: amounts[i] } })
+      .call()
     i++;
   }
 }
@@ -141,7 +160,7 @@ async function getConventionalBalances(u: WalletUnlocked, assets: string[]) {
   return bal
 }
 
-function createRfqBatchSwapStep(order: RfqOrderInput, signature: string, receiver: string) {
+function createRfqBatchSwapStep(order: RfqOrderInput, signature: string, receiver: IdentityInput) {
   const data: BatchSwapStepInput = {
     asset_in: assetIdInput(order.taker_asset),
     asset_out: assetIdInput(order.maker_asset),
@@ -154,7 +173,7 @@ function createRfqBatchSwapStep(order: RfqOrderInput, signature: string, receive
       toBytes(order.expiry, 4),
       toBytes(signature, 64),
     ]) as any,
-    receiver: addressInput(receiver)
+    receiver
   }
   return data
 }
@@ -388,6 +407,45 @@ describe('RFQ Orders', () => {
       expect(
         maker_balance_after_withdraw.sub(maker_balance_before_withdraw).toString()
       ).to.equal(withdraw_amount.toString())
+    });
+
+    test('Maker cannot withdraw more than they own', async () => {
+
+      const launched = await launchTestNode();
+
+      const {
+        wallets: [maker, deployer]
+      } = launched;
+
+
+      const { rfqOrders, tokens } = await fixture(deployer)
+
+      const [maker_asset] = await createTokens(deployer, contractIdBits(tokens), ["test"])
+
+      await fundWallets([maker], contractIdBits(tokens), [maker_asset], [DEFAULT_MINT_AMOUNT])
+
+      const deposit_amount = getRandomAmount(1, 10000)
+
+      await getRfqOrders(maker, contractIdBits(rfqOrders)).functions.deposit()
+        .callParams({ forward: { assetId: maker_asset, amount: deposit_amount } })
+        .call()
+
+      const withdraw_amount = getRandomAmount(deposit_amount.toNumber(), deposit_amount.toNumber() + 10000)
+
+      let reason: string | undefined = undefined
+      try {
+        await getRfqOrders(maker, contractIdBits(rfqOrders)).functions.withdraw(maker_asset, withdraw_amount)
+          .call()
+      } catch (e) {
+        reason = String(e)
+      }
+
+      expect(reason).to.toBeDefined()
+
+      expect(
+        reason
+      ).to.include("WithdrawTooMuch")
+
     });
   });
 
@@ -730,8 +788,6 @@ describe('RFQ Orders', () => {
 
       const { rfqOrders, tokens } = await fixture(deployer)
 
-
-
       const [maker_asset, taker_asset] = await createTokens(deployer, contractIdBits(tokens))
 
       await fundWallets(
@@ -781,7 +837,7 @@ describe('RFQ Orders', () => {
 
       const signatureRaw = await maker.signMessage(packOrder(order))
 
-      const swap_step = createRfqBatchSwapStep(order, signatureRaw, taker.address.toB256())
+      const swap_step = createRfqBatchSwapStep(order, signatureRaw, addressInput(taker.address))
 
       const path: [BigNumberish, BigNumberish, boolean, BatchSwapStepInput[]][] = [
         [
@@ -853,7 +909,6 @@ describe('RFQ Orders', () => {
       )
     });
 
-
     test('Facilitates partial order fill', async () => {
       const launched = await launchTestNode({ walletsConfig: { count: 3 } });
 
@@ -919,7 +974,7 @@ describe('RFQ Orders', () => {
 
       const signatureRaw = await maker.signMessage(packOrder(order))
 
-      const swap_step = createRfqBatchSwapStep(order, signatureRaw, taker.address.toB256())
+      const swap_step = createRfqBatchSwapStep(order, signatureRaw, addressInput(taker.address))
 
       const path: [BigNumberish, BigNumberish, boolean, BatchSwapStepInput[]][] = [
         [
@@ -988,6 +1043,173 @@ describe('RFQ Orders', () => {
       ).to.equal(
         taker_fill_amount.toString()
       )
+    });
+
+
+    test.only('Facilitates multihop partial order fill', async () => {
+      /**
+       * We test a swap taker_asset -> intermediate_asset -> maker_asset
+       */
+
+      const launched = await launchTestNode({ walletsConfig: { count: 3 } });
+
+      const {
+        wallets: [maker, deployer, taker]
+      } = launched;
+
+      const { rfqOrders, tokens } = await fixture(deployer)
+
+
+
+      const [maker_asset, taker_asset, intermediate_asset] = await createTokens(deployer, contractIdBits(tokens), EXTENDED_NAMES)
+      console.log("depod1")
+      await fundWallets(
+        [maker, taker, maker],
+        contractIdBits(tokens),
+        [maker_asset, taker_asset, intermediate_asset],
+        [DEFAULT_MINT_AMOUNT, DEFAULT_MINT_AMOUNT, DEFAULT_MINT_AMOUNT]
+      )
+
+      const maker_amount = getRandomAmount()
+      const intermediate_amount = getRandomAmount()
+      const taker_amount = getRandomAmount()
+
+      console.log("depod2")
+      await createMakerDeposits(maker, rfqOrders, [maker_asset, intermediate_asset], [maker_amount.toNumber(), intermediate_amount.toNumber()])
+
+      console.log("depod")
+
+      const [
+        maker_maker_asset_balance_before,
+        maker_taker_asset_balance_before
+      ] = await getMakerBalances(
+        maker.address.toB256(),
+        [maker_asset, taker_asset],
+        rfqOrders
+      )
+
+      const [
+        taker_maker_asset_balance_before,
+        taker_taker_asset_balance_before
+      ] = await getConventionalBalances(
+        taker,
+        [maker_asset, taker_asset]
+      )
+
+      /** DEFINE PARAMETERS */
+
+      const order0: RfqOrderInput = {
+        maker_asset: intermediate_asset, // asset_mid
+        taker_asset, // asset_in
+        maker_amount: intermediate_amount,
+        taker_amount,
+        maker: maker.address.toB256(),
+        nonce: '0',
+        expiry: MAX_EXPIRY,
+      }
+
+      const order1: RfqOrderInput = {
+        maker_asset, // asset_out
+        taker_asset: intermediate_asset, // asset_mid
+        maker_amount,
+        taker_amount: intermediate_amount,
+        maker: maker.address.toB256(),
+        nonce: '0',
+        expiry: MAX_EXPIRY,
+      }
+
+      const taker_fill_amount = getRandomAmount(1, taker_amount.toNumber())
+
+      const intermediate_fill_amount = computeMakerFillAmount(taker_fill_amount, order0.maker_amount, order0.taker_amount)
+
+      const maker_fill_amount = computeMakerFillAmount(intermediate_fill_amount, order1.maker_amount, order1.taker_amount)
+
+      console.log("taker_fill_amount", taker_fill_amount.toNumber())
+      console.log("intermediate_fill_amount", intermediate_fill_amount.toNumber())
+      console.log("maker_fill_amount", maker_fill_amount.toNumber())
+      console.log("intermediate_amount", intermediate_amount.toNumber())
+
+      const signatureRaw0 = await maker.signMessage(packOrder(order0))
+      const signatureRaw1 = await maker.signMessage(packOrder(order1))
+
+      const swap_step0 = createRfqBatchSwapStep(order0, signatureRaw0, contractIdInput(rfqOrders.id))
+      const swap_step1 = createRfqBatchSwapStep(order1, signatureRaw1, addressInput(taker.address))
+
+      const path: [BigNumberish, BigNumberish, boolean, BatchSwapStepInput[]][] = [
+        [
+          taker_fill_amount,
+          1, // maker_fill_amount.sub(1),
+          true,
+          [
+            swap_step0,
+            swap_step1
+          ]
+        ]
+      ]
+
+      const deadline = MAX_EXPIRY
+
+      const request = await (await callExactInScriptScope(path, deadline, taker, rfqOrders.id.toB256()))
+        .addContracts([rfqOrders])
+        .txParams(txParams)
+        .getTransactionRequest()
+
+      const inputAssets: CoinQuantity[] = [
+        {
+          assetId: taker_asset,
+          amount: taker_fill_amount,
+        }
+      ];
+
+      const finalRequest = await prepareRequest(taker, request, 3, inputAssets, [rfqOrders.id.toB256()])
+
+      /** EXECUTE TXN */
+
+      const tx = await taker.sendTransaction(finalRequest, { estimateTxDependencies: true })
+      await tx.waitForResult()
+
+      const [
+        maker_maker_asset_balance_after,
+        maker_taker_asset_balance_after
+      ] = await getMakerBalances(
+        maker.address.toB256(),
+        [maker_asset, taker_asset],
+        rfqOrders
+      )
+
+      const [
+        taker_maker_asset_balance_after,
+        taker_taker_asset_balance_after
+      ] = await getConventionalBalances(
+        taker,
+        [maker_asset, taker_asset]
+      )
+
+      // validate maker change
+      expect(
+        maker_maker_asset_balance_before.sub(maker_maker_asset_balance_after).toString()
+      ).to.equal(
+        maker_fill_amount.toString()
+      )
+      expect(
+        maker_taker_asset_balance_after.sub(maker_taker_asset_balance_before).toString()
+      ).to.equal(
+        taker_fill_amount.toString()
+      )
+
+      // validate taker cahnge
+      expect(
+        taker_maker_asset_balance_after.sub(taker_maker_asset_balance_before).toString()
+      ).to.equal(
+        maker_fill_amount.toString()
+      )
+      expect(
+        taker_taker_asset_balance_before.sub(taker_taker_asset_balance_after).toString()
+      ).to.equal(
+        taker_fill_amount.toString()
+      )
+
+
     });
   });
 });

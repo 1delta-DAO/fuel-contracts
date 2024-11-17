@@ -32,7 +32,6 @@ export function getLPAssetId(contractId: string, poolId: PoolId): AssetId {
 
 export async function fundRequest(wallet: Account, request: ScriptTransactionRequest): Promise<ScriptTransactionRequest> {
   const gasCost = await wallet.getTransactionCost(request);
-  console.log("gasCost", gasCost)
   return wallet.fund(request, gasCost);
 }
 

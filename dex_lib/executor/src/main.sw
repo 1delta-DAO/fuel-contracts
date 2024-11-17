@@ -83,11 +83,12 @@ pub fn calculate_amounts_exact_out_and_fund(
     maximum_in: u64,
     current_path: Vec<BatchSwapStep>,
     MIRA_AMM_CONTRACT_ID: ContractId,
-) -> Vec<ComputedAmount> {
+) -> Vec<u64> {
     // this is list of the amounts used to parametrize 
-    // the swap - this has to be the output amount list 
-    // for Mira 
-    let mut amounts: Vec<ComputedAmount> = Vec::new();
+    // the swap 
+    // this has to be the output amount for Mira
+    // andn the input amount for Rfq
+    let mut amounts: Vec<u64> = Vec::new();
     let mut current_amount_out = amount_out;
 
     // record maximum index
@@ -104,7 +105,7 @@ pub fn calculate_amounts_exact_out_and_fund(
             MIRA_V1_ID => {
                 let (fee, is_stable) = get_mira_params(swap_step.data);
                 // calculate input amount
-                let (pool_id, amount_in, zero_for_one) = get_mira_amount_in(
+                let amount_in = get_mira_amount_in(
                     MIRA_AMM_CONTRACT_ID,
                     swap_step
                         .asset_in,
@@ -115,23 +116,14 @@ pub fn calculate_amounts_exact_out_and_fund(
                     current_amount_out,
                 );
                 // insert the LAST amount out that is used for the swap 
-                amounts.push(ComputedAmount {
-                    zero_for_one: zero_for_one,
-                    amount_out: current_amount_out,
-                    pool_id: pool_id,
-                });
-                current_amount_out = amount_in + 0;
+                amounts.push(current_amount_out);
+                current_amount_out = amount_in;
             },
             ONE_DELTA_RFQ_ID => {
                 let amount_in = quote_rfq_exact_out(swap_step.data, current_amount_out);
-
-                // insert the LAST amount out that is used for the swap 
-                amounts.push(ComputedAmount {
-                    zero_for_one: false, // poulate trivially 
-                    amount_out: amount_in, // for rfq, we need the amount_in here
-                    pool_id: (swap_step.asset_in, swap_step.asset_out, false),
-                });
-                current_amount_out = amount_in + 0;
+                // for rfq, we need the amount_in here
+                amounts.push(amount_in);
+                current_amount_out = amount_in;
             },
             _ => revert(INVALID_DEX),
         }
@@ -158,7 +150,7 @@ pub fn calculate_amounts_exact_out_and_fund(
 // temporary to forward-swap exact out
 pub fn forward_swap_exact_out(
     current_path: Vec<BatchSwapStep>,
-    computed_amounts: Vec<ComputedAmount>,
+    computed_amounts: Vec<u64>,
     MIRA_AMM_CONTRACT_ID: ContractId,
     ONE_DELTA_RFQ_CONTRACT_ID: ContractId,
 ) {
@@ -169,15 +161,15 @@ pub fn forward_swap_exact_out(
         let current_amount = computed_amounts.get(i).unwrap();
         match swap_step.dex_id {
             MIRA_V1_ID => {
-                let (amount0, amount1) = if current_amount.zero_for_one {
-                    (0u64, current_amount.amount_out)
+                let is_stable = get_mira_is_stable(swap_step.data);
+                let (amount0, amount1, pool_id) = if swap_step.asset_in.bits() < swap_step.asset_out.bits() {
+                    (0u64, current_amount, (swap_step.asset_in, swap_step.asset_out, is_stable))
                 } else {
-                    (current_amount.amount_out, 0u64)
+                    (current_amount, 0u64, (swap_step.asset_out, swap_step.asset_in, is_stable))
                 };
                 // execute_exact_out
                 swap_mira_exact_out(
-                    current_amount
-                        .pool_id,
+                    pool_id,
                     swap_step
                         .receiver,
                     amount0,
@@ -186,9 +178,8 @@ pub fn forward_swap_exact_out(
                 );
             },
             ONE_DELTA_RFQ_ID => {
-                execute_one_delta_rfq_exact_in(
-                    current_amount
-                        .amount_out,
+                execute_one_delta_rfq_exact_out(
+                    current_amount,
                     swap_step
                         .asset_in,
                     swap_step
@@ -206,68 +197,68 @@ pub fn forward_swap_exact_out(
     };
 }
 
-// cannot work with this forc version as recursive functions are not supported
-pub fn execute_exact_out_recursive(
-    receiver: Identity,
-    ref mut current_amount_out: u64,
-    maximum_in: u64,
-    ref mut current_path: Vec<BatchSwapStep>,
-    MIRA_AMM_CONTRACT_ID: ContractId,
-) {
-    // start to swap through paths
+// // cannot work with this forc version as recursive functions are not supported
+// pub fn execute_exact_out_recursive(
+//     receiver: Identity,
+//     ref mut current_amount_out: u64,
+//     maximum_in: u64,
+//     ref mut current_path: Vec<BatchSwapStep>,
+//     MIRA_AMM_CONTRACT_ID: ContractId,
+// ) {
+//     // start to swap through paths
 
-    // initialize first swap step
-    let swap_step = current_path.remove(0);
+//     // initialize first swap step
+//     let swap_step = current_path.remove(0);
 
-    // start swapping the path
-    match swap_step.dex_id {
-        MIRA_V1_ID => {
-            // get parameters
-            let (fee, is_stable) = get_mira_params(swap_step.data);
+//     // start swapping the path
+//     match swap_step.dex_id {
+//         MIRA_V1_ID => {
+//             // get parameters
+//             let (fee, is_stable) = get_mira_params(swap_step.data);
 
-            let (pool_id, amount_in, zero_for_one) = get_mira_amount_in(
-                MIRA_AMM_CONTRACT_ID,
-                swap_step
-                    .asset_in,
-                swap_step
-                    .asset_out,
-                is_stable,
-                fee,
-                current_amount_out,
-            );
+//             let (pool_id, amount_in, zero_for_one) = get_mira_amount_in(
+//                 MIRA_AMM_CONTRACT_ID,
+//                 swap_step
+//                     .asset_in,
+//                 swap_step
+//                     .asset_out,
+//                 is_stable,
+//                 fee,
+//                 current_amount_out,
+//             );
 
-            // if we still have a swap step left, we remove the current one and continue
-            if current_path.len() > 1 {
-                //  UNSUPPORTED - Recursive
-                // execute_exact_out_recursive(
-                //     Identity::ContractId(MIRA_AMM_CONTRACT_ID),
-                //     amount_in,
-                //     maximum_in,
-                //     current_path,
-                //     MIRA_AMM_CONTRACT_ID,
-                // );
-            } else {
-            // check slippage
-            require(amount_in <= maximum_in, "Exceeding input amount");
-            // otherwise, we fund the swap
-            transfer(
-                Identity::ContractId(MIRA_AMM_CONTRACT_ID),
-                swap_step
-                    .asset_in,
-                amount_in,
-            );
-        }
-            let (amount0, amount1) = if zero_for_one {
-                (0u64, current_amount_out)
-            } else {
-                (current_amount_out, 0u64)
-            };
-            // execute_exact_out
-            swap_mira_exact_out(pool_id, receiver, amount0, amount1, MIRA_AMM_CONTRACT_ID);
-        },
-        _ => revert(INVALID_DEX),
-    };
-}
+//             // if we still have a swap step left, we remove the current one and continue
+//             if current_path.len() > 1 {
+//                 //  UNSUPPORTED - Recursive
+//                 execute_exact_out_recursive(
+//                     Identity::ContractId(MIRA_AMM_CONTRACT_ID),
+//                     amount_in,
+//                     maximum_in,
+//                     current_path,
+//                     MIRA_AMM_CONTRACT_ID,
+//                 );
+//             } else {
+//             // check slippage
+//             require(amount_in <= maximum_in, "Exceeding input amount");
+//             // otherwise, we fund the swap
+//             transfer(
+//                 Identity::ContractId(MIRA_AMM_CONTRACT_ID),
+//                 swap_step
+//                     .asset_in,
+//                 amount_in,
+//             );
+//         }
+//             let (amount0, amount1) = if zero_for_one {
+//                 (0u64, current_amount_out)
+//             } else {
+//                 (current_amount_out, 0u64)
+//             };
+//             // execute_exact_out
+//             swap_mira_exact_out(pool_id, receiver, amount0, amount1, MIRA_AMM_CONTRACT_ID);
+//         },
+//         _ => revert(INVALID_DEX),
+//     };
+// }
 
 ////////////////////////////////////////////////////
 // get dex address
@@ -324,11 +315,28 @@ pub fn execute_one_delta_rfq_exact_in(
     let (order, signature) = to_rfq_order(data, asset_in, asset_out);
 
     // execute order fill
-    let (maker_amount, _) = abi(OneDeltaRfq, ONE_DELTA_RFQ_CONTRACT_ID.into()).fill_funded(order, signature, amount_in, receiver, Option::None);
+    let (maker_fill_amount, _) = abi(OneDeltaRfq, ONE_DELTA_RFQ_CONTRACT_ID.into()).fill_funded(order, signature, amount_in, receiver, Option::None);
 
-    // maker_amount is the amount received, ergo the output amount  
-    maker_amount
+    // maker_fill_amount is the amount received, ergo the output amount  
+    maker_fill_amount
 }
+
+pub fn execute_one_delta_rfq_exact_out(
+    amount_in: u64,
+    asset_in: AssetId,
+    asset_out: AssetId,
+    receiver: Identity,
+    data: Bytes,
+    ONE_DELTA_RFQ_CONTRACT_ID: ContractId,
+) {
+    // decode order and signature
+    let (order, signature) = to_rfq_order(data, asset_in, asset_out);
+
+    // execute order fill
+    let (_, _) = abi(OneDeltaRfq, ONE_DELTA_RFQ_CONTRACT_ID.into()).fill_funded(order, signature, amount_in, receiver, Option::None);
+
+}
+
 
 // expect the data of 3 bytes be laid out as follows
 // 2 bytes  - for the fee as u16
@@ -338,13 +346,21 @@ pub fn get_mira_params(data: Bytes) -> (u64, bool) {
     // // write to fee_bytes
     // abi_decode_in_place::<u64>(data.ptr(), 8, fee_bytes.ptr());
     // read 3rd byte - default to `false` if not provided
-    let is_stable = match data.get(2) {
-        Option::Some(v) => v != 0, // check if value is nonzero
-        Option::None => false,
-    };
+    let is_stable = get_mira_is_stable(data);
     let fee = u64::from(first_be_bytes_to_u16(data));
     // return parsed fees as u64 and flag
     (fee, is_stable)
+}
+
+// expect the data of 3 bytes be laid out as follows
+// 2 bytes  - for the fee as u16
+// 1 byte   - for a flag as u8
+pub fn get_mira_is_stable(data: Bytes) -> bool {
+    // read 3rd byte - default to `false` if not provided
+    match data.get(2) {
+        Option::Some(v) => v != 0, // check if value is nonzero
+        Option::None => false,
+    }
 }
 
 ////////////////////////////////////////////////////

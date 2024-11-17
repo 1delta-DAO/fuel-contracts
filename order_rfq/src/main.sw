@@ -106,7 +106,7 @@ impl OneDeltaRfq for Contract {
         // validate amount sent
         require(
             taker_fill_amount <= order.taker_amount,
-            Error::TakerAmountTooHigh,
+            Error::TakerFillAmountTooHigh,
         );
 
         // compute maker fill amount relative to input amount
@@ -188,7 +188,7 @@ impl OneDeltaRfq for Contract {
         // validate taker_amount desired to be exchange
         require(
             taker_fill_amount <= order.taker_amount,
-            Error::TakerAmountTooHigh,
+            Error::TakerFillAmountTooHigh,
         );
 
         // get stored maker_balances
@@ -214,6 +214,9 @@ impl OneDeltaRfq for Contract {
             maker_fill_amount,
         );
 
+        // this internal balance is unadjusted for the amount received 
+        let taker_accounting_balance = get_asset_balance(order.taker_asset);
+
         if let Some(d) = data {
             abi(IRfqFlashCallback, taker_receiver
                 .as_contract_id()
@@ -229,9 +232,6 @@ impl OneDeltaRfq for Contract {
                     d,
                 );
         }
-
-        // this internal balance is unadjusted for the amount received 
-        let taker_accounting_balance = get_asset_balance(order.taker_asset);
         // fetch the real taker asset balance
         let real_taker_balance = this_balance(AssetId::from(order.taker_asset));
         // the funds received are real balance minus accounting balance

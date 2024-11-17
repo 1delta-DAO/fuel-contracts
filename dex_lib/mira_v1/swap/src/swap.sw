@@ -82,11 +82,10 @@ pub fn get_mira_amount_in(
     is_stable_pool: bool,
     swap_fee: u64,
     amount_out: u64,
-) -> (PoolId, u64, bool) {
+) -> u64 {
     let amm = abi(MiraAMM, amm_contract.into());
     if asset_in.bits() < asset_out.bits() {
-        let pool_id: PoolId = (asset_in, asset_out, is_stable_pool);
-        let pool_opt = amm.pool_metadata(pool_id);
+        let pool_opt = amm.pool_metadata((asset_in, asset_out, is_stable_pool));
         require(pool_opt.is_some(), "Pool not present");
         let pool = pool_opt.unwrap();
         // get input amount
@@ -101,10 +100,9 @@ pub fn get_mira_amount_in(
             amount_out
                 .as_u256(),
         );
-        return (pool_id, add_fee(u64::try_from(am_in).unwrap(), swap_fee), true);
+        return add_fee(u64::try_from(am_in).unwrap(), swap_fee);
     } else {
-        let pool_id: PoolId = (asset_out, asset_in, is_stable_pool);
-        let pool_opt = amm.pool_metadata(pool_id);
+        let pool_opt = amm.pool_metadata((asset_out, asset_in, is_stable_pool));
         require(pool_opt.is_some(), "Pool not present");
         let pool = pool_opt.unwrap();
         // get input amount
@@ -119,7 +117,7 @@ pub fn get_mira_amount_in(
             amount_out
                 .as_u256(),
         );
-        return (pool_id, add_fee(u64::try_from(am_in).unwrap(), swap_fee), false);
+        return add_fee(u64::try_from(am_in).unwrap(), swap_fee);
     }
 }
 

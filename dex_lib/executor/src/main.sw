@@ -83,6 +83,7 @@ pub fn calculate_amounts_exact_out_and_fund(
     maximum_in: u64,
     current_path: Vec<BatchSwapStep>,
     MIRA_AMM_CONTRACT_ID: ContractId,
+    ONE_DELTA_RFQ_CONTRACT_ID: ContractId,
 ) -> Vec<u64> {
     // this is list of the amounts used to parametrize 
     // the swap 
@@ -139,7 +140,12 @@ pub fn calculate_amounts_exact_out_and_fund(
     require(current_amount_out <= maximum_in, "Exceeding input amount");
     // transfer first funds
     transfer(
-        Identity::ContractId(MIRA_AMM_CONTRACT_ID),
+        get_dex_input_receiver(
+            swap_step
+                .dex_id,
+            MIRA_AMM_CONTRACT_ID,
+            ONE_DELTA_RFQ_CONTRACT_ID,
+        ),
         swap_step
             .asset_in,
         current_amount_out,
@@ -334,9 +340,7 @@ pub fn execute_one_delta_rfq_exact_out(
 
     // execute order fill
     let (_, _) = abi(OneDeltaRfq, ONE_DELTA_RFQ_CONTRACT_ID.into()).fill_funded(order, signature, amount_in, receiver, Option::None);
-
 }
-
 
 // expect the data of 3 bytes be laid out as follows
 // 2 bytes  - for the fee as u16

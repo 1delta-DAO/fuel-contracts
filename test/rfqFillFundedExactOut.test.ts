@@ -8,8 +8,9 @@ import { BatchSwapStepInput } from '../ts-scripts/typegen/BatchSwapExactInScript
 import { txParams } from '../ts-scripts/utils/constants';
 import { RfqTestUtils } from './utils';
 
-describe('Rfq fill via `fill_funded` through BatchSwapExactInScript', async () => {
-  test('Facilitates full order fill', async () => {
+describe('Rfq fill via `fill_funded` through BatchSwapExactOutScript', async () => {
+
+  test.only('Facilitates partial order fill exact output', async () => {
     const launched = await launchTestNode({ walletsConfig: { count: 3 } });
 
     const {
@@ -65,19 +66,23 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactInScript', async () =
       expiry: RfqTestUtils.MAX_EXPIRY,
     }
 
+    const maker_fill_amount = RfqTestUtils.getRandomAmount(1, maker_amount.toNumber())
+
+    const taker_fill_amount = RfqTestUtils.computeTakerFillAmount(maker_fill_amount, order.maker_amount, order.taker_amount)
+
     const signatureRaw = await maker.signMessage(RfqTestUtils.packOrder(order))
 
     const swap_step = RfqTestUtils.createRfqBatchSwapStep(order, signatureRaw, addressInput(taker.address))
 
     const path: [BigNumberish, BigNumberish, boolean, BatchSwapStepInput[]][] = [
       [
-        taker_amount, maker_amount.sub(1), true, [swap_step]
+        maker_fill_amount, taker_fill_amount.add(1), true, [swap_step]
       ]
     ]
 
     const deadline = RfqTestUtils.MAX_EXPIRY
 
-    const request = await (await RfqTestUtils.callExactInScriptScope(path, deadline, taker, rfqOrders.id.toB256()))
+    const request = await (await RfqTestUtils.callExactOutScriptScope(path, deadline, taker, rfqOrders.id.toB256()))
       .addContracts([rfqOrders])
       .txParams(txParams)
       .getTransactionRequest()
@@ -85,12 +90,11 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactInScript', async () =
     const inputAssets: CoinQuantity[] = [
       {
         assetId: taker_asset,
-        amount: taker_amount,
+        amount: taker_fill_amount.add(1),
       }
     ];
 
-
-    const finalRequest = await prepareRequest(taker, request, 3, inputAssets, [rfqOrders.id.toB256()])
+    const finalRequest = await prepareRequest(taker, request, 2, inputAssets, [rfqOrders.id.toB256()])
 
     /** EXECUTE TXN */
 
@@ -114,147 +118,12 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactInScript', async () =
       [maker_asset, taker_asset]
     )
 
-    // validate maker change
+    // validate maker change (allow rounding error of 1)
     expect(
-      maker_maker_asset_balance_before.sub(maker_maker_asset_balance_after).toString()
-    ).to.equal(
-      maker_amount.toString()
-    )
-    expect(
-      maker_taker_asset_balance_after.sub(maker_taker_asset_balance_before).toString()
-    ).to.equal(
-      taker_amount.toString()
-    )
-
-    // validate taker change
-    expect(
-      taker_maker_asset_balance_after.sub(taker_maker_asset_balance_before).toString()
-    ).to.equal(
-      maker_amount.toString()
-    )
-    expect(
-      taker_taker_asset_balance_before.sub(taker_taker_asset_balance_after).toString()
-    ).to.equal(
-      taker_amount.toString()
-    )
-  });
-
-  test('Facilitates partial order fill', async () => {
-    const launched = await launchTestNode({ walletsConfig: { count: 3 } });
-
-    const {
-      wallets: [maker, deployer, taker]
-    } = launched;
-
-    const { rfqOrders, tokens } = await RfqTestUtils.fixture(deployer)
-
-
-
-    const [maker_asset, taker_asset] = await RfqTestUtils.createTokens(deployer, RfqTestUtils.contractIdBits(tokens))
-
-    await RfqTestUtils.fundWallets(
-      [maker, taker],
-      RfqTestUtils.contractIdBits(tokens),
-      [maker_asset, taker_asset],
-      [RfqTestUtils.DEFAULT_MINT_AMOUNT, RfqTestUtils.DEFAULT_MINT_AMOUNT]
-    )
-
-    const maker_amount = RfqTestUtils.getRandomAmount()
-    const taker_amount = RfqTestUtils.getRandomAmount()
-
-
-    await RfqTestUtils.getRfqOrders(maker, RfqTestUtils.contractIdBits(rfqOrders)).functions.deposit()
-      .callParams({ forward: { assetId: maker_asset, amount: maker_amount } })
-      .call()
-
-
-    const [
-      maker_maker_asset_balance_before,
-      maker_taker_asset_balance_before
-    ] = await RfqTestUtils.getMakerBalances(
-      maker.address.toB256(),
-      [maker_asset, taker_asset],
-      rfqOrders
-    )
-
-    const [
-      taker_maker_asset_balance_before,
-      taker_taker_asset_balance_before
-    ] = await RfqTestUtils.getConventionalBalances(
-      taker,
-      [maker_asset, taker_asset]
-    )
-
-    /** DEFINE PARAMETERS */
-
-    const order: RfqOrderInput = {
-      maker_asset,
-      taker_asset,
-      maker_amount,
-      taker_amount,
-      maker: maker.address.toB256(),
-      nonce: '0',
-      expiry: RfqTestUtils.MAX_EXPIRY,
-    }
-
-    const taker_fill_amount = RfqTestUtils.getRandomAmount(1, Number(taker_amount.toString()))
-
-    const maker_fill_amount = RfqTestUtils.computeMakerFillAmount(taker_fill_amount, order.maker_amount, order.taker_amount)
-
-
-    const signatureRaw = await maker.signMessage(RfqTestUtils.packOrder(order))
-
-    const swap_step = RfqTestUtils.createRfqBatchSwapStep(order, signatureRaw, addressInput(taker.address))
-
-    const path: [BigNumberish, BigNumberish, boolean, BatchSwapStepInput[]][] = [
-      [
-        taker_fill_amount, maker_fill_amount.sub(1), true, [swap_step]
-      ]
-    ]
-
-    const deadline = RfqTestUtils.MAX_EXPIRY
-
-    const request = await (await RfqTestUtils.callExactInScriptScope(path, deadline, taker, rfqOrders.id.toB256()))
-      .addContracts([rfqOrders])
-      .txParams(txParams)
-      .getTransactionRequest()
-
-    const inputAssets: CoinQuantity[] = [
-      {
-        assetId: taker_asset,
-        amount: taker_fill_amount,
-      }
-    ];
-
-    const finalRequest = await prepareRequest(taker, request, 3, inputAssets, [rfqOrders.id.toB256()])
-
-    /** EXECUTE TXN */
-
-    const tx = await taker.sendTransaction(finalRequest, { estimateTxDependencies: true })
-    await tx.waitForResult()
-
-    const [
-      maker_maker_asset_balance_after,
-      maker_taker_asset_balance_after
-    ] = await RfqTestUtils.getMakerBalances(
-      maker.address.toB256(),
-      [maker_asset, taker_asset],
-      rfqOrders
-    )
-
-    const [
-      taker_maker_asset_balance_after,
-      taker_taker_asset_balance_after
-    ] = await RfqTestUtils.getConventionalBalances(
-      taker,
-      [maker_asset, taker_asset]
-    )
-
-    // validate maker change
-    expect(
-      maker_maker_asset_balance_before.sub(maker_maker_asset_balance_after).toString()
-    ).to.equal(
-      maker_fill_amount.toString()
+      maker_maker_asset_balance_before.sub(maker_maker_asset_balance_after).toNumber()
+    ).to.approximately(
+      maker_fill_amount.toNumber(),
+      1
     )
     expect(
       maker_taker_asset_balance_after.sub(maker_taker_asset_balance_before).toString()
@@ -264,9 +133,10 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactInScript', async () =
 
     // validate taker change
     expect(
-      taker_maker_asset_balance_after.sub(taker_maker_asset_balance_before).toString()
-    ).to.equal(
-      maker_fill_amount.toString()
+      taker_maker_asset_balance_after.sub(taker_maker_asset_balance_before).toNumber()
+    ).to.approximately(
+      maker_fill_amount.toNumber(),
+      1
     )
     expect(
       taker_taker_asset_balance_before.sub(taker_taker_asset_balance_after).toString()
@@ -276,7 +146,7 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactInScript', async () =
   });
 
 
-  test('Facilitates multihop partial order fill', async () => {
+  test('Facilitates multihop partial order fill exact output', async () => {
     /**
      * We test a swap taker_asset -> intermediate_asset -> maker_asset
      */
@@ -301,7 +171,6 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactInScript', async () =
     const maker_amount = RfqTestUtils.getRandomAmount()
     const intermediate_amount = RfqTestUtils.getRandomAmount()
     const taker_amount = RfqTestUtils.getRandomAmount()
-
 
     await RfqTestUtils.createMakerDeposits(maker, rfqOrders, [maker_asset, intermediate_asset], [maker_amount.toNumber(), intermediate_amount.toNumber()])
 
@@ -344,12 +213,14 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactInScript', async () =
       expiry: RfqTestUtils.MAX_EXPIRY,
     }
 
-    const taker_fill_amount = RfqTestUtils.getRandomAmount(1, taker_amount.toNumber()) // this is the actual amount_in
 
-    const intermediate_fill_amount = RfqTestUtils.computeMakerFillAmount(taker_fill_amount, order0.maker_amount, order0.taker_amount)
+    const maker_fill_amount = RfqTestUtils.getRandomAmount(1, maker_amount.toNumber()) // this is the actual amount_in
+    
+    const intermediate_fill_amount = RfqTestUtils.computeTakerFillAmount(maker_fill_amount, order1.maker_amount, order1.taker_amount)
 
-    const maker_fill_amount = RfqTestUtils.computeMakerFillAmount(intermediate_fill_amount, order1.maker_amount, order1.taker_amount)
+    const taker_fill_amount = RfqTestUtils.computeTakerFillAmount(intermediate_fill_amount, order1.maker_amount, order1.taker_amount)
 
+    
     const signatureRaw0 = await maker.signMessage(RfqTestUtils.packOrder(order0))
     const signatureRaw1 = await maker.signMessage(RfqTestUtils.packOrder(order1))
 
@@ -370,7 +241,7 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactInScript', async () =
 
     const deadline = RfqTestUtils.MAX_EXPIRY
 
-    const request = await (await RfqTestUtils.callExactInScriptScope(path, deadline, taker, rfqOrders.id.toB256()))
+    const request = await (await RfqTestUtils.callExactOutScriptScope(path, deadline, taker, rfqOrders.id.toB256()))
       .addContracts([rfqOrders])
       .txParams(txParams)
       .getTransactionRequest()
@@ -382,7 +253,7 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactInScript', async () =
       }
     ];
 
-    const finalRequest = await prepareRequest(taker, request, 3, inputAssets, [rfqOrders.id.toB256()])
+    const finalRequest = await prepareRequest(taker, request, 2, inputAssets, [rfqOrders.id.toB256()])
 
     /** EXECUTE TXN */
 

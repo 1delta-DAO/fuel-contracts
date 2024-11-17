@@ -6,6 +6,7 @@ import { MockToken } from '../../ts-scripts/typegen/MockToken';
 import { OrderRfq, RfqOrderInput } from '../../ts-scripts/typegen/OrderRfq';
 import { OrderRfqFactory } from '../../ts-scripts/typegen/OrderRfqFactory';
 import { BatchSwapStepInput, BatchSwapExactInScript, IdentityInput } from '../../ts-scripts/typegen/BatchSwapExactInScript';
+import { BatchSwapExactOutScript } from '../../ts-scripts/typegen/BatchSwapExactOutScript';
 
 
 export namespace RfqTestUtils {
@@ -37,6 +38,22 @@ export namespace RfqTestUtils {
     user: WalletUnlocked, rfqOrder: string) {
 
     return await new BatchSwapExactInScript(user).setConfigurableConstants(
+      {
+        MIRA_AMM_CONTRACT_ID: contractIdInput(rfqOrder).ContractId,
+        ONE_DELTA_RFQ_CONTRACT_ID: contractIdInput(rfqOrder).ContractId,
+      }
+    ).functions.main(
+      path,
+      deadline
+    ) as any
+  }
+
+  export async function callExactOutScriptScope(
+    path: any,
+    deadline: number,
+    user: WalletUnlocked, rfqOrder: string) {
+
+    return await new BatchSwapExactOutScript(user).setConfigurableConstants(
       {
         MIRA_AMM_CONTRACT_ID: contractIdInput(rfqOrder).ContractId,
         ONE_DELTA_RFQ_CONTRACT_ID: contractIdInput(rfqOrder).ContractId,

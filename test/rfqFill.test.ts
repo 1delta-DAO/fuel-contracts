@@ -100,7 +100,7 @@ describe('Rfq fill via `fill`', async () => {
       taker_amount.toString()
     )
 
-    // validate taker cahnge
+    // validate taker change
     expect(
       taker_maker_asset_balance_after.sub(taker_maker_asset_balance_before).toString()
     ).to.equal(
@@ -171,7 +171,7 @@ describe('Rfq fill via `fill`', async () => {
 
     const taker_fill_amount = RfqTestUtils.getRandomAmount(1, Number(taker_amount.toString()))
 
-    const maker_fill_amount = RfqTestUtils.computeMakerFillAmount(taker_fill_amount, order.maker_amount, order.taker_amount.toString())
+    const maker_fill_amount = RfqTestUtils.computeMakerFillAmount(taker_fill_amount, order.maker_amount, order.taker_amount)
 
     await RfqTestUtils.getRfqOrders(taker, RfqTestUtils.contractIdBits(rfqOrders)).functions.fill(
       order,
@@ -210,7 +210,7 @@ describe('Rfq fill via `fill`', async () => {
       taker_fill_amount.toString()
     )
 
-    // validate taker cahnge
+    // validate taker change
     expect(
       taker_maker_asset_balance_after.sub(taker_maker_asset_balance_before).toString()
     ).to.equal(
@@ -281,7 +281,7 @@ describe('Rfq fill via `fill`', async () => {
 
     const maker_fill_amount = RfqTestUtils.getRandomAmount(1, Number(maker_amount.toString()))
 
-    const taker_fill_amount = RfqTestUtils.computeTakerFillAmount(maker_fill_amount, order.maker_amount, order.taker_amount.toString())
+    const taker_fill_amount = RfqTestUtils.computeTakerFillAmount(maker_fill_amount, order.maker_amount, order.taker_amount)
 
     await RfqTestUtils.getRfqOrders(taker, RfqTestUtils.contractIdBits(rfqOrders)).functions.fill(
       order,
@@ -322,7 +322,7 @@ describe('Rfq fill via `fill`', async () => {
       taker_fill_amount.toString()
     )
 
-    // validate taker cahnge
+    // validate taker change
     expect(
       taker_maker_asset_balance_after.sub(taker_maker_asset_balance_before).toString()
     ).to.equal(

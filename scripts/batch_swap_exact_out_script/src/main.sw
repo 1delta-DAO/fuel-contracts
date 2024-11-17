@@ -35,6 +35,7 @@ fn main(
             minimum_out,
             current_path,
             MIRA_AMM_CONTRACT_ID,
+            ONE_DELTA_RFQ_CONTRACT_ID,
         );
         // swap amounts forward
         forward_swap_exact_out(

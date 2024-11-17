@@ -11,7 +11,7 @@ describe('Order Validation', async () => {
     const launched = await launchTestNode();
 
     const {
-      wallets: [maker, deployer, taker]
+      wallets: [maker, deployer]
     } = launched;
 
     const { rfqOrders } = await RfqTestUtils.fixture(deployer)
@@ -38,7 +38,7 @@ describe('Order Validation', async () => {
     const launched = await launchTestNode();
 
     const {
-      wallets: [maker, deployer, taker]
+      wallets: [maker, deployer]
     } = launched;
 
     const { rfqOrders } = await RfqTestUtils.fixture(deployer)
@@ -69,7 +69,7 @@ describe('Order Validation', async () => {
     const launched = await launchTestNode();
 
     const {
-      wallets: [maker, deployer, taker]
+      wallets: [maker, deployer]
     } = launched;
 
     const { rfqOrders } = await RfqTestUtils.fixture(deployer)

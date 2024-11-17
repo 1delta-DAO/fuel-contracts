@@ -37,6 +37,7 @@ const ONE_DELTA_RFQ_ID: u64 = 100;
 // Revert error codes
 ////////////////////////////////////////////////////
 const INVALID_DEX: u64 = 1;
+const RFQ_OUTPUT_TOO_HIGH: u64 = 2;
 
 ////////////////////////////////////////////////////
 // swap functions - general
@@ -504,13 +505,28 @@ pub fn to_rfq_order(bytes: Bytes, asset_in: AssetId, asset_out: AssetId) -> (Rfq
     )
 }
 
+// quote an order exact out
 pub fn quote_rfq_exact_out(bytes: Bytes, amount_out: u64) -> u64 {
+    // we only read the two first fields in the order
     let (maker_amount_bytes, rest) = bytes.split_at(8);
     let (taker_amount_bytes, _) = rest.split_at(8);
     let maker_amount = u64::from_be_bytes(maker_amount_bytes);
     let taker_amount = u64::from_be_bytes(taker_amount_bytes);
 
-    compute_taker_fill_amount(amount_out, maker_amount, taker_amount)
+    // revert if the requested amount is higher than the 
+    // maker_amount
+    if amount_out > maker_amount {
+        revert(RFQ_OUTPUT_TOO_HIGH);
+    };
+    // compute the taker_amount (assuming partial fills)
+    let taker_amount_computed = compute_taker_fill_amount(amount_out, maker_amount, taker_amount);
+    // if the computed taker amount is too large (typically because of rounding),
+    // we just fall back to taker_amount
+    if taker_amount_computed > taker_amount {
+        taker_amount
+    } else {
+        taker_amount_computed
+    }
 }
 
 #[test]

@@ -388,19 +388,6 @@ pub fn encode_mira_params(fee: u16, is_stable: bool) -> Bytes {
 ////////////////////////////////////////////////////
 
 // custon bytes decoder - read first 2 bytes as u16
-pub fn first_le_bytes_to_u16(bytes: Bytes) -> u16 {
-    assert(bytes.len() > 1);
-    let ptr = bytes.ptr();
-    let a = ptr.read_byte();
-    let b = (ptr.add_uint_offset(1)).read_byte();
-    let i = 0x8;
-    asm(a: a, b: b, i: i, r1) {
-        sll r1 b i;
-        or r1 a r1;
-        r1: u16
-    }
-}
-
 pub fn first_be_bytes_to_u16(bytes: Bytes) -> u16 {
     assert(bytes.len() > 1);
     let ptr = bytes.ptr();
@@ -411,43 +398,6 @@ pub fn first_be_bytes_to_u16(bytes: Bytes) -> u16 {
         sll r1 a i;
         or r1 r1 b;
         r1: u16
-    }
-}
-
-// custon bytes decoder - read first 8 bytes as u64
-pub fn first_le_bytes_to_u64(bytes: Bytes) -> u64 {
-    // we require at least 8 bytes
-    assert(bytes.len() > 7);
-    let ptr = bytes.ptr();
-    let a = ptr.read_byte();
-    let b = (ptr.add_uint_offset(1)).read_byte();
-    let c = (ptr.add_uint_offset(2)).read_byte();
-    let d = (ptr.add_uint_offset(3)).read_byte();
-    let e = (ptr.add_uint_offset(4)).read_byte();
-    let f = (ptr.add_uint_offset(5)).read_byte();
-    let g = (ptr.add_uint_offset(6)).read_byte();
-    let h = (ptr.add_uint_offset(7)).read_byte();
-
-    asm(
-        a: a, b: b, c: c, d: d, e: e, f: f, g: g, h: h, i: 0x8, j: 0x10, k: 0x18,
-        l: 0x20, m: 0x28, n: 0x30, o: 0x38, r1, r2, r3,
-    ) {
-        sll r1 h o;
-        sll r2 g n;
-        or r3 r1 r2;
-        sll r1 f m;
-        or r2 r3 r1;
-        sll r3 e l;
-        or r1 r2 r3;
-        sll r2 d k;
-        or r3 r1 r2;
-        sll r1 c j;
-        or r2 r3 r1;
-        sll r3 b i;
-        or r1 r2 r3;
-        or r2 r1 a;
-
-        r2: u64
     }
 }
 

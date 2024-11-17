@@ -40,7 +40,7 @@ describe('Rfq fill via `fill`', async () => {
       maker_amount,
       taker_amount,
       maker: maker.address.toB256(),
-      nonce: '0',
+      nonce:  RfqTestUtils.getRandomAmount(1),
       expiry: RfqTestUtils.MAX_EXPIRY,
     }
 
@@ -50,13 +50,13 @@ describe('Rfq fill via `fill`', async () => {
 
     let reason: string | undefined = undefined
     try {
-    await RfqTestUtils.getRfqOrders(taker, RfqTestUtils.contractIdBits(rfqOrders)).functions.fill(
-      order,
-      signatureRaw,
-      addressInput(taker.address)
-    )
-      .callParams({ forward: { assetId: taker_asset, amount: taker_fill_amount } })
-      .call()
+      await RfqTestUtils.getRfqOrders(taker, RfqTestUtils.contractIdBits(rfqOrders)).functions.fill(
+        order,
+        signatureRaw,
+        addressInput(taker.address)
+      )
+        .callParams({ forward: { assetId: taker_asset, amount: taker_fill_amount } })
+        .call()
     } catch (e) {
       reason = String(e)
     }
@@ -96,13 +96,15 @@ describe('Rfq fill via `fill`', async () => {
 
     const taker_amount = RfqTestUtils.getRandomAmount()
 
+    let nonce = RfqTestUtils.getRandomAmount(1)
+
     const order: RfqOrderInput = {
       maker_asset,
       taker_asset,
       maker_amount,
       taker_amount,
       maker: maker.address.toB256(),
-      nonce: '0',
+      nonce,
       expiry: RfqTestUtils.MAX_EXPIRY,
     }
 
@@ -132,6 +134,10 @@ describe('Rfq fill via `fill`', async () => {
     )
       .callParams({ forward: { assetId: taker_asset, amount: taker_amount } })
       .call()
+
+    // validate nonce
+    const newNonce = await RfqTestUtils.getNonce(order, rfqOrders)
+    expect(newNonce.toString()).to.equal(nonce.toString())
 
     const [
       maker_maker_asset_balance_after,
@@ -208,7 +214,7 @@ describe('Rfq fill via `fill`', async () => {
       maker_amount,
       taker_amount,
       maker: maker.address.toB256(),
-      nonce: '0',
+      nonce:  RfqTestUtils.getRandomAmount(1),
       expiry: RfqTestUtils.MAX_EXPIRY,
     }
     const signatureRaw = await maker.signMessage(RfqTestUtils.packOrder(order, rfqOrders))
@@ -318,7 +324,7 @@ describe('Rfq fill via `fill`', async () => {
       maker_amount,
       taker_amount,
       maker: maker.address.toB256(),
-      nonce: '0',
+      nonce:  RfqTestUtils.getRandomAmount(1),
       expiry: RfqTestUtils.MAX_EXPIRY,
     }
     const signatureRaw = await maker.signMessage(RfqTestUtils.packOrder(order, rfqOrders))

@@ -42,7 +42,7 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactInScript', async () =
       maker_amount,
       taker_amount,
       maker: maker.address.toB256(),
-      nonce: '0',
+      nonce: RfqTestUtils.getRandomAmount(1),
       expiry: RfqTestUtils.MAX_EXPIRY,
     }
 
@@ -135,6 +135,7 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactInScript', async () =
     )
 
     /** DEFINE PARAMETERS */
+    let nonce = RfqTestUtils.getRandomAmount(1)
 
     const order: RfqOrderInput = {
       maker_asset,
@@ -142,7 +143,7 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactInScript', async () =
       maker_amount,
       taker_amount,
       maker: maker.address.toB256(),
-      nonce: '0',
+      nonce,
       expiry: RfqTestUtils.MAX_EXPIRY,
     }
 
@@ -177,6 +178,10 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactInScript', async () =
 
     const tx = await taker.sendTransaction(finalRequest, { estimateTxDependencies: true })
     await tx.waitForResult()
+
+    // validate nonce
+    const newNonce = await RfqTestUtils.getNonce(order, rfqOrders)
+    expect(newNonce.toString()).to.equal(nonce.toString())
 
     const [
       maker_maker_asset_balance_after,
@@ -274,7 +279,7 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactInScript', async () =
       maker_amount,
       taker_amount,
       maker: maker.address.toB256(),
-      nonce: '0',
+      nonce: RfqTestUtils.getRandomAmount(1),
       expiry: RfqTestUtils.MAX_EXPIRY,
     }
 
@@ -411,7 +416,7 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactInScript', async () =
       maker_amount: intermediate_amount,
       taker_amount,
       maker: maker.address.toB256(),
-      nonce: '0',
+      nonce: RfqTestUtils.getRandomAmount(1),
       expiry: RfqTestUtils.MAX_EXPIRY,
     }
 
@@ -421,7 +426,7 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactInScript', async () =
       maker_amount,
       taker_amount: intermediate_amount,
       maker: maker.address.toB256(),
-      nonce: '0',
+      nonce: RfqTestUtils.getRandomAmount(1),
       expiry: RfqTestUtils.MAX_EXPIRY,
     }
 

@@ -22,7 +22,7 @@ describe('Order Validation', async () => {
       maker_amount: 10000,
       taker_amount: 10000,
       maker: maker.address.toB256(),
-      nonce: '0',
+      nonce: RfqTestUtils.getRandomAmount(1),
       expiry: RfqTestUtils.MAX_EXPIRY,
     }
 
@@ -49,7 +49,7 @@ describe('Order Validation', async () => {
       maker_amount: 10000,
       taker_amount: 10000,
       maker: maker.address.toB256(),
-      nonce: '0',
+      nonce: RfqTestUtils.getRandomAmount(1),
       expiry: RfqTestUtils.MAX_EXPIRY,
     }
 
@@ -80,7 +80,7 @@ describe('Order Validation', async () => {
       maker_amount: 10000,
       taker_amount: 10000,
       maker: maker.address.toB256(),
-      nonce: '0',
+      nonce: RfqTestUtils.getRandomAmount(1),
       expiry: RfqTestUtils.MAX_EXPIRY,
     }
 
@@ -114,7 +114,7 @@ describe('Order Validation', async () => {
       maker_amount: 10000,
       taker_amount: 10000,
       maker: maker.address.toB256(),
-      nonce: '0',
+      nonce: RfqTestUtils.getRandomAmount(1),
       expiry: 0,
     }
 
@@ -140,13 +140,16 @@ describe('Order Validation', async () => {
 
     const { rfqOrders } = await RfqTestUtils.fixture(deployer)
 
+    
+const nonce =  RfqTestUtils.getRandomAmount(1)
+
     const order: RfqOrderInput = {
       maker_asset: maker.address.toB256(),
       taker_asset: maker.address.toB256(),
       maker_amount: 10000,
       taker_amount: 10000,
       maker: maker.address.toB256(),
-      nonce: '0',
+      nonce,
       expiry: RfqTestUtils.MAX_EXPIRY,
     }
 
@@ -155,7 +158,7 @@ describe('Order Validation', async () => {
     await RfqTestUtils.getRfqOrders(maker, rfqOrders.id.toB256()).functions.invalidate_nonce(
       order.maker_asset,
       order.taker_asset,
-      1
+      nonce
     ).call()
 
     const result = await rfqOrders.functions.validate_order(

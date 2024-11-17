@@ -62,7 +62,7 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactOutScript', async () 
       maker_amount,
       taker_amount,
       maker: maker.address.toB256(),
-      nonce: '0',
+      nonce: RfqTestUtils.getRandomAmount(1),
       expiry: RfqTestUtils.MAX_EXPIRY,
     }
 
@@ -199,7 +199,7 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactOutScript', async () 
       maker_amount: intermediate_amount,
       taker_amount,
       maker: maker.address.toB256(),
-      nonce: '0',
+      nonce: RfqTestUtils.getRandomAmount(1),
       expiry: RfqTestUtils.MAX_EXPIRY,
     }
 
@@ -209,7 +209,7 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactOutScript', async () 
       maker_amount,
       taker_amount: intermediate_amount,
       maker: maker.address.toB256(),
-      nonce: '0',
+      nonce: RfqTestUtils.getRandomAmount(1),
       expiry: RfqTestUtils.MAX_EXPIRY,
     }
 

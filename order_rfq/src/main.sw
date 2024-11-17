@@ -59,20 +59,18 @@ fn validate_order_and_increment_nonce_internal(order: RfqOrder, order_signature:
     let signer = recover_signer(order_signature, order_hash);
     require(signer.bits() == order.maker, Error::InvalidOrderSignature);
 
-    // get current maker nonce
-    let mut current_nonce: u64 = storage.nonces.get(order.maker).get(order.maker_asset).get(order.taker_asset).try_read().unwrap_or(0u64);
+    // get old maker nonce
+    let mut old_nonce: u64 = storage.nonces.get(order.maker).get(order.maker_asset).get(order.taker_asset).try_read().unwrap_or(0u64);
 
     // valdiate nonce
-    require(order.nonce >= current_nonce, Error::InvalidNonce);
+    require(order.nonce > old_nonce, Error::InvalidNonce);
 
-    // increment nonce
-    current_nonce += 1;
-    // set incremented nonce
+    // set new nonce
     storage
         .nonces
         .get(order.maker) // maker
         .get(order.maker_asset) // maker_asset
-        .insert(order.taker_asset, current_nonce);
+        .insert(order.taker_asset, order.nonce);
 
     order_hash
 }
@@ -335,10 +333,10 @@ impl OneDeltaRfq for Contract {
         reentrancy_guard();
         let owner = msg_sender().unwrap().bits();
         // get current maker nonce
-        let mut current_nonce: u64 = storage.nonces.get(owner).get(maker_asset).get(taker_asset).try_read().unwrap_or(0u64);
+        let mut old_nonce: u64 = storage.nonces.get(owner).get(maker_asset).get(taker_asset).try_read().unwrap_or(0u64);
 
         // valdiate nonce
-        require(new_nonce >= current_nonce, Error::InvalidNonce);
+        require(new_nonce > old_nonce, Error::InvalidNonce);
 
         // set new nonce
         storage
@@ -352,7 +350,7 @@ impl OneDeltaRfq for Contract {
     #[storage(read)]
     fn validate_order(order: RfqOrder, order_signature: B512) -> Error {
         // get current maker nonce
-        let current_nonce: u64 = storage.nonces.get(order.maker).get(order.maker_asset).get(order.taker_asset).try_read().unwrap_or(0u64);
+        let old_nonce: u64 = storage.nonces.get(order.maker).get(order.maker_asset).get(order.taker_asset).try_read().unwrap_or(0u64);
 
         if order.expiry < height() {
             return Error::Expired;
@@ -365,7 +363,7 @@ impl OneDeltaRfq for Contract {
         }
 
         // valdiate nonce
-        if order.nonce < current_nonce {
+        if order.nonce <= old_nonce {
             return Error::InvalidNonce;
         }
 

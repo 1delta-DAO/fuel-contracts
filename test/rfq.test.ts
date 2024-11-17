@@ -752,11 +752,13 @@ describe('RFQ Orders', () => {
         [maker_asset, taker_asset]
       )
 
-      // validate maker change
+      // validate maker change - note that the maker amount can deviate by 1 
+      // due to rounding errors
       expect(
-        maker_maker_asset_balance_before.sub(maker_maker_asset_balance_after).toString()
-      ).to.equal(
-        maker_fill_amount.toString()
+        maker_maker_asset_balance_before.sub(maker_maker_asset_balance_after).toNumber()
+      ).to.approximately(
+        maker_fill_amount.toNumber(),
+        1
       )
       expect(
         maker_taker_asset_balance_after.sub(maker_taker_asset_balance_before).toString()
@@ -1046,7 +1048,7 @@ describe('RFQ Orders', () => {
     });
 
 
-    test.only('Facilitates multihop partial order fill', async () => {
+    test('Facilitates multihop partial order fill', async () => {
       /**
        * We test a swap taker_asset -> intermediate_asset -> maker_asset
        */
@@ -1059,10 +1061,8 @@ describe('RFQ Orders', () => {
 
       const { rfqOrders, tokens } = await fixture(deployer)
 
-
-
       const [maker_asset, taker_asset, intermediate_asset] = await createTokens(deployer, contractIdBits(tokens), EXTENDED_NAMES)
-      console.log("depod1")
+
       await fundWallets(
         [maker, taker, maker],
         contractIdBits(tokens),
@@ -1074,10 +1074,8 @@ describe('RFQ Orders', () => {
       const intermediate_amount = getRandomAmount()
       const taker_amount = getRandomAmount()
 
-      console.log("depod2")
-      await createMakerDeposits(maker, rfqOrders, [maker_asset, intermediate_asset], [maker_amount.toNumber(), intermediate_amount.toNumber()])
 
-      console.log("depod")
+      await createMakerDeposits(maker, rfqOrders, [maker_asset, intermediate_asset], [maker_amount.toNumber(), intermediate_amount.toNumber()])
 
       const [
         maker_maker_asset_balance_before,
@@ -1118,16 +1116,11 @@ describe('RFQ Orders', () => {
         expiry: MAX_EXPIRY,
       }
 
-      const taker_fill_amount = getRandomAmount(1, taker_amount.toNumber())
+      const taker_fill_amount = getRandomAmount(1, taker_amount.toNumber()) // this is the actual amount_in
 
       const intermediate_fill_amount = computeMakerFillAmount(taker_fill_amount, order0.maker_amount, order0.taker_amount)
 
       const maker_fill_amount = computeMakerFillAmount(intermediate_fill_amount, order1.maker_amount, order1.taker_amount)
-
-      console.log("taker_fill_amount", taker_fill_amount.toNumber())
-      console.log("intermediate_fill_amount", intermediate_fill_amount.toNumber())
-      console.log("maker_fill_amount", maker_fill_amount.toNumber())
-      console.log("intermediate_amount", intermediate_amount.toNumber())
 
       const signatureRaw0 = await maker.signMessage(packOrder(order0))
       const signatureRaw1 = await maker.signMessage(packOrder(order1))

@@ -315,7 +315,7 @@ pub fn execute_one_delta_rfq_exact_in(
     let (order, signature) = to_rfq_order(data, asset_in, asset_out);
 
     // execute order fill
-    let (maker_fill_amount, _) = abi(OneDeltaRfq, ONE_DELTA_RFQ_CONTRACT_ID.into()).fill_funded(order, signature, amount_in, receiver, Option::None);
+    let (_, maker_fill_amount) = abi(OneDeltaRfq, ONE_DELTA_RFQ_CONTRACT_ID.into()).fill_funded(order, signature, amount_in, receiver, Option::None);
 
     // maker_fill_amount is the amount received, ergo the output amount  
     maker_fill_amount

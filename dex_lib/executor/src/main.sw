@@ -21,12 +21,6 @@ pub struct BatchSwapStep {
     pub data: Bytes,
 }
 
-pub struct ComputedAmount {
-    pub zero_for_one: bool,
-    pub amount_out: u64,
-    pub pool_id: PoolId,
-}
-
 ////////////////////////////////////////////////////
 // DEX ids
 ////////////////////////////////////////////////////

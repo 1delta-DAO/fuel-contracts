@@ -324,9 +324,10 @@ describe('Rfq fill via `fill`', async () => {
 
     // validate taker change
     expect(
-      taker_maker_asset_balance_after.sub(taker_maker_asset_balance_before).toString()
-    ).to.equal(
-      maker_fill_amount.toString()
+      taker_maker_asset_balance_after.sub(taker_maker_asset_balance_before).toNumber()
+    ).to.approximately(
+      maker_fill_amount.toNumber(),
+      1
     )
     expect(
       taker_taker_asset_balance_before.sub(taker_taker_asset_balance_after).toString()

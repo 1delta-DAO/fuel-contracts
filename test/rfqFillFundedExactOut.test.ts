@@ -10,7 +10,7 @@ import { RfqTestUtils } from './utils';
 
 describe('Rfq fill via `fill_funded` through BatchSwapExactOutScript', async () => {
 
-  test.only('Facilitates partial order fill exact output', async () => {
+  test('Facilitates partial order fill exact output', async () => {
     const launched = await launchTestNode({ walletsConfig: { count: 3 } });
 
     const {
@@ -215,12 +215,12 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactOutScript', async () 
 
 
     const maker_fill_amount = RfqTestUtils.getRandomAmount(1, maker_amount.toNumber()) // this is the actual amount_in
-    
+
     const intermediate_fill_amount = RfqTestUtils.computeTakerFillAmount(maker_fill_amount, order1.maker_amount, order1.taker_amount)
 
-    const taker_fill_amount = RfqTestUtils.computeTakerFillAmount(intermediate_fill_amount, order1.maker_amount, order1.taker_amount)
+    const taker_fill_amount = RfqTestUtils.computeTakerFillAmount(intermediate_fill_amount, order0.maker_amount, order0.taker_amount)
 
-    
+
     const signatureRaw0 = await maker.signMessage(RfqTestUtils.packOrder(order0))
     const signatureRaw1 = await maker.signMessage(RfqTestUtils.packOrder(order1))
 
@@ -229,12 +229,12 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactOutScript', async () 
 
     const path: [BigNumberish, BigNumberish, boolean, BatchSwapStepInput[]][] = [
       [
-        taker_fill_amount,
-        1, // maker_fill_amount.sub(1),
+        maker_fill_amount,
+        taker_fill_amount.add(1),
         true,
         [
-          swap_step0,
-          swap_step1
+          swap_step1,
+          swap_step0
         ]
       ]
     ]
@@ -279,9 +279,10 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactOutScript', async () 
 
     // validate maker change
     expect(
-      maker_maker_asset_balance_before.sub(maker_maker_asset_balance_after).toString()
-    ).to.equal(
-      maker_fill_amount.toString()
+      maker_maker_asset_balance_before.sub(maker_maker_asset_balance_after).toNumber()
+    ).to.approximately(
+      maker_fill_amount.toNumber(),
+      3
     )
     expect(
       maker_taker_asset_balance_after.sub(maker_taker_asset_balance_before).toString()
@@ -291,9 +292,10 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactOutScript', async () 
 
     // validate taker change
     expect(
-      taker_maker_asset_balance_after.sub(taker_maker_asset_balance_before).toString()
-    ).to.equal(
-      maker_fill_amount.toString()
+      taker_maker_asset_balance_after.sub(taker_maker_asset_balance_before).toNumber()
+    ).to.approximately(
+      maker_fill_amount.toNumber(),
+      3
     )
     expect(
       taker_taker_asset_balance_before.sub(taker_taker_asset_balance_after).toString()

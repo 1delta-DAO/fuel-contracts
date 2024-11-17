@@ -9,7 +9,7 @@ import { txParams } from '../ts-scripts/utils/constants';
 import { RfqTestUtils } from './utils';
 
 describe('Rfq fill via `fill_funded` through BatchSwapExactInScript', async () => {
-  test('Facilitates full order fill', async () => {
+  test('Facilitates full order fill exact input', async () => {
     const launched = await launchTestNode({ walletsConfig: { count: 3 } });
 
     const {
@@ -139,7 +139,7 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactInScript', async () =
     )
   });
 
-  test('Facilitates partial order fill', async () => {
+  test('Facilitates partial order fill exact input', async () => {
     const launched = await launchTestNode({ walletsConfig: { count: 3 } });
 
     const {
@@ -276,7 +276,7 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactInScript', async () =
   });
 
 
-  test('Facilitates multihop partial order fill', async () => {
+  test('Facilitates multihop partial order fill exact input', async () => {
     /**
      * We test a swap taker_asset -> intermediate_asset -> maker_asset
      */

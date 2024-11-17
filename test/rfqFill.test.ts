@@ -44,7 +44,7 @@ describe('Rfq fill via `fill`', async () => {
       expiry: RfqTestUtils.MAX_EXPIRY,
     }
 
-    const signatureRaw = await maker.signMessage(RfqTestUtils.packOrder(order))
+    const signatureRaw = await maker.signMessage(RfqTestUtils.packOrder(order, rfqOrders))
 
     const [
       maker_maker_asset_balance_before,
@@ -149,7 +149,7 @@ describe('Rfq fill via `fill`', async () => {
       nonce: '0',
       expiry: RfqTestUtils.MAX_EXPIRY,
     }
-    const signatureRaw = await maker.signMessage(RfqTestUtils.packOrder(order))
+    const signatureRaw = await maker.signMessage(RfqTestUtils.packOrder(order, rfqOrders))
 
 
     const [
@@ -259,7 +259,7 @@ describe('Rfq fill via `fill`', async () => {
       nonce: '0',
       expiry: RfqTestUtils.MAX_EXPIRY,
     }
-    const signatureRaw = await maker.signMessage(RfqTestUtils.packOrder(order))
+    const signatureRaw = await maker.signMessage(RfqTestUtils.packOrder(order, rfqOrders))
 
 
     const [

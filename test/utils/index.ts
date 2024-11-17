@@ -143,8 +143,10 @@ export namespace RfqTestUtils {
     return new BN(maker_fill_amount).mul(taker_amount).div(maker_amount).add(1)
   }
 
-  export function packOrder(order: RfqOrderInput) {
+  export function packOrder(order: RfqOrderInput, rfq: OrderRfq| string) {
+    const rfqAddress = typeof rfq === "string" ? rfq : rfq.id.toB256() 
     return concatBytes([
+      toBytes(rfqAddress, 32),
       toBytes(order.maker_asset, 32),
       toBytes(order.taker_asset, 32),
       toBytes(order.maker_amount, 8),

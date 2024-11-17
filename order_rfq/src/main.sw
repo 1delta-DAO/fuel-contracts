@@ -53,7 +53,7 @@ fn validate_order_and_increment_nonce_internal(order: RfqOrder, order_signature:
     require(order.expiry >= height(), Error::Expired);
 
     // compute hash
-    let order_hash = compute_rfq_order_hash(order);
+    let order_hash = compute_rfq_order_hash(order, ContractId::this().bits());
 
     // get and validate signer
     let signer = recover_signer(order_signature, order_hash);
@@ -358,7 +358,7 @@ impl OneDeltaRfq for Contract {
             return Error::Expired;
         }
 
-        let order_hash = compute_rfq_order_hash(order);
+        let order_hash = compute_rfq_order_hash(order, ContractId::this().bits());
         let signer = recover_signer(order_signature, order_hash);
         if signer.bits() != order.maker {
             return Error::InvalidOrderSignature;
@@ -392,19 +392,19 @@ impl OneDeltaRfq for Contract {
 
     // Gets the signer of an Rfq Order given a signature
     fn get_signer_of_order(order: RfqOrder, order_signature: B512) -> b256 {
-        let order_hash = compute_rfq_order_hash(order);
+        let order_hash = compute_rfq_order_hash(order, ContractId::this().bits());
         let signer = recover_signer(order_signature, order_hash);
         signer.bits()
     }
 
     // Get the hash of an order
     fn get_order_hash(order: RfqOrder) -> b256 {
-        compute_rfq_order_hash(order)
+        compute_rfq_order_hash(order, ContractId::this().bits())
     }
 
     // Pack an order into a signable bytes-blob
     fn pack_order(order: RfqOrder) -> Bytes {
-        pack_rfq_order(order)
+        pack_rfq_order(order, ContractId::this().bits())
     }
 }
 

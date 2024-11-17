@@ -65,7 +65,7 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactInScript', async () =
       expiry: RfqTestUtils.MAX_EXPIRY,
     }
 
-    const signatureRaw = await maker.signMessage(RfqTestUtils.packOrder(order))
+    const signatureRaw = await maker.signMessage(RfqTestUtils.packOrder(order, rfqOrders))
 
     const swap_step = RfqTestUtils.createRfqBatchSwapStep(order, signatureRaw, addressInput(taker.address))
 
@@ -202,7 +202,7 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactInScript', async () =
     const maker_fill_amount = RfqTestUtils.computeMakerFillAmount(taker_fill_amount, order.maker_amount, order.taker_amount)
 
 
-    const signatureRaw = await maker.signMessage(RfqTestUtils.packOrder(order))
+    const signatureRaw = await maker.signMessage(RfqTestUtils.packOrder(order, rfqOrders))
 
     const swap_step = RfqTestUtils.createRfqBatchSwapStep(order, signatureRaw, addressInput(taker.address))
 
@@ -350,8 +350,8 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactInScript', async () =
 
     const maker_fill_amount = RfqTestUtils.computeMakerFillAmount(intermediate_fill_amount, order1.maker_amount, order1.taker_amount)
 
-    const signatureRaw0 = await maker.signMessage(RfqTestUtils.packOrder(order0))
-    const signatureRaw1 = await maker.signMessage(RfqTestUtils.packOrder(order1))
+    const signatureRaw0 = await maker.signMessage(RfqTestUtils.packOrder(order0, rfqOrders))
+    const signatureRaw1 = await maker.signMessage(RfqTestUtils.packOrder(order1, rfqOrders))
 
     const swap_step0 = RfqTestUtils.createRfqBatchSwapStep(order0, signatureRaw0, contractIdInput(rfqOrders.id))
     const swap_step1 = RfqTestUtils.createRfqBatchSwapStep(order1, signatureRaw1, addressInput(taker.address))

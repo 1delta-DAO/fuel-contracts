@@ -28,7 +28,7 @@ describe('Order Validation', async () => {
 
     const result = await rfqOrders.functions.get_order_hash(order).simulate();
 
-    const data = RfqTestUtils.packOrder(order)
+    const data = RfqTestUtils.packOrder(order, rfqOrders)
 
     expect(hashMessage(data as any)).toBe(result.value);
   });
@@ -53,7 +53,7 @@ describe('Order Validation', async () => {
       expiry: RfqTestUtils.MAX_EXPIRY,
     }
 
-    const signatureRaw = await maker.signMessage(RfqTestUtils.packOrder(order))
+    const signatureRaw = await maker.signMessage(RfqTestUtils.packOrder(order, rfqOrders))
 
     const result = await rfqOrders.functions.validate_order(
       order,
@@ -84,7 +84,7 @@ describe('Order Validation', async () => {
       expiry: RfqTestUtils.MAX_EXPIRY,
     }
 
-    const signatureRaw = await maker.signMessage(RfqTestUtils.packOrder(order))
+    const signatureRaw = await maker.signMessage(RfqTestUtils.packOrder(order, rfqOrders))
 
     order.maker_amount = RfqTestUtils.getRandomAmount()
 
@@ -118,7 +118,7 @@ describe('Order Validation', async () => {
       expiry: 0,
     }
 
-    const signatureRaw = await maker.signMessage(RfqTestUtils.packOrder(order))
+    const signatureRaw = await maker.signMessage(RfqTestUtils.packOrder(order, rfqOrders))
 
     const result = await rfqOrders.functions.validate_order(
       order,
@@ -150,7 +150,7 @@ describe('Order Validation', async () => {
       expiry: RfqTestUtils.MAX_EXPIRY,
     }
 
-    const signatureRaw = await maker.signMessage(RfqTestUtils.packOrder(order))
+    const signatureRaw = await maker.signMessage(RfqTestUtils.packOrder(order, rfqOrders))
 
     await RfqTestUtils.getRfqOrders(maker, rfqOrders.id.toB256()).functions.invalidate_nonce(
       order.maker_asset,

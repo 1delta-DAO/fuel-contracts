@@ -27,7 +27,7 @@ source = "path+from-root-7053AAA90CC5E690"
 
 [[package]]
 name = "executor"
-source = "member"
+source = "path+from-root-27160AED43ADBD24"
 dependencies = [
     "interfaces",
     "mira_v1_swap",
@@ -37,12 +37,12 @@ dependencies = [
 
 [[package]]
 name = "interfaces"
-source = "member"
+source = "path+from-root-27160AED43ADBD24"
 dependencies = ["std"]
 
 [[package]]
 name = "math"
-source = "member"
+source = "path+from-root-27160AED43ADBD24"
 dependencies = [
     "interfaces",
     "std",
@@ -51,7 +51,7 @@ dependencies = [
 
 [[package]]
 name = "mira_v1_swap"
-source = "path+from-root-DC0586470AFEDD49"
+source = "path+from-root-27160AED43ADBD24"
 dependencies = [
     "interfaces",
     "math",
@@ -60,22 +60,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "one_delta_rfq"
-source = "member"
-dependencies = [
-    "order_utils",
-    "std",
-    "sway_libs",
-]
-
-[[package]]
 name = "order_utils"
-source = "member"
-dependencies = ["std"]
-
-[[package]]
-name = "standards"
-source = "git+https://github.com/FuelLabs/sway-standards?tag=v0.6.0#65e09f95ea8b9476b171a66c8a47108f352fa32c"
+source = "path+from-root-27160AED43ADBD24"
 dependencies = ["std"]
 
 [[package]]
@@ -89,18 +75,10 @@ source = "git+https://github.com/fuellabs/sway?tag=v0.66.2#31486c0b47669612acb7c
 dependencies = ["core"]
 
 [[package]]
-name = "sway_libs"
-source = "git+https://github.com/FuelLabs/sway-libs?tag=v0.24.0#e19f96f85ae12426d20adc176b70aa38fd9a2a5b"
-dependencies = [
-    "standards git+https://github.com/FuelLabs/sway-standards?tag=v0.6.0#65e09f95ea8b9476b171a66c8a47108f352fa32c",
-    "std",
-]
-
-[[package]]
 name = "utils"
-source = "member"
+source = "path+from-root-27160AED43ADBD24"
 dependencies = [
     "interfaces",
-    "standards git+https://github.com/FuelLabs/sway-standards?tag=v0.6.1#792639cdf391565e6e6a02482ea8a46d9604a6f5",
+    "standards",
     "std",
 ]

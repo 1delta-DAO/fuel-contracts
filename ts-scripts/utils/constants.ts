@@ -8,5 +8,6 @@ export const txParams = {
 
 
 export enum DexId {
-  MiraV1 = 0
+  MiraV1 = 0,
+  OneDeltaRfq = 100
 }

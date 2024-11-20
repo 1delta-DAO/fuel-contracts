@@ -18,7 +18,7 @@ async function main() {
         .callParams({ forward: { assetId: maker_asset, amount: deposit_amount.toString() } })
         .call()
 
-    console.log("deoisteds")
+    console.log("deposited")
 }
 
 main()

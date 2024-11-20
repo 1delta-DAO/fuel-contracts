@@ -10,8 +10,8 @@ import { RfqTestUtils } from "../../../test/utils";
 
 const maker_asset = MainnetData.USDT.address
 const taker_asset = MainnetData.USDC.address
-const maker_amount = 500_000
-const taker_amount = 501_000
+const maker_amount = 1_000
+const taker_amount = 1_000
 
 async function main() {
     const provider = await Provider.create(MainnetData.RPC);
@@ -62,8 +62,8 @@ async function main() {
         )
 
         console.log("swap request", finalRequest)
-        const tx = await taker.sendTransaction(finalRequest, { estimateTxDependencies: true })
-        await tx.waitForResult()
+        const tx = await taker.simulateTransaction(finalRequest, { estimateTxDependencies: true })
+        // await tx.waitForResult()
         console.log("completed")
     } catch (e: any) {
         console.log(e?.metadata?.receipts)

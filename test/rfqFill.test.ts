@@ -40,7 +40,7 @@ describe('Rfq fill via `fill`', async () => {
       maker_amount,
       taker_amount,
       maker: maker.address.toB256(),
-      nonce:  RfqTestUtils.getRandomAmount(1),
+      nonce: RfqTestUtils.getRandomAmount(1),
       expiry: RfqTestUtils.MAX_EXPIRY,
     }
 
@@ -214,7 +214,7 @@ describe('Rfq fill via `fill`', async () => {
       maker_amount,
       taker_amount,
       maker: maker.address.toB256(),
-      nonce:  RfqTestUtils.getRandomAmount(1),
+      nonce: RfqTestUtils.getRandomAmount(1),
       expiry: RfqTestUtils.MAX_EXPIRY,
     }
     const signatureRaw = await maker.signMessage(RfqTestUtils.packOrder(order, rfqOrders))
@@ -291,7 +291,7 @@ describe('Rfq fill via `fill`', async () => {
     )
   });
 
-  test('Facilitates Order partial fill, specifying maker_amount', async () => {
+  test('Facilitates Order partial fill, exact output', async () => {
 
     const launched = await launchTestNode({ walletsConfig: { count: 3 } });
 
@@ -324,7 +324,7 @@ describe('Rfq fill via `fill`', async () => {
       maker_amount,
       taker_amount,
       maker: maker.address.toB256(),
-      nonce:  RfqTestUtils.getRandomAmount(1),
+      nonce: RfqTestUtils.getRandomAmount(1),
       expiry: RfqTestUtils.MAX_EXPIRY,
     }
     const signatureRaw = await maker.signMessage(RfqTestUtils.packOrder(order, rfqOrders))
@@ -376,13 +376,15 @@ describe('Rfq fill via `fill`', async () => {
       [maker_asset, taker_asset]
     )
 
+    const expected_roundingError = Math.ceil(maker_amount.toNumber() / taker_amount.toNumber())
+
     // validate maker change - note that the maker amount can deviate by 1 
     // due to rounding errors
     expect(
       maker_maker_asset_balance_before.sub(maker_maker_asset_balance_after).toNumber()
     ).to.approximately(
       maker_fill_amount.toNumber(),
-      1
+      expected_roundingError
     )
     expect(
       maker_taker_asset_balance_after.sub(maker_taker_asset_balance_before).toString()
@@ -395,7 +397,7 @@ describe('Rfq fill via `fill`', async () => {
       taker_maker_asset_balance_after.sub(taker_maker_asset_balance_before).toNumber()
     ).to.approximately(
       maker_fill_amount.toNumber(),
-      1
+      expected_roundingError
     )
     expect(
       taker_taker_asset_balance_before.sub(taker_taker_asset_balance_after).toString()

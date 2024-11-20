@@ -5,13 +5,13 @@
   "scripts": {
     "test": "vitest",
     "build": "tsc",
-    "types": "fuels typegen -i scripts/*/out/release/*-abi.json -o ./ts-scripts/typegen --script & fuels typegen -i fixtures/*/*-abi.json -o ./ts-scripts/typegen --contract & fuels typegen -i order_rfq/*/*/*-abi.json -o ./ts-scripts/typegen --contract"
+    "types": "fuels typegen -i scripts/*/out/release/*-abi.json -o ./ts-scripts/typegen --script & fuels typegen -i fixtures/*/*-abi.json -o ./ts-scripts/typegen --contract & fuels typegen -i one_delta_rfq/*/*/*-abi.json -o ./ts-scripts/typegen --contract"
   },
   "keywords": [],
   "author": "1delta",
   "license": "MIT",
   "peerDependencies": {
-    "fuels": "^0.96.1"
+    "fuels": "^0.97.0"
   },
   "devDependencies": {
     "@types/jest": "^29.5.13",

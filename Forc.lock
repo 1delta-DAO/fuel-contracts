@@ -27,21 +27,22 @@ source = "path+from-root-7053AAA90CC5E690"
 
 [[package]]
 name = "executor"
-source = "member"
+source = "path+from-root-27160AED43ADBD24"
 dependencies = [
     "interfaces",
     "mira_v1_swap",
+    "order_utils",
     "std",
 ]
 
 [[package]]
 name = "interfaces"
-source = "member"
+source = "path+from-root-27160AED43ADBD24"
 dependencies = ["std"]
 
 [[package]]
 name = "math"
-source = "member"
+source = "path+from-root-27160AED43ADBD24"
 dependencies = [
     "interfaces",
     "std",
@@ -50,7 +51,7 @@ dependencies = [
 
 [[package]]
 name = "mira_v1_swap"
-source = "path+from-root-DC0586470AFEDD49"
+source = "path+from-root-27160AED43ADBD24"
 dependencies = [
     "interfaces",
     "math",
@@ -59,16 +60,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "order_rfq"
-source = "member"
-dependencies = [
-    "order_utils",
-    "std",
-]
-
-[[package]]
 name = "order_utils"
-source = "member"
+source = "path+from-root-27160AED43ADBD24"
 dependencies = ["std"]
 
 [[package]]
@@ -83,7 +76,7 @@ dependencies = ["core"]
 
 [[package]]
 name = "utils"
-source = "member"
+source = "path+from-root-27160AED43ADBD24"
 dependencies = [
     "interfaces",
     "standards",

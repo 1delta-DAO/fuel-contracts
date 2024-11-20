@@ -15,6 +15,7 @@ const EMPTY_PATH_ENTRY: u64 = 100;
 ////////////////////////////////////////////////////
 configurable {
     MIRA_AMM_CONTRACT_ID: ContractId = ContractId::from(0x2e40f2b244b98ed6b8204b3de0156c6961f98525c8162f80162fcf53eebd90e7),
+    ONE_DELTA_RFQ_CONTRACT_ID: ContractId = ContractId::zero(),
 }
 
 // Swap split paths exact in
@@ -62,7 +63,7 @@ fn main(
         // transfer to first DEX if needed
         if transfer_in {
             transfer(
-                get_dex_input_receiver(swap_step.dex_id, MIRA_AMM_CONTRACT_ID),
+                get_dex_input_receiver(swap_step.dex_id, MIRA_AMM_CONTRACT_ID, ONE_DELTA_RFQ_CONTRACT_ID),
                 swap_step
                     .asset_in,
                 amount_in_used,
@@ -80,6 +81,7 @@ fn main(
                     .unwrap(),
                 swap_step,
                 MIRA_AMM_CONTRACT_ID,
+                ONE_DELTA_RFQ_CONTRACT_ID,
             );
 
             //=============================================

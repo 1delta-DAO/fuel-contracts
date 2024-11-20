@@ -1,8 +1,0 @@
-[project]
-authors = ["Achthar"]
-entry = "main.sw"
-license = "Apache-2.0"
-name = "order_rfq"
-
-[dependencies]
-order_utils = { path = "../order_utils" }

@@ -18,6 +18,20 @@ pub struct OrderFillEvent {
     pub taker_fill_amount: u64,
 }
 
+// we log maker, asset and amount
+pub struct DepositEvent {
+    pub maker: b256,
+    pub asset: b256,
+    pub amount: u64,
+}
+
+// we log maker, asset and amount
+pub struct WithdrawEvent {
+    pub maker: b256,
+    pub asset: b256,
+    pub amount: u64,
+}
+
 // errors
 pub enum Error {
     None: (),

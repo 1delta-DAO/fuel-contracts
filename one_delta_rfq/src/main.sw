@@ -10,6 +10,8 @@ use order_utils::{
     structs::{
         Error,
         OrderFillEvent,
+        DepositEvent,
+        WithdrawEvent,
         RfqOrder,
     },
 };
@@ -295,6 +297,13 @@ impl OneDeltaRfq for Contract {
         storage
             .balances
             .insert(asset, this_balance(AssetId::from(asset)));
+
+        // log the deposit
+        log(DepositEvent {
+            maker: owner,
+            asset,
+            amount: deposit_amount,
+        });
     }
 
     // Makers deposit their exchange balances and internally mutate them as swappers fill
@@ -303,7 +312,10 @@ impl OneDeltaRfq for Contract {
     fn withdraw(asset: b256, amount: u64) {
         reentrancy_guard();
         let owner = msg_sender().unwrap();
-        let mut owner_asset_balance = storage.maker_balances.get(owner.bits()).get(asset).try_read().unwrap_or(0u64);
+        
+        // convert to bits for maps
+        let owner_bits = owner.bits();
+        let mut owner_asset_balance = storage.maker_balances.get(owner_bits).get(asset).try_read().unwrap_or(0u64);
 
         require(owner_asset_balance >= amount, Error::WithdrawTooMuch);
 
@@ -311,7 +323,7 @@ impl OneDeltaRfq for Contract {
 
         storage
             .maker_balances
-            .get(owner.bits())
+            .get(owner_bits)
             .insert(asset, owner_asset_balance);
 
         // we sync the overall balance by 
@@ -324,6 +336,13 @@ impl OneDeltaRfq for Contract {
 
         // asset -> owner
         transfer(owner, AssetId::from(asset), amount);
+
+        // log the withdrawal
+        log(WithdrawEvent {
+            maker: owner_bits,
+            asset,
+            amount,
+        });
     }
 
     // Makers can emergency-cancel orders by setting the nonce to a higher value than

@@ -3,7 +3,7 @@ import { describe, test, expect } from 'vitest';
 import { BigNumberish, CoinQuantity, } from 'fuels';
 import { addressInput, contractIdInput, prepareRequest } from '../ts-scripts/utils';
 
-import { RfqOrderInput } from '../ts-scripts/typegen/OrderRfq';
+import { RfqOrderInput } from '../ts-scripts/typegen/OneDeltaRfq';
 import { BatchSwapStepInput } from '../ts-scripts/typegen/BatchSwapExactInScript';
 import { txParams } from '../ts-scripts/utils/constants';
 import { RfqTestUtils } from './utils';

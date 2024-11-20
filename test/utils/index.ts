@@ -3,8 +3,8 @@ import { assetIdInput, contractIdInput } from '../../ts-scripts/utils';
 
 import { MockTokenFactory } from '../../ts-scripts/typegen/MockTokenFactory';
 import { MockToken } from '../../ts-scripts/typegen/MockToken';
-import { OrderRfq, RfqOrderInput } from '../../ts-scripts/typegen/OrderRfq';
-import { OrderRfqFactory } from '../../ts-scripts/typegen/OrderRfqFactory';
+import { OneDeltaRfq, RfqOrderInput } from '../../ts-scripts/typegen/OneDeltaRfq';
+import { OneDeltaRfqFactory } from '../../ts-scripts/typegen/OneDeltaRfqFactory';
 import { BatchSwapStepInput, BatchSwapExactInScript, IdentityInput } from '../../ts-scripts/typegen/BatchSwapExactInScript';
 import { BatchSwapExactOutScript } from '../../ts-scripts/typegen/BatchSwapExactOutScript';
 
@@ -22,7 +22,7 @@ export namespace RfqTestUtils {
 
     const { contract: tokens } = await deployTokenTx.waitForResult()
 
-    const deployRfqTx = await OrderRfqFactory.deploy(deployer)
+    const deployRfqTx = await OneDeltaRfqFactory.deploy(deployer)
 
     const { contract: rfqOrders } = await deployRfqTx.waitForResult()
 
@@ -71,7 +71,7 @@ export namespace RfqTestUtils {
 
   /** Get the Rfq order contract with a specific signer */
   export function getRfqOrders(signer: WalletUnlocked, orderAddr: string) {
-    return new OrderRfq(orderAddr, signer)
+    return new OneDeltaRfq(orderAddr, signer)
   }
 
   export const DEFAULT_RANDOM_AMOUNT_LIMIT = 1_000_000
@@ -117,7 +117,7 @@ export namespace RfqTestUtils {
 
   export async function createMakerDeposits(
     maker: WalletUnlocked,
-    orders: OrderRfq,
+    orders: OneDeltaRfq,
     tokens = ["0x", "0x"],
     amounts = [DEFAULT_MINT_AMOUNT, DEFAULT_MINT_AMOUNT]
   ) {
@@ -143,7 +143,7 @@ export namespace RfqTestUtils {
     return new BN(maker_fill_amount).mul(taker_amount).div(maker_amount).add(1)
   }
 
-  export function packOrder(order: RfqOrderInput, rfq: OrderRfq | string) {
+  export function packOrder(order: RfqOrderInput, rfq: OneDeltaRfq | string) {
     const rfqAddress = typeof rfq === "string" ? rfq : rfq.id.toB256()
     return concatBytes([
       toBytes(rfqAddress, 32),
@@ -157,7 +157,7 @@ export namespace RfqTestUtils {
     ]) as any
   }
 
-  export async function getMakerBalances(maker: string | WalletUnlocked, assets: string[], rfq: OrderRfq) {
+  export async function getMakerBalances(maker: string | WalletUnlocked, assets: string[], rfq: OneDeltaRfq) {
     let bal: BN[] = []
     let makerStringified = typeof maker === "string" ? maker : maker.address.toB256()
     for (let assetId of assets) {
@@ -168,7 +168,7 @@ export namespace RfqTestUtils {
     return bal
   }
 
-  export async function getNonce(order: RfqOrderInput, rfq: OrderRfq) {
+  export async function getNonce(order: RfqOrderInput, rfq: OneDeltaRfq) {
     return (await rfq.functions.get_nonce(order.maker, order.maker_asset, order.taker_asset).simulate()).value
   }
 

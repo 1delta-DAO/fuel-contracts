@@ -60,7 +60,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "order_rfq"
+name = "one_delta_rfq"
 source = "member"
 dependencies = [
     "order_utils",

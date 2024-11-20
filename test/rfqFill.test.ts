@@ -1,7 +1,7 @@
 import { launchTestNode } from 'fuels/test-utils';
 import { describe, test, expect } from 'vitest';
 import { addressInput } from '../ts-scripts/utils';
-import { RfqOrderInput } from '../ts-scripts/typegen/OrderRfq';
+import { RfqOrderInput } from '../ts-scripts/typegen/OneDeltaRfq';
 import { RfqTestUtils } from './utils';
 
 

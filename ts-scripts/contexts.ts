@@ -6,6 +6,8 @@ export namespace TestnetData {
 
     export const MIRA_AMM = "0x8dca6db9dfaeed9825f547d2b0d609c255a0f516f806ed829474fda8d7dff969"
 
+    export const ONE_DELTA_RFQ = "0x194c188af8d357171fb4ff8c113d2a260b7d0edf0b2034523e05dbfe8a66e91f"
+
     export const RPC = "https://testnet.fuel.network/v1/graphql"
 
     export const MOCK_TOKEN = "0x3d8917742cf72d5b3309792f73ecb4f3a7f831c44249b88a56599e6a63a94a94"

@@ -70,6 +70,12 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactOutScript', async () 
 
     const taker_fill_amount = RfqTestUtils.computeTakerFillAmount(maker_fill_amount, order.maker_amount, order.taker_amount)
 
+    const re_computed_maker_fill_amount = RfqTestUtils.computeMakerFillAmount(taker_fill_amount, order.maker_amount, order.taker_amount)
+
+    // make sure that we at least receive the desired amount (assuming forward swaps)
+    expect(re_computed_maker_fill_amount.toNumber()).to.be.greaterThanOrEqual(maker_fill_amount.toNumber())
+
+
     const signatureRaw = await maker.signMessage(RfqTestUtils.packOrder(order, rfqOrders))
 
     const swap_step = RfqTestUtils.createRfqBatchSwapStep(order, signatureRaw, addressInput(taker.address))
@@ -118,12 +124,14 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactOutScript', async () 
       [maker_asset, taker_asset]
     )
 
-    // validate maker change (allow rounding error of 1)
+    // validate maker change 
+    // (allow rounding error of one unit - adjusted for the exchange rate)
+    const makerRoundingError = Math.ceil(maker_amount.toNumber() / taker_amount.toNumber())
     expect(
       maker_maker_asset_balance_before.sub(maker_maker_asset_balance_after).toNumber()
     ).to.approximately(
       maker_fill_amount.toNumber(),
-      1
+      makerRoundingError
     )
     expect(
       maker_taker_asset_balance_after.sub(maker_taker_asset_balance_before).toString()
@@ -136,12 +144,43 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactOutScript', async () 
       taker_maker_asset_balance_after.sub(taker_maker_asset_balance_before).toNumber()
     ).to.approximately(
       maker_fill_amount.toNumber(),
-      1
+      makerRoundingError
     )
     expect(
       taker_taker_asset_balance_before.sub(taker_taker_asset_balance_after).toString()
     ).to.equal(
       taker_fill_amount.toString()
+    )
+
+    // these checks make sure that swap routes always execute (we always receive enough)
+
+    // expect to pay at least the maker amount
+    expect(
+      maker_maker_asset_balance_before.sub(maker_maker_asset_balance_after).toNumber()
+    ).to.be.greaterThanOrEqual(
+      maker_fill_amount.toNumber()
+    )
+
+    // expect to receive at least the taker amount 
+    expect(
+      maker_taker_asset_balance_after.sub(maker_taker_asset_balance_before).toNumber()
+    ).to.be.greaterThanOrEqual(
+      taker_fill_amount.toNumber()
+    )
+
+    // validate taker change
+
+    // expect to receive at least the maker amount
+    expect(
+      taker_maker_asset_balance_after.sub(taker_maker_asset_balance_before).toNumber()
+    ).to.be.greaterThanOrEqual(
+      maker_fill_amount.toNumber()
+    )
+    // expect to pay at least the taker amount
+    expect(
+      taker_taker_asset_balance_before.sub(taker_taker_asset_balance_after).toNumber()
+    ).to.greaterThanOrEqual(
+      taker_fill_amount.toNumber()
     )
   });
 
@@ -221,6 +260,13 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactOutScript', async () 
     const taker_fill_amount = RfqTestUtils.computeTakerFillAmount(intermediate_fill_amount, order0.maker_amount, order0.taker_amount)
 
 
+    const re_computed_intermediate_fill_amount = RfqTestUtils.computeMakerFillAmount(taker_fill_amount, order0.maker_amount, order0.taker_amount)
+
+    const re_computed_maker_fill_amount = RfqTestUtils.computeMakerFillAmount(re_computed_intermediate_fill_amount, order1.maker_amount, order1.taker_amount)
+
+
+    expect(re_computed_maker_fill_amount.toNumber()).to.be.greaterThanOrEqual(maker_fill_amount.toNumber())
+
     const signatureRaw0 = await maker.signMessage(RfqTestUtils.packOrder(order0, rfqOrders))
     const signatureRaw1 = await maker.signMessage(RfqTestUtils.packOrder(order1, rfqOrders))
 
@@ -277,12 +323,15 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactOutScript', async () 
       [maker_asset, taker_asset]
     )
 
+    // weh have to adjust the rounding error as it propagates to the intermediate swap
+    const makerRoundingError = Math.ceil((maker_amount.toNumber()  / intermediate_amount.toNumber())) * Math.ceil(intermediate_amount.toNumber() / taker_amount.toNumber())
+
     // validate maker change
     expect(
       maker_maker_asset_balance_before.sub(maker_maker_asset_balance_after).toNumber()
     ).to.approximately(
       maker_fill_amount.toNumber(),
-      3
+      makerRoundingError
     )
     expect(
       maker_taker_asset_balance_after.sub(maker_taker_asset_balance_before).toString()
@@ -295,12 +344,43 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactOutScript', async () 
       taker_maker_asset_balance_after.sub(taker_maker_asset_balance_before).toNumber()
     ).to.approximately(
       maker_fill_amount.toNumber(),
-      3
+      makerRoundingError
     )
     expect(
       taker_taker_asset_balance_before.sub(taker_taker_asset_balance_after).toString()
     ).to.equal(
       taker_fill_amount.toString()
+    )
+
+    // these checks make sure that swap routes always execute (we always receive enough)
+
+    // expect to pay at least the maker amount
+    expect(
+      maker_maker_asset_balance_before.sub(maker_maker_asset_balance_after).toNumber()
+    ).to.be.greaterThanOrEqual(
+      maker_fill_amount.toNumber()
+    )
+
+    // expect to receive at least the taker amount 
+    expect(
+      maker_taker_asset_balance_after.sub(maker_taker_asset_balance_before).toNumber()
+    ).to.be.greaterThanOrEqual(
+      taker_fill_amount.toNumber()
+    )
+
+    // validate taker change
+
+    // expect to receive at least the maker amount
+    expect(
+      taker_maker_asset_balance_after.sub(taker_maker_asset_balance_before).toNumber()
+    ).to.be.greaterThanOrEqual(
+      maker_fill_amount.toNumber()
+    )
+    // expect to pay at least the taker amount
+    expect(
+      taker_taker_asset_balance_before.sub(taker_taker_asset_balance_after).toNumber()
+    ).to.greaterThanOrEqual(
+      taker_fill_amount.toNumber()
     )
   });
 });

@@ -213,7 +213,7 @@ impl OneDeltaRfq for Contract {
         );
 
         // this internal balance is unadjusted for the amount received 
-        let taker_accounting_balance = get_asset_balance(order.taker_asset);
+        let taker_asset_accounting_balance = get_asset_balance(order.taker_asset);
 
         if let Some(d) = data {
             abi(IRfqFlashCallback, taker_receiver
@@ -231,9 +231,9 @@ impl OneDeltaRfq for Contract {
                 );
         }
         // fetch the real taker asset balance
-        let real_taker_balance = this_balance(AssetId::from(order.taker_asset));
+        let real_taker_asset_balance = this_balance(AssetId::from(order.taker_asset));
         // the funds received are real balance minus accounting balance
-        let taker_fill_amount_received = real_taker_balance - taker_accounting_balance;
+        let taker_fill_amount_received = real_taker_asset_balance - taker_asset_accounting_balance;
 
         // manually handle the error where the balance has not grown enough
         require(

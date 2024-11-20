@@ -246,7 +246,7 @@ impl OneDeltaRfq for Contract {
             order.maker_asset,
             order.taker_asset,
             maker_asset_balance,
-            real_taker_balance,
+            real_taker_asset_balance,
             maker_fill_amount,
         );
 

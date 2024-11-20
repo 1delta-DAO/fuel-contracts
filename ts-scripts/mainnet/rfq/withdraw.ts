@@ -4,7 +4,6 @@ import { PRIVATE_KEY } from "../../../env";
 import { OneDeltaRfq } from "../../typegen/OneDeltaRfq";
 
 const maker_asset = MainnetData.USDT.address
-const deposit_amount = 1_000_000
 
 async function main() {
     const provider = await Provider.create(MainnetData.RPC);
@@ -13,11 +12,18 @@ async function main() {
     console.log("wallet", wallet.address.toB256())
     const rfqOrders = new OneDeltaRfq(MainnetData.ONE_DELTA_RFQ, wallet)
 
-    await rfqOrders.functions.deposit()
-        .callParams({ forward: { assetId: maker_asset, amount: deposit_amount.toString() } })
-        .call()
+    const balance = (await rfqOrders.functions.get_maker_balance(wallet.address.toB256(), maker_asset).simulate()).value
+    const total_balance = (await rfqOrders.functions.get_balance(maker_asset).simulate()).value
 
-    console.log("deposited")
+    const balanceNr = balance.toNumber()
+    const total_balanceNr = total_balance.toNumber()
+
+    console.log({ balanceNr, total_balanceNr })
+    if (balanceNr > 0)
+        await rfqOrders.functions.withdraw(maker_asset, balance)
+            .call()
+
+    console.log("withdrawn")
 }
 
 main()

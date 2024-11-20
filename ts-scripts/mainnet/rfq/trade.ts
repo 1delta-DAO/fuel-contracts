@@ -7,7 +7,6 @@ import { BatchSwapStepInput } from "../../typegen/BatchSwapExactInScript";
 import { addressInput, prepareRequest } from "../../utils";
 import { RfqTestUtils } from "../../../test/utils";
 
-
 const maker_asset = MainnetData.USDT.address
 const taker_asset = MainnetData.USDC.address
 const maker_amount = 1_000

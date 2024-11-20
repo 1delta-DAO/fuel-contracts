@@ -307,6 +307,7 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactInScript', async () =
       taker_amount.toString()
     )
 
+    // validate total balances
     expect(
       total_maker_asset_balance_before.sub(total_maker_asset_balance_after).toString()
     ).to.equal(
@@ -514,6 +515,14 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactInScript', async () =
       [maker_asset, taker_asset]
     )
 
+    const [
+      total_maker_asset_balance_before,
+      total_taker_asset_balance_before
+    ] = await RfqTestUtils.getTotalBalances(
+      [maker_asset, taker_asset],
+      rfqOrders
+    )
+
     /** DEFINE PARAMETERS */
 
     const order0: RfqOrderInput = {
@@ -598,6 +607,14 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactInScript', async () =
       [maker_asset, taker_asset]
     )
 
+    const [
+      total_maker_asset_balance_after,
+      total_taker_asset_balance_after
+    ] = await RfqTestUtils.getTotalBalances(
+      [maker_asset, taker_asset],
+      rfqOrders
+    )
+
     // validate maker change
     expect(
       maker_maker_asset_balance_before.sub(maker_maker_asset_balance_after).toString()
@@ -606,6 +623,18 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactInScript', async () =
     )
     expect(
       maker_taker_asset_balance_after.sub(maker_taker_asset_balance_before).toString()
+    ).to.equal(
+      taker_fill_amount.toString()
+    )
+
+    // validate total balances
+    expect(
+      total_maker_asset_balance_before.sub(total_maker_asset_balance_after).toString()
+    ).to.equal(
+      maker_fill_amount.toString()
+    )
+    expect(
+      total_taker_asset_balance_after.sub(total_taker_asset_balance_before).toString()
     ).to.equal(
       taker_fill_amount.toString()
     )

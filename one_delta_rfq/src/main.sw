@@ -386,6 +386,12 @@ impl OneDeltaRfq for Contract {
             return Error::InvalidNonce;
         }
 
+        // valdiate maker balance
+        let maker_asset_balance = storage.maker_balances.get(order.maker).get(order.maker_asset).try_read().unwrap_or(0u64);
+        if order.maker_amount > maker_asset_balance {
+            return Error::MakerBalanceTooLow;
+        }
+
         return Error::None;
     }
 

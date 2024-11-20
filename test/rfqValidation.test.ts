@@ -41,12 +41,21 @@ describe('Order Validation', async () => {
       wallets: [maker, deployer]
     } = launched;
 
-    const { rfqOrders } = await RfqTestUtils.fixture(deployer)
+    const { rfqOrders, tokens } = await RfqTestUtils.fixture(deployer)
+
+    const [maker_asset] = await RfqTestUtils.createTokens(deployer, RfqTestUtils.contractIdBits(tokens), ["test"])
+
+    await RfqTestUtils.fundWallets([maker], RfqTestUtils.contractIdBits(tokens), [maker_asset], [RfqTestUtils.DEFAULT_MINT_AMOUNT])
+
+    const deposit_amount = RfqTestUtils.getRandomAmount(1, 10000)
+    await RfqTestUtils.getRfqOrders(maker, RfqTestUtils.contractIdBits(rfqOrders)).functions.deposit()
+      .callParams({ forward: { assetId: maker_asset, amount: deposit_amount } })
+      .call()
 
     const order: RfqOrderInput = {
-      maker_asset: maker.address.toB256(),
+      maker_asset: maker_asset,
       taker_asset: maker.address.toB256(),
-      maker_amount: 10000,
+      maker_amount: deposit_amount,
       taker_amount: 10000,
       maker: maker.address.toB256(),
       nonce: RfqTestUtils.getRandomAmount(1),
@@ -64,8 +73,49 @@ describe('Order Validation', async () => {
 
   });
 
+
+
+  test('Show that order is invalid if maker balance is too low', async () => {
+
+    const launched = await launchTestNode();
+
+    const {
+      wallets: [maker, deployer]
+    } = launched;
+
+    const { rfqOrders, tokens } = await RfqTestUtils.fixture(deployer)
+
+    const [maker_asset] = await RfqTestUtils.createTokens(deployer, RfqTestUtils.contractIdBits(tokens), ["test"])
+
+    await RfqTestUtils.fundWallets([maker], RfqTestUtils.contractIdBits(tokens), [maker_asset], [RfqTestUtils.DEFAULT_MINT_AMOUNT])
+
+    const deposit_amount = RfqTestUtils.getRandomAmount(1, 10000)
+    await RfqTestUtils.getRfqOrders(maker, RfqTestUtils.contractIdBits(rfqOrders)).functions.deposit()
+      .callParams({ forward: { assetId: maker_asset, amount: deposit_amount } })
+      .call()
+
+    const order: RfqOrderInput = {
+      maker_asset: maker_asset,
+      taker_asset: maker.address.toB256(),
+      maker_amount: deposit_amount.add( 1),
+      taker_amount: 10000,
+      maker: maker.address.toB256(),
+      nonce: RfqTestUtils.getRandomAmount(1),
+      expiry: RfqTestUtils.MAX_EXPIRY,
+    }
+
+    const signatureRaw = await maker.signMessage(RfqTestUtils.packOrder(order, rfqOrders))
+
+    const result = await rfqOrders.functions.validate_order(
+      order,
+      signatureRaw
+    ).simulate()
+
+    expect(result.value).to.equal(ErrorInput.MakerBalanceTooLow)
+  });
+
   test('Disallow manipulated order', async () => {
-    1
+  
     const launched = await launchTestNode();
 
     const {
@@ -106,17 +156,30 @@ describe('Order Validation', async () => {
     } = launched;
 
 
-    const { rfqOrders } = await RfqTestUtils.fixture(deployer)
+    const { rfqOrders, tokens } = await RfqTestUtils.fixture(deployer)
+
+    const [maker_asset] = await RfqTestUtils.createTokens(deployer, RfqTestUtils.contractIdBits(tokens), ["test"])
+
+    await RfqTestUtils.fundWallets([maker], RfqTestUtils.contractIdBits(tokens), [maker_asset], [RfqTestUtils.DEFAULT_MINT_AMOUNT])
+
+    const deposit_amount = RfqTestUtils.getRandomAmount(1, 10000)
+    await RfqTestUtils.getRfqOrders(maker, RfqTestUtils.contractIdBits(rfqOrders)).functions.deposit()
+      .callParams({ forward: { assetId: maker_asset, amount: deposit_amount } })
+      .call()
 
     const order: RfqOrderInput = {
-      maker_asset: maker.address.toB256(),
-      taker_asset: maker.address.toB256(),
-      maker_amount: 10000,
+      maker_asset: maker_asset,
+      taker_asset: maker_asset,
+      maker_amount: deposit_amount,
       taker_amount: 10000,
       maker: maker.address.toB256(),
       nonce: RfqTestUtils.getRandomAmount(1),
       expiry: 0,
     }
+
+
+
+
 
     const signatureRaw = await maker.signMessage(RfqTestUtils.packOrder(order, rfqOrders))
 

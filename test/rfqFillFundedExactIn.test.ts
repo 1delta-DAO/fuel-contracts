@@ -89,6 +89,85 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactInScript', async () =
 
   });
 
+  test('Maker cannot execute on maker_amount higher than balance', async () => {
+    const launched = await launchTestNode({ walletsConfig: { count: 3 } });
+
+    const {
+      wallets: [maker, deployer, taker]
+    } = launched;
+
+    const { rfqOrders, tokens } = await RfqTestUtils.fixture(deployer)
+
+    const [maker_asset, taker_asset] = await RfqTestUtils.createTokens(deployer, RfqTestUtils.contractIdBits(tokens))
+
+    await RfqTestUtils.fundWallets(
+      [maker, taker],
+      RfqTestUtils.contractIdBits(tokens),
+      [maker_asset, taker_asset],
+      [RfqTestUtils.DEFAULT_MINT_AMOUNT, RfqTestUtils.DEFAULT_MINT_AMOUNT]
+    )
+
+    const maker_amount = RfqTestUtils.getRandomAmount()
+    const taker_amount = RfqTestUtils.getRandomAmount()
+
+    await RfqTestUtils.getRfqOrders(maker, RfqTestUtils.contractIdBits(rfqOrders)).functions.deposit()
+      .callParams({ forward: { assetId: maker_asset, amount: maker_amount } })
+      .call()
+
+    /** DEFINE PARAMETERS */
+
+    const order: RfqOrderInput = {
+      maker_asset,
+      taker_asset,
+      maker_amount: maker_amount.add(1),
+      taker_amount,
+      maker: maker.address.toB256(),
+      nonce: RfqTestUtils.getRandomAmount(1),
+      expiry: RfqTestUtils.MAX_EXPIRY,
+    }
+
+    const signatureRaw = await maker.signMessage(RfqTestUtils.packOrder(order, rfqOrders))
+
+    const swap_step = RfqTestUtils.createRfqBatchSwapStep(order, signatureRaw, addressInput(taker.address))
+
+    const path: [BigNumberish, BigNumberish, boolean, BatchSwapStepInput[]][] = [
+      [
+        taker_amount, maker_amount.sub(1), true, [swap_step]
+      ]
+    ]
+
+    const deadline = RfqTestUtils.MAX_EXPIRY
+    let reason: string | undefined = undefined
+    try {
+      const request = await (await RfqTestUtils.callExactInScriptScope(path, deadline, taker, rfqOrders.id.toB256()))
+        .addContracts([rfqOrders])
+        .txParams(txParams)
+        .getTransactionRequest()
+
+      const inputAssets: CoinQuantity[] = [
+        {
+          assetId: taker_asset,
+          amount: taker_amount,
+        }
+      ];
+
+
+      const finalRequest = await prepareRequest(taker, request, 3, inputAssets, [rfqOrders.id.toB256()])
+
+      /** EXECUTE TXN */
+
+      const tx = await taker.sendTransaction(finalRequest, { estimateTxDependencies: true })
+      await tx.waitForResult()
+    } catch (e) {
+      reason = String(e)
+    }
+    expect(reason).to.toBeDefined()
+
+    expect(
+      reason
+    ).to.include("MakerBalanceTooLow")
+
+  });
 
   test('Facilitates full order fill exact input', async () => {
     const launched = await launchTestNode({ walletsConfig: { count: 3 } });
@@ -122,6 +201,14 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactInScript', async () =
       maker_taker_asset_balance_before
     ] = await RfqTestUtils.getMakerBalances(
       maker.address.toB256(),
+      [maker_asset, taker_asset],
+      rfqOrders
+    )
+
+    const [
+      total_maker_asset_balance_before,
+      total_taker_asset_balance_before
+    ] = await RfqTestUtils.getTotalBalances(
       [maker_asset, taker_asset],
       rfqOrders
     )
@@ -200,6 +287,14 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactInScript', async () =
       [maker_asset, taker_asset]
     )
 
+    const [
+      total_maker_asset_balance_after,
+      total_taker_asset_balance_after
+    ] = await RfqTestUtils.getTotalBalances(
+      [maker_asset, taker_asset],
+      rfqOrders
+    )
+
     // validate maker change
     expect(
       maker_maker_asset_balance_before.sub(maker_maker_asset_balance_after).toString()
@@ -208,6 +303,17 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactInScript', async () =
     )
     expect(
       maker_taker_asset_balance_after.sub(maker_taker_asset_balance_before).toString()
+    ).to.equal(
+      taker_amount.toString()
+    )
+
+    expect(
+      total_maker_asset_balance_before.sub(total_maker_asset_balance_after).toString()
+    ).to.equal(
+      maker_amount.toString()
+    )
+    expect(
+      total_taker_asset_balance_after.sub(total_taker_asset_balance_before).toString()
     ).to.equal(
       taker_amount.toString()
     )

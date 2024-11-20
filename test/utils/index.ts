@@ -168,6 +168,17 @@ export namespace RfqTestUtils {
     return bal
   }
 
+  export async function getTotalBalances( assets: string[], rfq: OneDeltaRfq) {
+    let bal: BN[] = []
+    for (let assetId of assets) {
+      const result = await rfq.functions.get_balance(assetId).simulate()
+      bal.push(result.value)
+    }
+
+    return bal
+  }
+
+
   export async function getNonce(order: RfqOrderInput, rfq: OneDeltaRfq) {
     return (await rfq.functions.get_nonce(order.maker, order.maker_asset, order.taker_asset).simulate()).value
   }

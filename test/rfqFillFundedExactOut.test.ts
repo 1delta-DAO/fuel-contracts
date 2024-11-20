@@ -324,7 +324,7 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactOutScript', async () 
     )
 
     // weh have to adjust the rounding error as it propagates to the intermediate swap
-    const makerRoundingError = Math.ceil((maker_amount.toNumber()  / intermediate_amount.toNumber())) * Math.ceil(intermediate_amount.toNumber() / taker_amount.toNumber())
+    const makerRoundingError = Math.ceil((maker_amount.toNumber() / intermediate_amount.toNumber())) * Math.ceil(intermediate_amount.toNumber() / taker_amount.toNumber())
 
     // validate maker change
     expect(

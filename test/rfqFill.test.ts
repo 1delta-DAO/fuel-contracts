@@ -68,6 +68,67 @@ describe('Rfq fill via `fill`', async () => {
   });
 
 
+  test('Cannot fill more than maker_amount', async () => {
+    const launched = await launchTestNode({ walletsConfig: { count: 3 } });
+
+    const {
+      wallets: [maker, deployer, taker]
+    } = launched;
+
+    const { rfqOrders, tokens } = await RfqTestUtils.fixture(deployer)
+
+    const [maker_asset, taker_asset] = await RfqTestUtils.createTokens(deployer, RfqTestUtils.contractIdBits(tokens))
+
+    await RfqTestUtils.fundWallets(
+      [maker, taker],
+      RfqTestUtils.contractIdBits(tokens),
+      [maker_asset, taker_asset],
+      [RfqTestUtils.DEFAULT_MINT_AMOUNT, RfqTestUtils.DEFAULT_MINT_AMOUNT]
+    )
+
+    const maker_amount = RfqTestUtils.getRandomAmount()
+
+    await RfqTestUtils.getRfqOrders(maker, RfqTestUtils.contractIdBits(rfqOrders)).functions.deposit()
+      .callParams({ forward: { assetId: maker_asset, amount: maker_amount } })
+      .call()
+
+
+    const taker_amount = RfqTestUtils.getRandomAmount()
+
+    const order: RfqOrderInput = {
+      maker_asset,
+      taker_asset,
+      maker_amount: maker_amount.add(1),
+      taker_amount,
+      maker: maker.address.toB256(),
+      nonce: RfqTestUtils.getRandomAmount(1),
+      expiry: RfqTestUtils.MAX_EXPIRY,
+    }
+
+    const taker_fill_amount = taker_amount
+
+    const signatureRaw = await maker.signMessage(RfqTestUtils.packOrder(order, rfqOrders))
+
+    let reason: string | undefined = undefined
+    try {
+      await RfqTestUtils.getRfqOrders(taker, RfqTestUtils.contractIdBits(rfqOrders)).functions.fill(
+        order,
+        signatureRaw,
+        addressInput(taker.address)
+      )
+        .callParams({ forward: { assetId: taker_asset, amount: taker_fill_amount } })
+        .call()
+    } catch (e) {
+      reason = String(e)
+    }
+    expect(reason).to.toBeDefined()
+
+    expect(
+      reason
+    ).to.include("MakerBalanceTooLow")
+  });
+
+
   test('Facilitates full order fill', async () => {
 
     const launched = await launchTestNode({ walletsConfig: { count: 3 } });

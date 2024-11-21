@@ -1,18 +1,17 @@
 contract;
 
 use order_utils::{
-    compute_maker_fill_amount,
+    min64,
     compute_rfq_order_hash,
     IRfqFlashCallback,
     OneDeltaRfq,
     pack_rfq_order,
     recover_signer,
     structs::{
-        Error,
-        OrderFillEvent,
         DepositEvent,
-        WithdrawEvent,
+        OrderFillEvent,
         RfqOrder,
+        WithdrawEvent,
     },
 };
 use sway_libs::reentrancy::reentrancy_guard;
@@ -34,48 +33,25 @@ use std::{
 storage {
     // maker -> maker_asset -> taker_asset -> nonce_value
     nonces: StorageMap<b256, StorageMap<b256, StorageMap<b256, u64>>> = StorageMap {},
+    // hash -> taker_asset_filled_amount
+    order_hash_to_filled_amount: StorageMap<b256, (bool, u64)> = StorageMap {},
     // owner -> assetId -> balance
     maker_balances: StorageMap<b256, StorageMap<b256, u64>> = StorageMap {},
     // assetId -> contract balance
     balances: StorageMap<b256, u64> = StorageMap {},
 }
 
-// Getter for the internal total balance
-#[storage(read)]
-fn get_asset_balance(asset: b256) -> u64 {
-    storage.balances.get(asset).try_read().unwrap_or(0)
-}
-
-// Validates the order (expiry, signature, nonce)
-// Increments the nonce (and therefore invalidares the order for replays)
-// Returns the computed order hash
-#[storage(read, write)]
-fn validate_order_and_increment_nonce_internal(order: RfqOrder, order_signature: B512) -> b256 {
-    // check expiry first
-    require(order.expiry >= height(), Error::Expired);
-
-    // compute hash
-    let order_hash = compute_rfq_order_hash(order, ContractId::this().bits());
-
-    // get and validate signer
-    let signer = recover_signer(order_signature, order_hash);
-    require(signer.bits() == order.maker, Error::InvalidOrderSignature);
-
-    // get old maker nonce
-    let mut old_nonce: u64 = storage.nonces.get(order.maker).get(order.maker_asset).get(order.taker_asset).try_read().unwrap_or(0u64);
-
-    // valdiate nonce
-    require(order.nonce > old_nonce, Error::InvalidNonce);
-
-    // set new nonce
-    storage
-        .nonces
-        .get(order.maker) // maker
-        .get(order.maker_asset) // maker_asset
-        .insert(order.taker_asset, order.nonce);
-
-    order_hash
-}
+// error codes
+const NO_ERROR: u64 = 0u64;
+const INVALID_ORDER_SIGNATURE = 1u64;
+const INVALID_NONCE = 2u64;
+const EXPIRED = 3u64;
+const INVALID_TAKER_ASSET = 4u64;
+const TAKER_FILL_AMOUNT_TOO_HIGH = 5u64;
+const INSUFFICIENT_TAKER_AMOUNT_RECEIVED = 6u64;
+const MAKER_BALANCE_TOO_LOW = 7u64;
+const WITHDRAW_TOO_MUCH = 8u64;
+const CANCELLED = 9u64;
 
 impl OneDeltaRfq for Contract {
     // Safe and simple function to directly
@@ -92,25 +68,29 @@ impl OneDeltaRfq for Contract {
         reentrancy_guard();
 
         // validate order
-        let order_hash = validate_order_and_increment_nonce_internal(order, order_signature);
+        let (order_hash, error, taker_asset_already_filled_amount) = validate_order_internal(order, order_signature);
+
+        // revert if error in validation
+        if error != 0u64 {
+            revert(error);
+        }
 
         // validate asset sent
         require(
             msg_asset_id()
                 .bits() == order.taker_asset,
-            Error::InvalidTakerAsset,
+            INVALID_TAKER_ASSET,
         );
 
         let taker_fill_amount = msg_amount();
 
-        // validate amount sent
-        require(
-            taker_fill_amount <= order.taker_amount,
-            Error::TakerFillAmountTooHigh,
+        // compute fill amounts
+        let maker_fill_amount = compute_fill_amounts(
+            taker_fill_amount,
+            taker_asset_already_filled_amount,
+            order.maker_amount,
+            order.taker_amount,
         );
-
-        // compute maker fill amount relative to input amount
-        let maker_fill_amount = compute_maker_fill_amount(taker_fill_amount, order.maker_amount, order.taker_amount);
 
         // get stored maker_balances
         let maker_taker_asset_balance = storage.maker_balances.get(order.maker).get(order.taker_asset).try_read().unwrap_or(0u64);
@@ -119,7 +99,7 @@ impl OneDeltaRfq for Contract {
         // make sure that the maker has enough balance
         require(
             maker_fill_amount <= maker_maker_asset_balance,
-            Error::MakerBalanceTooLow,
+            MAKER_BALANCE_TOO_LOW,
         );
 
         // get stored total balances
@@ -154,6 +134,13 @@ impl OneDeltaRfq for Contract {
             order.maker,
         );
 
+        // update fill status for order
+        update_remaining_fill_amount(
+            order_hash,
+            taker_asset_already_filled_amount,
+            taker_fill_amount,
+        );
+
         // log the fill info and hash
         log(OrderFillEvent {
             order_hash,
@@ -183,13 +170,12 @@ impl OneDeltaRfq for Contract {
         reentrancy_guard();
 
         // validate order
-        let order_hash = validate_order_and_increment_nonce_internal(order, order_signature);
+        let (order_hash, error, taker_asset_already_filled_amount) = validate_order_internal(order, order_signature);
 
-        // validate taker_amount desired to be exchange
-        require(
-            taker_fill_amount <= order.taker_amount,
-            Error::TakerFillAmountTooHigh,
-        );
+        // revert if error in validation
+        if error != 0u64 {
+            revert(error);
+        }
 
         // get stored maker_balances
         let maker_taker_asset_balance = storage.maker_balances.get(order.maker).get(order.taker_asset).try_read().unwrap_or(0u64);
@@ -198,13 +184,18 @@ impl OneDeltaRfq for Contract {
         // get stored total balances
         let maker_asset_balance = storage.balances.get(order.maker_asset).try_read().unwrap_or(0u64);
 
-        // compute makerfill amount relative to input amount
-        let maker_fill_amount = compute_maker_fill_amount(taker_fill_amount, order.maker_amount, order.taker_amount);
+        // compute fill amounts
+        let maker_fill_amount = compute_fill_amounts(
+            taker_fill_amount,
+            taker_asset_already_filled_amount,
+            order.maker_amount,
+            order.taker_amount,
+        );
 
-        // make sure that the maker amount is nonzero
+        // make sure that the maker balance is high enough
         require(
             maker_fill_amount <= maker_maker_asset_balance,
-            Error::MakerBalanceTooLow,
+            MAKER_BALANCE_TOO_LOW,
         );
 
         // optimistically transfer maker_token::maker -> receiver
@@ -240,7 +231,7 @@ impl OneDeltaRfq for Contract {
         // manually handle the error where the balance has not grown enough
         require(
             taker_fill_amount_received >= taker_fill_amount,
-            Error::InsufficientTakerAmountReceived,
+            INSUFFICIENT_TAKER_AMOUNT_RECEIVED,
         );
 
         // update accounting state for totals
@@ -261,6 +252,12 @@ impl OneDeltaRfq for Contract {
             maker_fill_amount,
             taker_fill_amount_received,
             order.maker,
+        );
+
+        update_remaining_fill_amount(
+            order_hash,
+            taker_asset_already_filled_amount,
+            taker_fill_amount,
         );
 
         // log the fill info and hash
@@ -312,12 +309,12 @@ impl OneDeltaRfq for Contract {
     fn withdraw(asset: b256, amount: u64) {
         reentrancy_guard();
         let owner = msg_sender().unwrap();
-        
+
         // convert to bits for maps
         let owner_bits = owner.bits();
         let mut owner_asset_balance = storage.maker_balances.get(owner_bits).get(asset).try_read().unwrap_or(0u64);
 
-        require(owner_asset_balance >= amount, Error::WithdrawTooMuch);
+        require(owner_asset_balance >= amount, WITHDRAW_TOO_MUCH);
 
         owner_asset_balance -= amount;
 
@@ -355,7 +352,7 @@ impl OneDeltaRfq for Contract {
         let mut old_nonce: u64 = storage.nonces.get(owner).get(maker_asset).get(taker_asset).try_read().unwrap_or(0u64);
 
         // valdiate nonce
-        require(new_nonce > old_nonce, Error::InvalidNonce);
+        require(new_nonce > old_nonce, INVALID_NONCE);
 
         // set new nonce
         storage
@@ -363,36 +360,6 @@ impl OneDeltaRfq for Contract {
             .get(owner) // maker
             .get(maker_asset) // maker_asset
             .insert(taker_asset, new_nonce);
-    }
-
-    // Soft-validate an order as read function
-    #[storage(read)]
-    fn validate_order(order: RfqOrder, order_signature: B512) -> Error {
-        // get current maker nonce
-        let old_nonce: u64 = storage.nonces.get(order.maker).get(order.maker_asset).get(order.taker_asset).try_read().unwrap_or(0u64);
-
-        if order.expiry < height() {
-            return Error::Expired;
-        }
-
-        let order_hash = compute_rfq_order_hash(order, ContractId::this().bits());
-        let signer = recover_signer(order_signature, order_hash);
-        if signer.bits() != order.maker {
-            return Error::InvalidOrderSignature;
-        }
-
-        // valdiate nonce
-        if order.nonce <= old_nonce {
-            return Error::InvalidNonce;
-        }
-
-        // valdiate maker balance
-        let maker_asset_balance = storage.maker_balances.get(order.maker).get(order.maker_asset).try_read().unwrap_or(0u64);
-        if order.maker_amount > maker_asset_balance {
-            return Error::MakerBalanceTooLow;
-        }
-
-        return Error::None;
     }
 
     // Get a maker's nonce for a trading pair
@@ -411,7 +378,13 @@ impl OneDeltaRfq for Contract {
     #[storage(read)]
     fn get_balance(asset: b256) -> u64 {
         storage.balances.get(asset).try_read().unwrap_or(0u64)
-    } /** Helper functions to validate behavior using on-chain data */
+    }
+
+    // Soft-validate an order as read function
+    #[storage(read)]
+    fn validate_order(order: RfqOrder, order_signature: B512) -> (b256, u64, u64) {
+        validate_order_internal(order, order_signature)
+    }
 
     // Gets the signer of an Rfq Order given a signature
     fn get_signer_of_order(order: RfqOrder, order_signature: B512) -> b256 {
@@ -429,6 +402,44 @@ impl OneDeltaRfq for Contract {
     fn pack_order(order: RfqOrder) -> Bytes {
         pack_rfq_order(order, ContractId::this().bits())
     }
+}
+
+// Getter for the internal total balance
+#[storage(read)]
+fn get_asset_balance(asset: b256) -> u64 {
+    storage.balances.get(asset).try_read().unwrap_or(0)
+}
+
+// Soft-validate an order as read function
+#[storage(read)]
+fn validate_order_internal(order: RfqOrder, order_signature: B512) -> (b256, u64, u64) {
+    // get current maker nonce
+    let old_nonce: u64 = storage.nonces.get(order.maker).get(order.maker_asset).get(order.taker_asset).try_read().unwrap_or(0u64);
+
+    let order_hash = compute_rfq_order_hash(order, ContractId::this().bits());
+
+    // the the amount that is already filled
+    let (cancelled, taker_asset_filled_amount) = storage.order_hash_to_filled_amount.get(order_hash).try_read().unwrap_or((false, 0u64));
+
+    if cancelled {
+        return (order_hash, CANCELLED, taker_asset_filled_amount);
+    }
+
+    if order.expiry < height() {
+        return (order_hash, EXPIRED, taker_asset_filled_amount);
+    }
+
+    let signer = recover_signer(order_signature, order_hash);
+    if signer.bits() != order.maker {
+        return (order_hash, INVALID_ORDER_SIGNATURE, taker_asset_filled_amount);
+    }
+
+    // valdiate nonce
+    if order.nonce <= old_nonce {
+        return (order_hash, INVALID_NONCE, taker_asset_filled_amount);
+    }
+
+    return (order_hash, NO_ERROR, taker_asset_filled_amount);
 }
 
 // Update the internal balances based on order fill info
@@ -501,4 +512,48 @@ fn update_maker_balances(
         .maker_balances
         .get(maker)
         .insert(maker_asset, maker_maker_asset_balance - maker_fill_amount);
+}
+
+// Update the filled amound for an order hash
+// Obviously this needs all validations beforehand
+#[storage(read, write)]
+fn update_remaining_fill_amount(
+    order_hash: b256,
+    taker_already_filled_amount: u64,
+    taker_fill_amount: u64,
+) {
+    // we deduct add the fill amount to the already filled amount for the hash 
+    storage
+        .order_hash_to_filled_amount
+        // we already know that the order is not cancelled
+        .insert(
+            order_hash,
+            (false, taker_already_filled_amount + taker_fill_amount),
+        );
+}
+
+
+pub fn compute_fill_amounts(
+    taker_fill_amount: u64,
+    taker_asset_already_filled_amount: u64,
+    maker_amount: u64,
+    taker_amount: u64,
+) -> u64 {
+    // compute the amount that can be filled
+    let taker_asset_amount_available = taker_amount - taker_asset_already_filled_amount;
+
+    if taker_fill_amount > taker_asset_amount_available {
+        revert(TAKER_FILL_AMOUNT_TOO_HIGH);
+        } 
+    // Clamp the taker asset fill amount to the fillable amount.
+    let taker_fill_amount: u256 = min64(
+        taker_fill_amount,
+        taker_amount - taker_asset_already_filled_amount,
+    ).into();
+    // Compute the maker asset amount.
+    // This should never overflow because the values are all clamped to
+    // (2^64-1).
+    let maker_asset_filled_amount = (taker_fill_amount * maker_amount.into() / taker_amount.into());
+    
+    u64::try_from(maker_asset_filled_amount).unwrap()
 }

@@ -45,4 +45,6 @@ pub enum Error {
     MakerInsufficientBalance: (),
     WithdrawTooMuch: (),
     NothingReceived: (),
+    Cancelled: (),
+    AlreadyFilled: (),
 }

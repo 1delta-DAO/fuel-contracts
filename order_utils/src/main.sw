@@ -4,7 +4,7 @@ pub mod structs;
 use std::{b512::B512,};
 use std::bytes::Bytes;
 use std::hash::*;
-use structs::{RfqOrder, Error,};
+use structs::RfqOrder;
 use std::{
     bytes_conversions::b256::*,
     bytes_conversions::u64::*,
@@ -67,48 +67,15 @@ pub fn compute_taker_fill_amount(maker_fill_amount:u64, maker_amount:u64, taker_
     maker_fill_amount * taker_amount / maker_amount + 1
 }
 
-
-pub fn min256( a:u256,  b:u256) -> u256 {
-    if a < b { a} else { b}
-}
-
 pub fn min64( a:u64,  b:u64) -> u64 {
     if a < b { a} else { b}
-}
-
-/// @dev Calculates partial value given a numerator and denominator rounded down.
-/// @param numerator Numerator.
-/// @param denominator Denominator.
-/// @param target Value to calculate partial of.
-/// @return partialAmount Partial value of target rounded up.
-pub fn get_partial_amount_ceil( numerator: u256,  denominator: u256,  target: u256) -> u256 {
-    // safeDiv computes `floor(a / b)`. We use the identity (a, b integer):
-    //       ceil(a / b) = floor((a + b - 1) / b)
-    // To implement `ceil(a / b)` using safeDiv.
-    ((numerator * target) + (denominator - 1)) / denominator
-}
-
-/// @dev Calculates partial value given a numerator and denominator rounded down.
-/// @param numerator Numerator.
-/// @param denominator Denominator.
-/// @param target Value to calculate partial of.
-/// @return partialAmount Partial value of target rounded down.
-pub fn get_partial_amount_floor(numerator:u256, denominator:u256, target:u256) -> u256 {
-        (numerator * target) / denominator
 }
 
 // The interface for interacting with Rfq orders 
 abi OneDeltaRfq {
 
     #[storage(write, read), payable]
-    fn fill(
-        order: RfqOrder,
-        order_signature: B512,
-        taker_receiver: Identity,
-    ) -> (u64, u64);
-
-    #[storage(write, read)]
-    fn fill_funded(
+    fn fill_rfq(
         order: RfqOrder,
         order_signature: B512,
         taker_fill_amount: u64,
@@ -125,8 +92,11 @@ abi OneDeltaRfq {
     #[storage(write, read)]
     fn invalidate_nonce(maker_asset: b256, taker_asset: b256, new_nonce: u64);
 
+    #[storage(write, read)]
+    fn cancel_rfq_order(order_hash: b256, order_signature:B512);
+
     #[storage(read)]
-    fn validate_order(order: RfqOrder, order_signature: B512) -> (b256, u64, u64);
+    fn validate_rfq_order(order: RfqOrder, order_signature: B512) -> (b256, u64, u64);
 
     #[storage(read)]
     fn get_nonce(maker: b256, maker_asset: b256, taker_asset: b256) -> u64;

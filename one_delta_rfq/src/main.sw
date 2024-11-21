@@ -1,9 +1,9 @@
 contract;
 
 use order_utils::{
-    min64,
     compute_rfq_order_hash,
     IRfqFlashCallback,
+    min64,
     OneDeltaRfq,
     pack_rfq_order,
     recover_signer,
@@ -46,112 +46,12 @@ const NO_ERROR: u64 = 0u64;
 const INVALID_ORDER_SIGNATURE = 1u64;
 const INVALID_NONCE = 2u64;
 const EXPIRED = 3u64;
-const INVALID_TAKER_ASSET = 4u64;
-const TAKER_FILL_AMOUNT_TOO_HIGH = 5u64;
-const INSUFFICIENT_TAKER_AMOUNT_RECEIVED = 6u64;
-const MAKER_BALANCE_TOO_LOW = 7u64;
-const WITHDRAW_TOO_MUCH = 8u64;
-const CANCELLED = 9u64;
+const INSUFFICIENT_TAKER_AMOUNT_RECEIVED = 4u64;
+const MAKER_BALANCE_TOO_LOW = 5u64;
+const WITHDRAW_TOO_MUCH = 6u64;
+const CANCELLED = 7u64;
 
 impl OneDeltaRfq for Contract {
-    // Safe and simple function to directly
-    // fill an Rfq Order. The taker_amount has
-    // to be attached to fill the order
-    // This function is ideal for filling directly from 
-    // an EOA and not optimal when used in batch-swaps
-    #[storage(write, read), payable]
-    fn fill(
-        order: RfqOrder,
-        order_signature: B512,
-        taker_receiver: Identity,
-    ) -> (u64, u64) {
-        reentrancy_guard();
-
-        // validate order
-        let (order_hash, error, taker_asset_already_filled_amount) = validate_order_internal(order, order_signature);
-
-        // revert if error in validation
-        if error != 0u64 {
-            revert(error);
-        }
-
-        // validate asset sent
-        require(
-            msg_asset_id()
-                .bits() == order.taker_asset,
-            INVALID_TAKER_ASSET,
-        );
-
-        let taker_fill_amount = msg_amount();
-
-        // compute fill amounts
-        let maker_fill_amount = compute_fill_amounts(
-            taker_fill_amount,
-            taker_asset_already_filled_amount,
-            order.maker_amount,
-            order.taker_amount,
-        );
-
-        // get stored maker_balances
-        let maker_taker_asset_balance = storage.maker_balances.get(order.maker).get(order.taker_asset).try_read().unwrap_or(0u64);
-        let maker_maker_asset_balance = storage.maker_balances.get(order.maker).get(order.maker_asset).try_read().unwrap_or(0u64);
-
-        // make sure that the maker has enough balance
-        require(
-            maker_fill_amount <= maker_maker_asset_balance,
-            MAKER_BALANCE_TOO_LOW,
-        );
-
-        // get stored total balances
-        let taker_asset_balance = storage.balances.get(order.taker_asset).try_read().unwrap_or(0u64);
-        let maker_asset_balance = storage.balances.get(order.maker_asset).try_read().unwrap_or(0u64);
-
-        // maker_token::maker -> receiver
-        transfer(
-            taker_receiver,
-            AssetId::from(order.maker_asset),
-            maker_fill_amount,
-        );
-
-        // update accounting state for totals
-        update_internal_total_balances(
-            order.maker_asset,
-            order.taker_asset,
-            taker_asset_balance,
-            maker_asset_balance,
-            maker_fill_amount,
-            taker_fill_amount,
-        );
-
-        // update accounting state for maker
-        update_maker_balances(
-            order.maker_asset,
-            order.taker_asset,
-            maker_taker_asset_balance,
-            maker_maker_asset_balance,
-            maker_fill_amount,
-            taker_fill_amount,
-            order.maker,
-        );
-
-        // update fill status for order
-        update_remaining_fill_amount(
-            order_hash,
-            taker_asset_already_filled_amount,
-            taker_fill_amount,
-        );
-
-        // log the fill info and hash
-        log(OrderFillEvent {
-            order_hash,
-            maker_fill_amount,
-            taker_fill_amount,
-        });
-
-        // return filled amounts
-        (taker_fill_amount, maker_fill_amount)
-    }
-
     // Fills a funded order
     // This means that the filler either
     //    - pre-funded the order by sending the taker amount to this
@@ -159,8 +59,8 @@ impl OneDeltaRfq for Contract {
     //    - has no funds and intents to use the callback to originate them
     // This version is less efficient than the `fill` function that is directly
     // payable.
-    #[storage(write, read)]
-    fn fill_funded(
+    #[storage(write, read), payable]
+    fn fill_rfq(
         order: RfqOrder,
         order_signature: B512,
         taker_fill_amount: u64,
@@ -170,7 +70,7 @@ impl OneDeltaRfq for Contract {
         reentrancy_guard();
 
         // validate order
-        let (order_hash, error, taker_asset_already_filled_amount) = validate_order_internal(order, order_signature);
+        let (order_hash, error, taker_asset_already_filled_amount) = validate_rfq_order_internal(order, order_signature);
 
         // revert if error in validation
         if error != 0u64 {
@@ -185,7 +85,7 @@ impl OneDeltaRfq for Contract {
         let maker_asset_balance = storage.balances.get(order.maker_asset).try_read().unwrap_or(0u64);
 
         // compute fill amounts
-        let maker_fill_amount = compute_fill_amounts(
+        let (maker_filled_amount, taker_filled_amount) = compute_fill_amounts(
             taker_fill_amount,
             taker_asset_already_filled_amount,
             order.maker_amount,
@@ -194,7 +94,7 @@ impl OneDeltaRfq for Contract {
 
         // make sure that the maker balance is high enough
         require(
-            maker_fill_amount <= maker_maker_asset_balance,
+            maker_filled_amount <= maker_maker_asset_balance,
             MAKER_BALANCE_TOO_LOW,
         );
 
@@ -202,45 +102,60 @@ impl OneDeltaRfq for Contract {
         transfer(
             taker_receiver,
             AssetId::from(order.maker_asset),
-            maker_fill_amount,
+            maker_filled_amount,
         );
 
         // this internal balance is unadjusted for the amount received 
         let taker_asset_accounting_balance = get_asset_balance(order.taker_asset);
 
+        let sender = msg_sender() .unwrap();
+
+        // flash callback
         if let Some(d) = data {
             abi(IRfqFlashCallback, taker_receiver
                 .as_contract_id()
                 .unwrap()
                 .into())
                 .flash(
-                    msg_sender()
-                        .unwrap(),
+                    sender,
                     order.maker_asset,
                     order.taker_asset,
-                    maker_fill_amount,
+                    maker_filled_amount,
                     taker_fill_amount,
                     d,
                 );
         }
+
         // fetch the real taker asset balance
         let real_taker_asset_balance = this_balance(AssetId::from(order.taker_asset));
         // the funds received are real balance minus accounting balance
         let taker_fill_amount_received = real_taker_asset_balance - taker_asset_accounting_balance;
 
-        // manually handle the error where the balance has not grown enough
-        require(
-            taker_fill_amount_received >= taker_fill_amount,
-            INSUFFICIENT_TAKER_AMOUNT_RECEIVED,
-        );
+        // validate that we received enough
+        if taker_fill_amount_received > taker_filled_amount {
+            // received too much -> refund excess
+            // this can happen if the caller unintentionally sends the full 
+            // amount for an already partially filled order
+            transfer(
+                sender,
+                AssetId::from(order.taker_asset),
+                taker_fill_amount_received - taker_filled_amount,
+            );
+        } else {
+            // make sure that we received enough
+            require(
+                taker_fill_amount_received == taker_filled_amount,
+                INSUFFICIENT_TAKER_AMOUNT_RECEIVED,
+            );
+        }
 
         // update accounting state for totals
-        update_internal_total_balances_funded(
+        update_internal_total_balances(
             order.maker_asset,
             order.taker_asset,
             maker_asset_balance,
             real_taker_asset_balance,
-            maker_fill_amount,
+            maker_filled_amount,
         );
 
         // update accounting state for maker
@@ -249,7 +164,7 @@ impl OneDeltaRfq for Contract {
             order.taker_asset,
             maker_taker_asset_balance,
             maker_maker_asset_balance,
-            maker_fill_amount,
+            maker_filled_amount,
             taker_fill_amount_received,
             order.maker,
         );
@@ -263,12 +178,12 @@ impl OneDeltaRfq for Contract {
         // log the fill info and hash
         log(OrderFillEvent {
             order_hash,
-            taker_fill_amount: taker_fill_amount_received,
-            maker_fill_amount,
+            taker_filled_amount: taker_fill_amount_received,
+            maker_filled_amount,
         });
 
         // return filled amounts
-        (taker_fill_amount_received, maker_fill_amount)
+        (taker_fill_amount_received, maker_filled_amount)
     }
 
     #[storage(write, read), payable]
@@ -362,6 +277,27 @@ impl OneDeltaRfq for Contract {
             .insert(taker_asset, new_nonce);
     }
 
+    // cancel an order by hash
+    #[storage(write, read)]
+    fn cancel_rfq_order(order_hash: b256, order_signature: B512) {
+        let signer = recover_signer(order_signature, order_hash).bits();
+        let caller = msg_sender().unwrap().bits();
+        if signer != caller {
+            revert(INVALID_ORDER_SIGNATURE);
+        }
+
+        // we ignore thje cancel flag
+        let (_, amount_filled) =        storage
+            .order_hash_to_filled_amount
+            .get(order_hash).try_read().unwrap_or((false, 0u64));
+
+        // we deduct add the fill amount to the already filled amount for the hash 
+        storage
+            .order_hash_to_filled_amount
+            // we already know that the order is not cancelled
+            .insert(order_hash, (true, amount_filled));
+    }
+
     // Get a maker's nonce for a trading pair
     #[storage(read)]
     fn get_nonce(maker: b256, maker_asset: b256, taker_asset: b256) -> u64 {
@@ -382,8 +318,8 @@ impl OneDeltaRfq for Contract {
 
     // Soft-validate an order as read function
     #[storage(read)]
-    fn validate_order(order: RfqOrder, order_signature: B512) -> (b256, u64, u64) {
-        validate_order_internal(order, order_signature)
+    fn validate_rfq_order(order: RfqOrder, order_signature: B512) -> (b256, u64, u64) {
+        validate_rfq_order_internal(order, order_signature)
     }
 
     // Gets the signer of an Rfq Order given a signature
@@ -412,7 +348,7 @@ fn get_asset_balance(asset: b256) -> u64 {
 
 // Soft-validate an order as read function
 #[storage(read)]
-fn validate_order_internal(order: RfqOrder, order_signature: B512) -> (b256, u64, u64) {
+fn validate_rfq_order_internal(order: RfqOrder, order_signature: B512) -> (b256, u64, u64) {
     // get current maker nonce
     let old_nonce: u64 = storage.nonces.get(order.maker).get(order.maker_asset).get(order.taker_asset).try_read().unwrap_or(0u64);
 
@@ -443,33 +379,9 @@ fn validate_order_internal(order: RfqOrder, order_signature: B512) -> (b256, u64
 }
 
 // Update the internal balances based on order fill info
-// All `_balance` terms will be
-//      incremented for taker_asset
-//      decremented for maker_asset
-#[storage(read, write)]
-fn update_internal_total_balances(
-    maker_asset: b256,
-    taker_asset: b256,
-    taker_asset_balance: u64,
-    maker_asset_balance: u64,
-    maker_fill_amount: u64,
-    taker_fill_amount: u64,
-) {
-    // add taker asset filled amount to total balance
-    storage
-        .balances
-        .insert(taker_asset, taker_asset_balance + taker_fill_amount);
-
-    // deduct maker asset filled amount from total balance
-    storage
-        .balances
-        .insert(maker_asset, maker_asset_balance - maker_fill_amount);
-}
-
-// Update the internal balances based on order fill info
 // for the case where the real_taker_asset_balance is provided
 #[storage(read, write)]
-fn update_internal_total_balances_funded(
+fn update_internal_total_balances(
     maker_asset: b256,
     taker_asset: b256,
     maker_asset_balance: u64,
@@ -532,28 +444,23 @@ fn update_remaining_fill_amount(
         );
 }
 
-
 pub fn compute_fill_amounts(
     taker_fill_amount: u64,
     taker_asset_already_filled_amount: u64,
     maker_amount: u64,
     taker_amount: u64,
-) -> u64 {
-    // compute the amount that can be filled
-    let taker_asset_amount_available = taker_amount - taker_asset_already_filled_amount;
-
-    if taker_fill_amount > taker_asset_amount_available {
-        revert(TAKER_FILL_AMOUNT_TOO_HIGH);
-        } 
+) -> (u64, u64) {
     // Clamp the taker asset fill amount to the fillable amount.
-    let taker_fill_amount: u256 = min64(
+    let taker_asset_amount_available: u256 = min64(
         taker_fill_amount,
         taker_amount - taker_asset_already_filled_amount,
     ).into();
     // Compute the maker asset amount.
     // This should never overflow because the values are all clamped to
     // (2^64-1).
-    let maker_asset_filled_amount = (taker_fill_amount * maker_amount.into() / taker_amount.into());
-    
-    u64::try_from(maker_asset_filled_amount).unwrap()
+    let maker_asset_filled_amount = (taker_asset_amount_available * maker_amount.into() / taker_amount.into());
+    (
+        u64::try_from(maker_asset_filled_amount).unwrap(),
+        u64::try_from(taker_asset_amount_available).unwrap(),
+    )
 }

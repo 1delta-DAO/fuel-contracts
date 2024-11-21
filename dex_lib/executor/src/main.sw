@@ -32,6 +32,7 @@ const ONE_DELTA_RFQ_ID: u64 = 100;
 ////////////////////////////////////////////////////
 const INVALID_DEX: u64 = 1;
 const RFQ_OUTPUT_TOO_HIGH: u64 = 2;
+const RFQ_INCOMPLETE_FILL: u64 = 3;
 
 ////////////////////////////////////////////////////
 // swap functions - general
@@ -179,7 +180,7 @@ pub fn forward_swap_exact_out(
                 );
             },
             ONE_DELTA_RFQ_ID => {
-                execute_one_delta_rfq_exact_out(
+                execute_one_delta_rfq_exact_in(
                     current_amount,
                     swap_step
                         .asset_in,
@@ -316,25 +317,15 @@ pub fn execute_one_delta_rfq_exact_in(
     let (order, signature) = to_rfq_order(data, asset_in, asset_out);
 
     // execute order fill
-    let (_, maker_fill_amount) = abi(OneDeltaRfq, ONE_DELTA_RFQ_CONTRACT_ID.into()).fill_funded(order, signature, amount_in, receiver, Option::None);
+    let (taker_fill_amount, maker_fill_amount) = abi(OneDeltaRfq, ONE_DELTA_RFQ_CONTRACT_ID.into()).fill_rfq(order, signature, amount_in, receiver, Option::None);
+
+    // reject incomplete fills
+    if taker_fill_amount < amount_in {
+        revert(RFQ_INCOMPLETE_FILL);
+    }
 
     // maker_fill_amount is the amount received, ergo the output amount  
     maker_fill_amount
-}
-
-pub fn execute_one_delta_rfq_exact_out(
-    amount_in: u64,
-    asset_in: AssetId,
-    asset_out: AssetId,
-    receiver: Identity,
-    data: Bytes,
-    ONE_DELTA_RFQ_CONTRACT_ID: ContractId,
-) {
-    // decode order and signature
-    let (order, signature) = to_rfq_order(data, asset_in, asset_out);
-
-    // execute order fill
-    let (_, _) = abi(OneDeltaRfq, ONE_DELTA_RFQ_CONTRACT_ID.into()).fill_funded(order, signature, amount_in, receiver, Option::None);
 }
 
 // expect the data of 3 bytes be laid out as follows

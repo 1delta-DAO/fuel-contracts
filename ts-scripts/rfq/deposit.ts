@@ -1,7 +1,7 @@
 import { Provider, Wallet } from "fuels";
 import { TestnetData } from "../contexts";
 import { MNEMONIC } from "../../env";
-import { OneDeltaRfq } from "../typegen/OneDeltaRfq";
+import { OneDeltaOrders } from "../typegen/OneDeltaOrders";
 
 
 const maker_asset = TestnetData.USDC.assetId
@@ -12,9 +12,9 @@ async function main() {
 
     const wallet = Wallet.fromMnemonic(MNEMONIC!, undefined, undefined, provider);
 
-    const rfqOrders = new OneDeltaRfq(TestnetData.ONE_DELTA_RFQ, wallet)
+    const Orders = new OneDeltaOrders(TestnetData.one_delta_orders, wallet)
 
-    await rfqOrders.functions.deposit()
+    await Orders.functions.deposit()
         .callParams({ forward: { assetId: maker_asset, amount: deposit_amount.toString() } })
         .call()
 

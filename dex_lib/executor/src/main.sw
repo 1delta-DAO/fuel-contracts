@@ -6,8 +6,8 @@ use std::asset::transfer;
 use core::raw_slice::*;
 use core::codec::abi_decode_in_place;
 use mira_v1_swap::swap::{get_mira_amount_in, swap_mira_exact_in, swap_mira_exact_out,};
-use order_utils::structs::{RfqOrder,};
-use order_utils::{compute_taker_fill_amount, OneDeltaRfq,};
+use order_utils::structs::{Order,};
+use order_utils::{compute_taker_fill_amount, OneDeltaOrders,};
 use interfaces::{data_structures::PoolId,};
 
 ////////////////////////////////////////////////////
@@ -25,14 +25,14 @@ pub struct BatchSwapStep {
 // DEX ids
 ////////////////////////////////////////////////////
 const MIRA_V1_ID: u64 = 0;
-const ONE_DELTA_RFQ_ID: u64 = 100;
+const ONE_DELTA_ORDERS_ID: u64 = 100;
 
 ////////////////////////////////////////////////////
 // Revert error codes
 ////////////////////////////////////////////////////
-const INVALID_DEX: u64 = 1;
-const RFQ_OUTPUT_TOO_HIGH: u64 = 2;
-const RFQ_INCOMPLETE_FILL: u64 = 3;
+const INVALID_DEX = 1u64;
+const ORDER_OUTPUT_TOO_HIGH = 2u64;
+const ORDER_INCOMPLETE_FILL = 3u64;
 
 ////////////////////////////////////////////////////
 // swap functions - general
@@ -42,7 +42,7 @@ pub fn execute_exact_in(
     amount_in: u64,
     swap_step: BatchSwapStep,
     MIRA_AMM_CONTRACT_ID: ContractId,
-    ONE_DELTA_RFQ_CONTRACT_ID: ContractId,
+    ONE_DELTA_ORDERS_CONTRACT_ID: ContractId,
 ) -> u64 {
     match swap_step.dex_id {
         MIRA_V1_ID => execute_mira_v1_exact_in(
@@ -57,7 +57,7 @@ pub fn execute_exact_in(
                 .data,
             MIRA_AMM_CONTRACT_ID,
         ),
-        ONE_DELTA_RFQ_ID => execute_one_delta_rfq_exact_in(
+        ONE_DELTA_ORDERS_ID => execute_one_delta_orders_exact_in(
             amount_in,
             swap_step
                 .asset_in,
@@ -67,7 +67,7 @@ pub fn execute_exact_in(
                 .receiver,
             swap_step
                 .data,
-            ONE_DELTA_RFQ_CONTRACT_ID,
+            ONE_DELTA_ORDERS_CONTRACT_ID,
         ),
         _ => revert(INVALID_DEX),
     }
@@ -79,12 +79,12 @@ pub fn calculate_amounts_exact_out_and_fund(
     maximum_in: u64,
     current_path: Vec<BatchSwapStep>,
     MIRA_AMM_CONTRACT_ID: ContractId,
-    ONE_DELTA_RFQ_CONTRACT_ID: ContractId,
+    ONE_DELTA_ORDERS_CONTRACT_ID: ContractId,
 ) -> Vec<u64> {
     // this is list of the amounts used to parametrize 
     // the swap 
     // this has to be the output amount for Mira
-    // andn the input amount for Rfq
+    // andn the input amount for orders
     let mut amounts: Vec<u64> = Vec::new();
     let mut current_amount_out = amount_out;
 
@@ -116,9 +116,9 @@ pub fn calculate_amounts_exact_out_and_fund(
                 amounts.push(current_amount_out);
                 current_amount_out = amount_in;
             },
-            ONE_DELTA_RFQ_ID => {
-                let amount_in = quote_rfq_exact_out(swap_step.data, current_amount_out);
-                // for rfq, we need the amount_in here
+            ONE_DELTA_ORDERS_ID => {
+                let amount_in = quote_order_exact_out(swap_step.data, current_amount_out);
+                // for orders, we need the amount_in here
                 amounts.push(amount_in);
                 current_amount_out = amount_in;
             },
@@ -140,7 +140,7 @@ pub fn calculate_amounts_exact_out_and_fund(
             swap_step
                 .dex_id,
             MIRA_AMM_CONTRACT_ID,
-            ONE_DELTA_RFQ_CONTRACT_ID,
+            ONE_DELTA_ORDERS_CONTRACT_ID,
         ),
         swap_step
             .asset_in,
@@ -154,7 +154,7 @@ pub fn forward_swap_exact_out(
     current_path: Vec<BatchSwapStep>,
     computed_amounts: Vec<u64>,
     MIRA_AMM_CONTRACT_ID: ContractId,
-    ONE_DELTA_RFQ_CONTRACT_ID: ContractId,
+    ONE_DELTA_ORDERS_CONTRACT_ID: ContractId,
 ) {
     let path_length = current_path.len();
     let mut i = path_length - 1;
@@ -179,8 +179,8 @@ pub fn forward_swap_exact_out(
                     MIRA_AMM_CONTRACT_ID,
                 );
             },
-            ONE_DELTA_RFQ_ID => {
-                execute_one_delta_rfq_exact_in(
+            ONE_DELTA_ORDERS_ID => {
+                execute_one_delta_orders_exact_in(
                     current_amount,
                     swap_step
                         .asset_in,
@@ -190,7 +190,7 @@ pub fn forward_swap_exact_out(
                         .receiver,
                     swap_step
                         .data,
-                    ONE_DELTA_RFQ_CONTRACT_ID,
+                    ONE_DELTA_ORDERS_CONTRACT_ID,
                 );
             },
             _ => revert(INVALID_DEX),
@@ -268,11 +268,11 @@ pub fn forward_swap_exact_out(
 pub fn get_dex_input_receiver(
     dex_id: u64,
     MIRA_AMM_CONTRACT_ID: ContractId,
-    ONE_DELTA_RFQ_CONTRACT_ID: ContractId,
+    ONE_DELTA_ORDERS_CONTRACT_ID: ContractId,
 ) -> Identity {
     match dex_id {
         MIRA_V1_ID => Identity::ContractId(MIRA_AMM_CONTRACT_ID),
-        ONE_DELTA_RFQ_ID => Identity::ContractId(ONE_DELTA_RFQ_CONTRACT_ID),
+        ONE_DELTA_ORDERS_ID => Identity::ContractId(ONE_DELTA_ORDERS_CONTRACT_ID),
         _ => revert(INVALID_DEX),
     }
 }
@@ -305,23 +305,23 @@ pub fn execute_mira_v1_exact_in(
     )
 }
 
-pub fn execute_one_delta_rfq_exact_in(
+pub fn execute_one_delta_orders_exact_in(
     amount_in: u64,
     asset_in: AssetId,
     asset_out: AssetId,
     receiver: Identity,
     data: Bytes,
-    ONE_DELTA_RFQ_CONTRACT_ID: ContractId,
+    ONE_DELTA_ORDERS_CONTRACT_ID: ContractId,
 ) -> u64 {
     // decode order and signature
-    let (order, signature) = to_rfq_order(data, asset_in, asset_out);
+    let (order, signature) = to_order(data, asset_in, asset_out);
 
     // execute order fill
-    let (taker_fill_amount, maker_fill_amount) = abi(OneDeltaRfq, ONE_DELTA_RFQ_CONTRACT_ID.into()).fill_rfq(order, signature, amount_in, receiver, Option::None);
+    let (taker_fill_amount, maker_fill_amount) = abi(OneDeltaOrders, ONE_DELTA_ORDERS_CONTRACT_ID.into()).fill(order, signature, amount_in, receiver, Option::None);
 
     // reject incomplete fills
     if taker_fill_amount < amount_in {
-        revert(RFQ_INCOMPLETE_FILL);
+        revert(ORDER_INCOMPLETE_FILL);
     }
 
     // maker_fill_amount is the amount received, ergo the output amount  
@@ -393,7 +393,7 @@ pub fn first_be_bytes_to_u16(bytes: Bytes) -> u16 {
 }
 
 // The struct looks as follows
-// struct RfqOrder {
+// struct Order {
 //     pub maker_asset: b256,
 //     pub taker_asset: b256,
 //     pub maker_amount: u64,
@@ -403,12 +403,12 @@ pub fn first_be_bytes_to_u16(bytes: Bytes) -> u16 {
 //     pub expiry: u32,
 // }
 
-// converts encoded rfq order and signature to parameters
-// rfq order will actually map
+// converts encoded order and signature to parameters
+// order will actually map
 //      asset_in  -> taker_asset
 //      asset_out -> maker_asset
 // we iteratively apply bytes splits
-pub fn to_rfq_order(bytes: Bytes, asset_in: AssetId, asset_out: AssetId) -> (RfqOrder, B512) {
+pub fn to_order(bytes: Bytes, asset_in: AssetId, asset_out: AssetId) -> (Order, B512) {
     let (maker_amount_bytes, rest) = bytes.split_at(8);
     let (taker_amount_bytes, rest) = rest.split_at(8);
     let (maker_bytes, rest) = rest.split_at(32);
@@ -427,7 +427,7 @@ pub fn to_rfq_order(bytes: Bytes, asset_in: AssetId, asset_out: AssetId) -> (Rfq
 
     let signature = B512::from((b256::from_be_bytes(signature_a_bytes), b256::from_be_bytes(rest)));
     (
-        RfqOrder {
+        Order {
             maker_asset: asset_out.bits(),
             taker_asset: asset_in.bits(),
             maker_amount,
@@ -441,7 +441,7 @@ pub fn to_rfq_order(bytes: Bytes, asset_in: AssetId, asset_out: AssetId) -> (Rfq
 }
 
 // quote an order exact out
-pub fn quote_rfq_exact_out(bytes: Bytes, amount_out: u64) -> u64 {
+pub fn quote_order_exact_out(bytes: Bytes, amount_out: u64) -> u64 {
     // we only read the two first fields in the order
     let (maker_amount_bytes, rest) = bytes.split_at(8);
     let (taker_amount_bytes, _) = rest.split_at(8);
@@ -451,7 +451,7 @@ pub fn quote_rfq_exact_out(bytes: Bytes, amount_out: u64) -> u64 {
     // revert if the requested amount is higher than the 
     // maker_amount
     if amount_out > maker_amount {
-        revert(RFQ_OUTPUT_TOO_HIGH);
+        revert(ORDER_OUTPUT_TOO_HIGH);
     };
     // compute the taker_amount (assuming partial fills)
     let taker_amount_computed = compute_taker_fill_amount(amount_out, maker_amount, taker_amount);
@@ -492,7 +492,7 @@ fn test_get_mira_params() {
 }
 
 #[test]
-fn test_get_rfq_params() {
+fn test_get_order_params() {
     let asset_in: b256 = 0x4d3a44b2e2e53a5a452f3acac85bdd4f0e38a170a5cfbe4dfce2c79bf21a0f07;
     let asset_out: b256 = 0xa1e88e8fba0e93b94bee471d7447dcc86967389e0a8bf875a0f638c631627127;
     let maker: b256 = 0x0f46587a870bbffb7f00e5fbfbc967476388521e1378ab9c0693667a1a5adb94;
@@ -515,7 +515,7 @@ fn test_get_rfq_params() {
     encoded_order.append(signature_a.to_be_bytes());
     encoded_order.append(signature_b.to_be_bytes());
 
-    let (order, signature) = to_rfq_order(
+    let (order, signature) = to_order(
         encoded_order,
         AssetId::from(asset_in),
         AssetId::from(asset_out),

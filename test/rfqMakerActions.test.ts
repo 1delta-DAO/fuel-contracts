@@ -1,6 +1,6 @@
 import { launchTestNode } from 'fuels/test-utils';
 import { describe, test, expect } from 'vitest';
-import { RfqTestUtils } from './utils';
+import { OrderTestUtils } from './utils';
 
 describe('Maker Actions', async () => {
   test('Maker can deposit', async () => {
@@ -12,19 +12,19 @@ describe('Maker Actions', async () => {
     } = launched;
 
 
-    const { rfqOrders, tokens } = await RfqTestUtils.fixture(deployer)
+    const { Orders, tokens } = await OrderTestUtils.fixture(deployer)
 
-    const [maker_asset] = await RfqTestUtils.createTokens(deployer, RfqTestUtils.contractIdBits(tokens), ["test"])
+    const [maker_asset] = await OrderTestUtils.createTokens(deployer, OrderTestUtils.contractIdBits(tokens), ["test"])
 
-    await RfqTestUtils.fundWallets([maker], RfqTestUtils.contractIdBits(tokens), [maker_asset], [RfqTestUtils.DEFAULT_MINT_AMOUNT])
+    await OrderTestUtils.fundWallets([maker], OrderTestUtils.contractIdBits(tokens), [maker_asset], [OrderTestUtils.DEFAULT_MINT_AMOUNT])
 
-    const deposit_amount = RfqTestUtils.getRandomAmount(1, 10000)
+    const deposit_amount = OrderTestUtils.getRandomAmount(1, 10000)
 
-    await RfqTestUtils.getRfqOrders(maker, RfqTestUtils.contractIdBits(rfqOrders)).functions.deposit()
+    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit()
       .callParams({ forward: { assetId: maker_asset, amount: deposit_amount } })
       .call()
 
-    const [balanceReceived] = await RfqTestUtils.getMakerBalances(maker, [maker_asset], rfqOrders)
+    const [balanceReceived] = await OrderTestUtils.getMakerBalances(maker, [maker_asset], Orders)
 
     expect(balanceReceived.toString()).to.equal(deposit_amount.toString())
   });
@@ -38,27 +38,27 @@ describe('Maker Actions', async () => {
     } = launched;
 
 
-    const { rfqOrders, tokens } = await RfqTestUtils.fixture(deployer)
+    const { Orders, tokens } = await OrderTestUtils.fixture(deployer)
 
-    const [maker_asset] = await RfqTestUtils.createTokens(deployer, RfqTestUtils.contractIdBits(tokens), ["test"])
+    const [maker_asset] = await OrderTestUtils.createTokens(deployer, OrderTestUtils.contractIdBits(tokens), ["test"])
 
-    await RfqTestUtils.fundWallets([maker], RfqTestUtils.contractIdBits(tokens), [maker_asset], [RfqTestUtils.DEFAULT_MINT_AMOUNT])
+    await OrderTestUtils.fundWallets([maker], OrderTestUtils.contractIdBits(tokens), [maker_asset], [OrderTestUtils.DEFAULT_MINT_AMOUNT])
 
-    const deposit_amount = RfqTestUtils.getRandomAmount(1, 10000)
+    const deposit_amount = OrderTestUtils.getRandomAmount(1, 10000)
 
-    await RfqTestUtils.getRfqOrders(maker, RfqTestUtils.contractIdBits(rfqOrders)).functions.deposit()
+    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit()
       .callParams({ forward: { assetId: maker_asset, amount: deposit_amount } })
       .call()
 
-    const withdraw_amount = RfqTestUtils.getRandomAmount(1, deposit_amount.toNumber())
-    const [balance_before_withdraw] = await RfqTestUtils.getMakerBalances(maker, [maker_asset], rfqOrders)
-    const [maker_balance_before_withdraw] = await RfqTestUtils.getConventionalBalances(maker, [maker_asset])
+    const withdraw_amount = OrderTestUtils.getRandomAmount(1, deposit_amount.toNumber())
+    const [balance_before_withdraw] = await OrderTestUtils.getMakerBalances(maker, [maker_asset], Orders)
+    const [maker_balance_before_withdraw] = await OrderTestUtils.getConventionalBalances(maker, [maker_asset])
 
-    await RfqTestUtils.getRfqOrders(maker, RfqTestUtils.contractIdBits(rfqOrders)).functions.withdraw(maker_asset, withdraw_amount)
+    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.withdraw(maker_asset, withdraw_amount)
       .call()
 
-    const [balance_after_withdraw] = await RfqTestUtils.getMakerBalances(maker, [maker_asset], rfqOrders)
-    const [maker_balance_after_withdraw] = await RfqTestUtils.getConventionalBalances(maker, [maker_asset])
+    const [balance_after_withdraw] = await OrderTestUtils.getMakerBalances(maker, [maker_asset], Orders)
+    const [maker_balance_after_withdraw] = await OrderTestUtils.getConventionalBalances(maker, [maker_asset])
 
     expect(
       balance_before_withdraw.sub(balance_after_withdraw).toString()
@@ -78,28 +78,28 @@ describe('Maker Actions', async () => {
     } = launched;
 
 
-    const { rfqOrders, tokens } = await RfqTestUtils.fixture(deployer)
+    const { Orders, tokens } = await OrderTestUtils.fixture(deployer)
 
-    const [maker_asset] = await RfqTestUtils.createTokens(deployer, RfqTestUtils.contractIdBits(tokens), ["test"])
+    const [maker_asset] = await OrderTestUtils.createTokens(deployer, OrderTestUtils.contractIdBits(tokens), ["test"])
 
-    await RfqTestUtils.fundWallets([maker], RfqTestUtils.contractIdBits(tokens), [maker_asset], [RfqTestUtils.DEFAULT_MINT_AMOUNT])
+    await OrderTestUtils.fundWallets([maker], OrderTestUtils.contractIdBits(tokens), [maker_asset], [OrderTestUtils.DEFAULT_MINT_AMOUNT])
 
-    const deposit_amount = RfqTestUtils.getRandomAmount(1, 10000)
+    const deposit_amount = OrderTestUtils.getRandomAmount(1, 10000)
 
-    const [maker_balance_before_withdraw] = await RfqTestUtils.getConventionalBalances(maker, [maker_asset])
+    const [maker_balance_before_withdraw] = await OrderTestUtils.getConventionalBalances(maker, [maker_asset])
 
-    await RfqTestUtils.getRfqOrders(maker, RfqTestUtils.contractIdBits(rfqOrders)).functions.deposit()
+    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit()
       .callParams({ forward: { assetId: maker_asset, amount: deposit_amount } })
       .call()
 
     const withdraw_amount = deposit_amount
 
-    await RfqTestUtils.getRfqOrders(maker, RfqTestUtils.contractIdBits(rfqOrders)).functions.withdraw(maker_asset, withdraw_amount)
+    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.withdraw(maker_asset, withdraw_amount)
       .call()
 
-    const [balance_after_withdraw] = await RfqTestUtils.getMakerBalances(maker, [maker_asset], rfqOrders)
+    const [balance_after_withdraw] = await OrderTestUtils.getMakerBalances(maker, [maker_asset], Orders)
 
-    const [maker_balance_after_withdraw] = await RfqTestUtils.getConventionalBalances(maker, [maker_asset])
+    const [maker_balance_after_withdraw] = await OrderTestUtils.getConventionalBalances(maker, [maker_asset])
    
     expect(
       balance_after_withdraw.toString()
@@ -120,23 +120,23 @@ describe('Maker Actions', async () => {
     } = launched;
 
 
-    const { rfqOrders, tokens } = await RfqTestUtils.fixture(deployer)
+    const { Orders, tokens } = await OrderTestUtils.fixture(deployer)
 
-    const [maker_asset] = await RfqTestUtils.createTokens(deployer, RfqTestUtils.contractIdBits(tokens), ["test"])
+    const [maker_asset] = await OrderTestUtils.createTokens(deployer, OrderTestUtils.contractIdBits(tokens), ["test"])
 
-    await RfqTestUtils.fundWallets([maker], RfqTestUtils.contractIdBits(tokens), [maker_asset], [RfqTestUtils.DEFAULT_MINT_AMOUNT])
+    await OrderTestUtils.fundWallets([maker], OrderTestUtils.contractIdBits(tokens), [maker_asset], [OrderTestUtils.DEFAULT_MINT_AMOUNT])
 
-    const deposit_amount = RfqTestUtils.getRandomAmount(1, 10000)
+    const deposit_amount = OrderTestUtils.getRandomAmount(1, 10000)
 
-    await RfqTestUtils.getRfqOrders(maker, RfqTestUtils.contractIdBits(rfqOrders)).functions.deposit()
+    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit()
       .callParams({ forward: { assetId: maker_asset, amount: deposit_amount } })
       .call()
 
-    const withdraw_amount = RfqTestUtils.getRandomAmount(deposit_amount.toNumber(), deposit_amount.toNumber() + 10000)
+    const withdraw_amount = OrderTestUtils.getRandomAmount(deposit_amount.toNumber(), deposit_amount.toNumber() + 10000)
 
     let reason: string | undefined = undefined
     try {
-      await RfqTestUtils.getRfqOrders(maker, RfqTestUtils.contractIdBits(rfqOrders)).functions.withdraw(maker_asset, withdraw_amount)
+      await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.withdraw(maker_asset, withdraw_amount)
         .call()
     } catch (e) {
       reason = String(e)
@@ -146,6 +146,6 @@ describe('Maker Actions', async () => {
 
     expect(
       reason
-    ).to.include("WithdrawTooMuch")
+    ).to.include(OrderTestUtils.ErrorCodes.WITHDRAW_TOO_MUCH)
   });
 });

@@ -1,11 +1,11 @@
 import { BigNumberish, CoinQuantity, Provider, Wallet } from "fuels";
 import { MainnetData } from "../../contexts";
 import { MNEMONIC, PRIVATE_KEY } from "../../../env";
-import {  RfqOrderInput } from "../../typegen/OneDeltaRfq";
+import {  OrderInput } from "../../typegen/OneDeltaOrders";
 import { getSwapExactInScope } from "../calldata";
 import { BatchSwapStepInput } from "../../typegen/BatchSwapExactInScript";
 import { addressInput, prepareRequest } from "../../utils";
-import { RfqTestUtils } from "../../../test/utils";
+import { OrderTestUtils } from "../../../test/utils";
 
 const maker_asset = MainnetData.USDT.address
 const taker_asset = MainnetData.USDC.address
@@ -18,7 +18,7 @@ async function main() {
     const maker = Wallet.fromPrivateKey(PRIVATE_KEY!, provider);
     const taker = Wallet.fromMnemonic(MNEMONIC!, undefined, undefined, provider);
 
-    const order: RfqOrderInput = {
+    const order: OrderInput = {
         maker_asset,
         taker_asset,
         maker_amount,
@@ -28,9 +28,9 @@ async function main() {
         maker: maker.address.toB256()
 
     }
-    const signature = await maker.signMessage(RfqTestUtils.packOrder(order, MainnetData.ONE_DELTA_RFQ))
+    const signature = await maker.signMessage(OrderTestUtils.packOrder(order, MainnetData.one_delta_orders))
 
-    const step = RfqTestUtils.createRfqBatchSwapStep(
+    const step = OrderTestUtils.createRfqBatchSwapStep(
         order,
         signature,
         addressInput(taker.address)
@@ -57,7 +57,7 @@ async function main() {
             eiScope,
             1,
             inputAssets,
-            [MainnetData.ONE_DELTA_RFQ]
+            [MainnetData.one_delta_orders]
         )
 
         console.log("swap request", finalRequest)

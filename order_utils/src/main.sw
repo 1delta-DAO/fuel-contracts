@@ -4,7 +4,7 @@ pub mod structs;
 use std::{b512::B512,};
 use std::bytes::Bytes;
 use std::hash::*;
-use structs::RfqOrder;
+use structs::Order;
 use std::{
     bytes_conversions::b256::*,
     bytes_conversions::u64::*,
@@ -14,7 +14,7 @@ use std::{
 use std::{ecr::{ec_recover, ec_recover_address, EcRecoverError}};
 
 // we allow flash callbacks for indirect filling
-abi IRfqFlashCallback {
+abi IFlashCallback {
     #[storage(read, write)]
     fn flash(
         sender: Identity,
@@ -38,12 +38,12 @@ pub fn recover_signer(signature: B512, msg_hash: b256) -> Address {
 
 // the order hash is the sha256 hash of the packed
 // verifying contract address, followed by the order values
-pub fn compute_rfq_order_hash(order: RfqOrder, verifying_contract:b256) -> b256 {
+pub fn compute_order_hash(order: Order, verifying_contract:b256) -> b256 {
     // hash the order
-    sha256(pack_rfq_order(order, verifying_contract))
+    sha256(pack_order(order, verifying_contract))
 }
 
-pub fn pack_rfq_order(order: RfqOrder, verifying_contract:b256) -> Bytes {
+pub fn pack_order(order: Order, verifying_contract:b256) -> Bytes {
     // Progressively append the order data as bytes
     let mut encoded_order: Bytes = verifying_contract.to_be_bytes();
     encoded_order.append(order.maker_asset.to_be_bytes());
@@ -72,11 +72,11 @@ pub fn min64( a:u64,  b:u64) -> u64 {
 }
 
 // The interface for interacting with Rfq orders 
-abi OneDeltaRfq {
+abi OneDeltaOrders {
 
     #[storage(write, read), payable]
-    fn fill_rfq(
-        order: RfqOrder,
+    fn fill(
+        order: Order,
         order_signature: B512,
         taker_fill_amount: u64,
         taker_receiver: Identity,
@@ -93,10 +93,16 @@ abi OneDeltaRfq {
     fn invalidate_nonce(maker_asset: b256, taker_asset: b256, new_nonce: u64);
 
     #[storage(write, read)]
-    fn cancel_rfq_order(order_hash: b256, order_signature:B512);
+    fn cancel_order(order_hash: b256, order_signature:B512);
+
+    #[storage(write)]
+    fn register_order_signer_delegate(signer_delegate:b256, allowed:bool);
 
     #[storage(read)]
-    fn validate_rfq_order(order: RfqOrder, order_signature: B512) -> (b256, u64, u64);
+    fn validate_order(order: Order, order_signature: B512) -> (b256, u64, u64);
+
+    #[storage(read)]
+    fn get_order_fill_status(order_hash: b256) -> (bool, u64);
 
     #[storage(read)]
     fn get_nonce(maker: b256, maker_asset: b256, taker_asset: b256) -> u64;
@@ -107,10 +113,13 @@ abi OneDeltaRfq {
     #[storage(read)]
     fn get_maker_balance(maker: b256, asset: b256) -> u64;
 
-    fn get_signer_of_order(order: RfqOrder, order_signature: B512) -> b256;
+    #[storage(read)]
+    fn is_order_signer_delegate(signer: b256, signer_delegate:b256) -> bool;
+   
 
-    fn get_order_hash(order: RfqOrder) -> b256;
+    fn get_signer_of_order(order: Order, order_signature: B512) -> b256;
 
-    fn pack_order(order: RfqOrder) -> Bytes;
+    fn get_order_hash(order: Order) -> b256;
 
+    fn pack_order(order: Order) -> Bytes;
 }

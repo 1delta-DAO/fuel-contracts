@@ -1,9 +1,8 @@
 import { launchTestNode } from 'fuels/test-utils';
 import { describe, test, expect } from 'vitest';
 import { hashMessage } from 'fuels';
-import { ErrorInput, RfqOrderInput } from '../ts-scripts/typegen/OneDeltaRfq';
-import { RfqTestUtils } from './utils';
-
+import { OrderInput } from '../ts-scripts/typegen/OneDeltaOrders';
+import { OrderTestUtils } from './utils';
 
 describe('Order Validation', async () => {
   test('Order Hash', async () => {
@@ -14,21 +13,21 @@ describe('Order Validation', async () => {
       wallets: [maker, deployer]
     } = launched;
 
-    const { rfqOrders } = await RfqTestUtils.fixture(deployer)
+    const { Orders } = await OrderTestUtils.fixture(deployer)
 
-    const order: RfqOrderInput = {
+    const order: OrderInput = {
       maker_asset: maker.address.toB256(),
       taker_asset: maker.address.toB256(),
       maker_amount: 10000,
       taker_amount: 10000,
       maker: maker.address.toB256(),
-      nonce: RfqTestUtils.getRandomAmount(1),
-      expiry: RfqTestUtils.MAX_EXPIRY,
+      nonce: OrderTestUtils.getRandomAmount(1),
+      expiry: OrderTestUtils.MAX_EXPIRY,
     }
 
-    const result = await rfqOrders.functions.get_order_hash(order).simulate();
+    const result = await Orders.functions.get_order_hash(order).simulate();
 
-    const data = RfqTestUtils.packOrder(order, rfqOrders)
+    const data = OrderTestUtils.packOrder(order, Orders)
 
     expect(hashMessage(data as any)).toBe(result.value);
   });
@@ -41,109 +40,67 @@ describe('Order Validation', async () => {
       wallets: [maker, deployer]
     } = launched;
 
-    const { rfqOrders, tokens } = await RfqTestUtils.fixture(deployer)
+    const { Orders, tokens } = await OrderTestUtils.fixture(deployer)
 
-    const [maker_asset] = await RfqTestUtils.createTokens(deployer, RfqTestUtils.contractIdBits(tokens), ["test"])
+    const [maker_asset] = await OrderTestUtils.createTokens(deployer, OrderTestUtils.contractIdBits(tokens), ["test"])
 
-    await RfqTestUtils.fundWallets([maker], RfqTestUtils.contractIdBits(tokens), [maker_asset], [RfqTestUtils.DEFAULT_MINT_AMOUNT])
+    await OrderTestUtils.fundWallets([maker], OrderTestUtils.contractIdBits(tokens), [maker_asset], [OrderTestUtils.DEFAULT_MINT_AMOUNT])
 
-    const deposit_amount = RfqTestUtils.getRandomAmount(1, 10000)
-    await RfqTestUtils.getRfqOrders(maker, RfqTestUtils.contractIdBits(rfqOrders)).functions.deposit()
+    const deposit_amount = OrderTestUtils.getRandomAmount(1, 10000)
+    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit()
       .callParams({ forward: { assetId: maker_asset, amount: deposit_amount } })
       .call()
 
-    const order: RfqOrderInput = {
+    const order: OrderInput = {
       maker_asset: maker_asset,
       taker_asset: maker.address.toB256(),
       maker_amount: deposit_amount,
       taker_amount: 10000,
       maker: maker.address.toB256(),
-      nonce: RfqTestUtils.getRandomAmount(1),
-      expiry: RfqTestUtils.MAX_EXPIRY,
+      nonce: OrderTestUtils.getRandomAmount(1),
+      expiry: OrderTestUtils.MAX_EXPIRY,
     }
 
-    const signatureRaw = await maker.signMessage(RfqTestUtils.packOrder(order, rfqOrders))
+    const signatureRaw = await maker.signMessage(OrderTestUtils.packOrder(order, Orders))
 
-    const result = await rfqOrders.functions.validate_order(
+    const result = await Orders.functions.validate_order(
       order,
       signatureRaw
     ).simulate()
 
-    expect(result.value).to.equal(ErrorInput.None)
-
-  });
-
-
-
-  test('Show that order is invalid if maker balance is too low', async () => {
-
-    const launched = await launchTestNode();
-
-    const {
-      wallets: [maker, deployer]
-    } = launched;
-
-    const { rfqOrders, tokens } = await RfqTestUtils.fixture(deployer)
-
-    const [maker_asset] = await RfqTestUtils.createTokens(deployer, RfqTestUtils.contractIdBits(tokens), ["test"])
-
-    await RfqTestUtils.fundWallets([maker], RfqTestUtils.contractIdBits(tokens), [maker_asset], [RfqTestUtils.DEFAULT_MINT_AMOUNT])
-
-    const deposit_amount = RfqTestUtils.getRandomAmount(1, 10000)
-    await RfqTestUtils.getRfqOrders(maker, RfqTestUtils.contractIdBits(rfqOrders)).functions.deposit()
-      .callParams({ forward: { assetId: maker_asset, amount: deposit_amount } })
-      .call()
-
-    const order: RfqOrderInput = {
-      maker_asset: maker_asset,
-      taker_asset: maker.address.toB256(),
-      maker_amount: deposit_amount.add( 1),
-      taker_amount: 10000,
-      maker: maker.address.toB256(),
-      nonce: RfqTestUtils.getRandomAmount(1),
-      expiry: RfqTestUtils.MAX_EXPIRY,
-    }
-
-    const signatureRaw = await maker.signMessage(RfqTestUtils.packOrder(order, rfqOrders))
-
-    const result = await rfqOrders.functions.validate_order(
-      order,
-      signatureRaw
-    ).simulate()
-
-    expect(result.value).to.equal(ErrorInput.MakerBalanceTooLow)
+    expect(result.value[1].toNumber()).to.equal(OrderTestUtils.ErrorCodes.NO_ERROR)
   });
 
   test('Disallow manipulated order', async () => {
-  
+
     const launched = await launchTestNode();
 
     const {
       wallets: [maker, deployer]
     } = launched;
 
-    const { rfqOrders } = await RfqTestUtils.fixture(deployer)
+    const { Orders } = await OrderTestUtils.fixture(deployer)
 
-    let order: RfqOrderInput = {
+    let order: OrderInput = {
       maker_asset: maker.address.toB256(),
       taker_asset: maker.address.toB256(),
       maker_amount: 10000,
       taker_amount: 10000,
       maker: maker.address.toB256(),
-      nonce: RfqTestUtils.getRandomAmount(1),
-      expiry: RfqTestUtils.MAX_EXPIRY,
+      nonce: OrderTestUtils.getRandomAmount(1),
+      expiry: OrderTestUtils.MAX_EXPIRY,
     }
 
-    const signatureRaw = await maker.signMessage(RfqTestUtils.packOrder(order, rfqOrders))
+    const signatureRaw = await maker.signMessage(OrderTestUtils.packOrder(order, Orders))
 
-    order.maker_amount = RfqTestUtils.getRandomAmount()
+    order.maker_amount = OrderTestUtils.getRandomAmount()
 
-    const result = await rfqOrders.functions.validate_order(
+    const result = await Orders.functions.validate_order(
       order,
       signatureRaw
     ).simulate()
 
-    expect(result.value).to.equal(ErrorInput.InvalidOrderSignature)
+    expect(result.value[1].toNumber()).to.equal(OrderTestUtils.ErrorCodes.INVALID_ORDER_SIGNATURE)
 
   });
 
@@ -156,43 +113,40 @@ describe('Order Validation', async () => {
     } = launched;
 
 
-    const { rfqOrders, tokens } = await RfqTestUtils.fixture(deployer)
+    const { Orders, tokens } = await OrderTestUtils.fixture(deployer)
 
-    const [maker_asset] = await RfqTestUtils.createTokens(deployer, RfqTestUtils.contractIdBits(tokens), ["test"])
+    const [maker_asset] = await OrderTestUtils.createTokens(deployer, OrderTestUtils.contractIdBits(tokens), ["test"])
 
-    await RfqTestUtils.fundWallets([maker], RfqTestUtils.contractIdBits(tokens), [maker_asset], [RfqTestUtils.DEFAULT_MINT_AMOUNT])
+    await OrderTestUtils.fundWallets([maker], OrderTestUtils.contractIdBits(tokens), [maker_asset], [OrderTestUtils.DEFAULT_MINT_AMOUNT])
 
-    const deposit_amount = RfqTestUtils.getRandomAmount(1, 10000)
-    await RfqTestUtils.getRfqOrders(maker, RfqTestUtils.contractIdBits(rfqOrders)).functions.deposit()
+    const deposit_amount = OrderTestUtils.getRandomAmount(1, 10000)
+    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit()
       .callParams({ forward: { assetId: maker_asset, amount: deposit_amount } })
       .call()
 
-    const order: RfqOrderInput = {
+    const order: OrderInput = {
       maker_asset: maker_asset,
       taker_asset: maker_asset,
       maker_amount: deposit_amount,
       taker_amount: 10000,
       maker: maker.address.toB256(),
-      nonce: RfqTestUtils.getRandomAmount(1),
+      nonce: OrderTestUtils.getRandomAmount(1),
       expiry: 0,
     }
 
 
+    const signatureRaw = await maker.signMessage(OrderTestUtils.packOrder(order, Orders))
 
-
-
-    const signatureRaw = await maker.signMessage(RfqTestUtils.packOrder(order, rfqOrders))
-
-    const result = await rfqOrders.functions.validate_order(
+    const result = await Orders.functions.validate_order(
       order,
       signatureRaw
     ).simulate()
 
-    expect(result.value).to.equal(ErrorInput.Expired)
+    expect(result.value[1].toNumber()).to.equal(OrderTestUtils.ErrorCodes.EXPIRED)
 
   });
 
-  test('Respects invalidation of order', async () => {
+  test('Respects invalidation of order by nonce', async () => {
 
     const launched = await launchTestNode();
 
@@ -201,35 +155,117 @@ describe('Order Validation', async () => {
     } = launched;
 
 
-    const { rfqOrders } = await RfqTestUtils.fixture(deployer)
+    const { Orders } = await OrderTestUtils.fixture(deployer)
 
-    
-const nonce =  RfqTestUtils.getRandomAmount(1)
 
-    const order: RfqOrderInput = {
+    const nonce = OrderTestUtils.getRandomAmount(1)
+
+    const order: OrderInput = {
       maker_asset: maker.address.toB256(),
       taker_asset: maker.address.toB256(),
       maker_amount: 10000,
       taker_amount: 10000,
       maker: maker.address.toB256(),
       nonce,
-      expiry: RfqTestUtils.MAX_EXPIRY,
+      expiry: OrderTestUtils.MAX_EXPIRY,
     }
 
-    const signatureRaw = await maker.signMessage(RfqTestUtils.packOrder(order, rfqOrders))
+    const signatureRaw = await maker.signMessage(OrderTestUtils.packOrder(order, Orders))
 
-    await RfqTestUtils.getRfqOrders(maker, rfqOrders.id.toB256()).functions.invalidate_nonce(
+    await OrderTestUtils.getOrders(maker, Orders.id.toB256()).functions.invalidate_nonce(
       order.maker_asset,
       order.taker_asset,
       nonce
     ).call()
 
-    const result = await rfqOrders.functions.validate_order(
+    const result = await Orders.functions.validate_order(
       order,
       signatureRaw
     ).simulate()
 
-    expect(result.value).to.equal(ErrorInput.InvalidNonce)
+    expect(result.value[1].toNumber()).to.equal(OrderTestUtils.ErrorCodes.INVALID_NONCE)
+  });
+
+  test('Respects invalidation of order by hash', async () => {
+
+    const launched = await launchTestNode();
+
+    const {
+      wallets: [maker, deployer, taker]
+    } = launched;
+
+
+    const { Orders } = await OrderTestUtils.fixture(deployer)
+
+    const nonce = OrderTestUtils.getRandomAmount(1)
+
+    const order: OrderInput = {
+      maker_asset: maker.address.toB256(),
+      taker_asset: maker.address.toB256(),
+      maker_amount: 10000,
+      taker_amount: 10000,
+      maker: maker.address.toB256(),
+      nonce,
+      expiry: OrderTestUtils.MAX_EXPIRY,
+    }
+
+    const signatureRaw = await maker.signMessage(OrderTestUtils.packOrder(order, Orders))
+
+    await OrderTestUtils.getOrders(maker, Orders.id.toB256()).functions.cancel_order(
+      OrderTestUtils.getHash(order, Orders),
+      signatureRaw
+    ).call()
+
+    const result = await Orders.functions.validate_order(
+      order,
+      signatureRaw
+    ).simulate()
+
+    expect(result.value[1].toNumber()).to.equal(OrderTestUtils.ErrorCodes.CANCELLED)
+  });
+
+  test('Cannot cancel order by hash with invalid signature', async () => {
+
+    const launched = await launchTestNode();
+
+    const {
+      wallets: [maker, deployer, taker]
+    } = launched;
+
+
+    const { Orders } = await OrderTestUtils.fixture(deployer)
+
+    const nonce = OrderTestUtils.getRandomAmount(1)
+
+    let order: OrderInput = {
+      maker_asset: maker.address.toB256(),
+      taker_asset: maker.address.toB256(),
+      maker_amount: 10000,
+      taker_amount: 10000,
+      maker: maker.address.toB256(),
+      nonce,
+      expiry: OrderTestUtils.MAX_EXPIRY,
+    }
+
+    // produce invalid signature
+    const signatureRaw = await maker.signMessage(OrderTestUtils.packOrder({ ...order, maker_amount: 10001 }, Orders))
+
+    let reason: string | undefined = undefined
+    try {
+      await OrderTestUtils.getOrders(maker, Orders.id.toB256()).functions.cancel_order(
+        OrderTestUtils.getHash(order, Orders),
+        signatureRaw
+      ).call()
+    } catch (e) {
+      reason = String(e)
+    }
+
+    expect(reason).to.toBeDefined()
+
+    expect(
+      reason
+    ).to.include(OrderTestUtils.ErrorCodes.INVALID_ORDER_SIGNATURE)
+
   });
 });
 

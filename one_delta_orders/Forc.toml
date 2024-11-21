@@ -2,7 +2,7 @@
 authors = ["Achthar"]
 entry = "main.sw"
 license = "Apache-2.0"
-name = "one_delta_rfq"
+name = "one_delta_orders"
 
 [dependencies]
 order_utils = { path = "../order_utils" }

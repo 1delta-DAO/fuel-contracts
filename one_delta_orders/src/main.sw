@@ -1,16 +1,16 @@
 contract;
 
 use order_utils::{
-    compute_rfq_order_hash,
-    IRfqFlashCallback,
+    compute_order_hash,
+    IFlashCallback,
     min64,
-    OneDeltaRfq,
-    pack_rfq_order,
+    OneDeltaOrders,
+    pack_order,
     recover_signer,
     structs::{
         DepositEvent,
+        Order,
         OrderFillEvent,
-        RfqOrder,
         WithdrawEvent,
     },
 };
@@ -39,10 +39,12 @@ storage {
     maker_balances: StorageMap<b256, StorageMap<b256, u64>> = StorageMap {},
     // assetId -> contract balance
     balances: StorageMap<b256, u64> = StorageMap {},
+    // signer -> signer on behalf
+    order_signer_registry: StorageMap<b256, StorageMap<b256, bool>> = StorageMap {},
 }
 
 // error codes
-const NO_ERROR: u64 = 0u64;
+const NO_ERROR = 0u64;
 const INVALID_ORDER_SIGNATURE = 1u64;
 const INVALID_NONCE = 2u64;
 const EXPIRED = 3u64;
@@ -50,8 +52,9 @@ const INSUFFICIENT_TAKER_AMOUNT_RECEIVED = 4u64;
 const MAKER_BALANCE_TOO_LOW = 5u64;
 const WITHDRAW_TOO_MUCH = 6u64;
 const CANCELLED = 7u64;
+const ORDER_ALREADY_FILLED = 8u64;
 
-impl OneDeltaRfq for Contract {
+impl OneDeltaOrders for Contract {
     // Fills a funded order
     // This means that the filler either
     //    - pre-funded the order by sending the taker amount to this
@@ -60,8 +63,8 @@ impl OneDeltaRfq for Contract {
     // This version is less efficient than the `fill` function that is directly
     // payable.
     #[storage(write, read), payable]
-    fn fill_rfq(
-        order: RfqOrder,
+    fn fill(
+        order: Order,
         order_signature: B512,
         taker_fill_amount: u64,
         taker_receiver: Identity,
@@ -70,7 +73,7 @@ impl OneDeltaRfq for Contract {
         reentrancy_guard();
 
         // validate order
-        let (order_hash, error, taker_asset_already_filled_amount) = validate_rfq_order_internal(order, order_signature);
+        let (order_hash, error, taker_asset_already_filled_amount) = validate_order_internal(order, order_signature);
 
         // revert if error in validation
         if error != 0u64 {
@@ -108,11 +111,11 @@ impl OneDeltaRfq for Contract {
         // this internal balance is unadjusted for the amount received 
         let taker_asset_accounting_balance = get_asset_balance(order.taker_asset);
 
-        let sender = msg_sender() .unwrap();
+        let sender = msg_sender().unwrap();
 
         // flash callback
         if let Some(d) = data {
-            abi(IRfqFlashCallback, taker_receiver
+            abi(IFlashCallback, taker_receiver
                 .as_contract_id()
                 .unwrap()
                 .into())
@@ -219,7 +222,7 @@ impl OneDeltaRfq for Contract {
     }
 
     // Makers deposit their exchange balances and internally mutate them as swappers fill
-    // their Rfq Orders 
+    // their orders 
     #[storage(write, read)]
     fn withdraw(asset: b256, amount: u64) {
         reentrancy_guard();
@@ -279,7 +282,7 @@ impl OneDeltaRfq for Contract {
 
     // cancel an order by hash
     #[storage(write, read)]
-    fn cancel_rfq_order(order_hash: b256, order_signature: B512) {
+    fn cancel_order(order_hash: b256, order_signature: B512) {
         let signer = recover_signer(order_signature, order_hash).bits();
         let caller = msg_sender().unwrap().bits();
         if signer != caller {
@@ -287,15 +290,22 @@ impl OneDeltaRfq for Contract {
         }
 
         // we ignore thje cancel flag
-        let (_, amount_filled) =        storage
-            .order_hash_to_filled_amount
-            .get(order_hash).try_read().unwrap_or((false, 0u64));
+        let (_, amount_filled) = storage.order_hash_to_filled_amount.get(order_hash).try_read().unwrap_or((false, 0u64));
 
         // we deduct add the fill amount to the already filled amount for the hash 
         storage
             .order_hash_to_filled_amount
             // we already know that the order is not cancelled
             .insert(order_hash, (true, amount_filled));
+    }
+
+    #[storage(write)]
+    fn register_order_signer_delegate(signer_delegate: b256, allowed: bool) {
+        let caller = msg_sender().unwrap().bits();
+        storage
+            .order_signer_registry
+            .get(caller)
+            .insert(signer_delegate, allowed);
     }
 
     // Get a maker's nonce for a trading pair
@@ -318,25 +328,35 @@ impl OneDeltaRfq for Contract {
 
     // Soft-validate an order as read function
     #[storage(read)]
-    fn validate_rfq_order(order: RfqOrder, order_signature: B512) -> (b256, u64, u64) {
-        validate_rfq_order_internal(order, order_signature)
+    fn validate_order(order: Order, order_signature: B512) -> (b256, u64, u64) {
+        validate_order_internal(order, order_signature)
     }
 
-    // Gets the signer of an Rfq Order given a signature
-    fn get_signer_of_order(order: RfqOrder, order_signature: B512) -> b256 {
-        let order_hash = compute_rfq_order_hash(order, ContractId::this().bits());
+    #[storage(read)]
+    fn is_order_signer_delegate(signer: b256, signer_delegate: b256) -> bool {
+        is_order_signer_delegate_internal(signer, signer_delegate)
+    }
+
+    #[storage(read)]
+    fn get_order_fill_status(order_hash: b256) -> (bool, u64) {
+        storage.order_hash_to_filled_amount.get(order_hash).try_read().unwrap_or((false, 0u64))
+    }
+
+    // Gets the signer of an order given a signature
+    fn get_signer_of_order(order: Order, order_signature: B512) -> b256 {
+        let order_hash = compute_order_hash(order, ContractId::this().bits());
         let signer = recover_signer(order_signature, order_hash);
         signer.bits()
     }
 
     // Get the hash of an order
-    fn get_order_hash(order: RfqOrder) -> b256 {
-        compute_rfq_order_hash(order, ContractId::this().bits())
+    fn get_order_hash(order: Order) -> b256 {
+        compute_order_hash(order, ContractId::this().bits())
     }
 
     // Pack an order into a signable bytes-blob
-    fn pack_order(order: RfqOrder) -> Bytes {
-        pack_rfq_order(order, ContractId::this().bits())
+    fn pack_order(order: Order) -> Bytes {
+        pack_order(order, ContractId::this().bits())
     }
 }
 
@@ -348,11 +368,11 @@ fn get_asset_balance(asset: b256) -> u64 {
 
 // Soft-validate an order as read function
 #[storage(read)]
-fn validate_rfq_order_internal(order: RfqOrder, order_signature: B512) -> (b256, u64, u64) {
+fn validate_order_internal(order: Order, order_signature: B512) -> (b256, u64, u64) {
     // get current maker nonce
     let old_nonce: u64 = storage.nonces.get(order.maker).get(order.maker_asset).get(order.taker_asset).try_read().unwrap_or(0u64);
 
-    let order_hash = compute_rfq_order_hash(order, ContractId::this().bits());
+    let order_hash = compute_order_hash(order, ContractId::this().bits());
 
     // the the amount that is already filled
     let (cancelled, taker_asset_filled_amount) = storage.order_hash_to_filled_amount.get(order_hash).try_read().unwrap_or((false, 0u64));
@@ -361,12 +381,15 @@ fn validate_rfq_order_internal(order: RfqOrder, order_signature: B512) -> (b256,
         return (order_hash, CANCELLED, taker_asset_filled_amount);
     }
 
+    // check expiry
     if order.expiry < height() {
         return (order_hash, EXPIRED, taker_asset_filled_amount);
     }
 
-    let signer = recover_signer(order_signature, order_hash);
-    if signer.bits() != order.maker {
+    let signer = recover_signer(order_signature, order_hash).bits();
+    if signer != order.maker
+        || is_order_signer_delegate_internal(order.maker, signer)
+    {
         return (order_hash, INVALID_ORDER_SIGNATURE, taker_asset_filled_amount);
     }
 
@@ -450,6 +473,11 @@ pub fn compute_fill_amounts(
     maker_amount: u64,
     taker_amount: u64,
 ) -> (u64, u64) {
+    // revert if the order is already filled
+    require(
+        taker_asset_already_filled_amount < taker_amount,
+        ORDER_ALREADY_FILLED,
+    );
     // Clamp the taker asset fill amount to the fillable amount.
     let taker_asset_amount_available: u256 = min64(
         taker_fill_amount,
@@ -463,4 +491,10 @@ pub fn compute_fill_amounts(
         u64::try_from(maker_asset_filled_amount).unwrap(),
         u64::try_from(taker_asset_amount_available).unwrap(),
     )
+}
+
+// check the registry if signer delegated to signer_delegate
+#[storage(read)]
+pub fn is_order_signer_delegate_internal(signer: b256, signer_delegate: b256) -> bool {
+    storage.order_signer_registry.get(signer).get(signer_delegate).try_read().unwrap_or(false)
 }

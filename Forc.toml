@@ -12,5 +12,5 @@ members = [
     # "scripts/create_pool_and_add_liquidity_script",
     # "contracts/mocks/mock_token",
     "order_utils",
-    "one_delta_rfq",
+    "one_delta_orders",
 ]

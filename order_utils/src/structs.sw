@@ -1,7 +1,7 @@
 library;
 
 // definition of the rfq order
-pub struct RfqOrder {
+pub struct Order {
     pub maker_asset: b256,
     pub taker_asset: b256,
     pub maker_amount: u64,

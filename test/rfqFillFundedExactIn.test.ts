@@ -3,52 +3,52 @@ import { describe, test, expect } from 'vitest';
 import { BigNumberish, CoinQuantity, } from 'fuels';
 import { addressInput, contractIdInput, prepareRequest } from '../ts-scripts/utils';
 
-import { RfqOrderInput } from '../ts-scripts/typegen/OneDeltaRfq';
+import { OrderInput } from '../ts-scripts/typegen/OneDeltaOrders';
 import { BatchSwapStepInput } from '../ts-scripts/typegen/BatchSwapExactInScript';
 import { txParams } from '../ts-scripts/utils/constants';
-import { RfqTestUtils } from './utils';
+import { OrderTestUtils } from './utils';
 
-describe('Rfq fill via `fill_funded` through BatchSwapExactInScript', async () => {
-  test('Cannot fill more than taker_amount', async () => {
+describe('Order fill via `fill_funded` through BatchSwapExactInScript', async () => {
+  test('If attempt to fill more than taker_amount, receive refund', async () => {
     const launched = await launchTestNode({ walletsConfig: { count: 3 } });
 
     const {
       wallets: [maker, deployer, taker]
     } = launched;
 
-    const { rfqOrders, tokens } = await RfqTestUtils.fixture(deployer)
+    const { Orders, tokens } = await OrderTestUtils.fixture(deployer)
 
-    const [maker_asset, taker_asset] = await RfqTestUtils.createTokens(deployer, RfqTestUtils.contractIdBits(tokens))
+    const [maker_asset, taker_asset] = await OrderTestUtils.createTokens(deployer, OrderTestUtils.contractIdBits(tokens))
 
-    await RfqTestUtils.fundWallets(
+    await OrderTestUtils.fundWallets(
       [maker, taker],
-      RfqTestUtils.contractIdBits(tokens),
+      OrderTestUtils.contractIdBits(tokens),
       [maker_asset, taker_asset],
-      [RfqTestUtils.DEFAULT_MINT_AMOUNT, RfqTestUtils.DEFAULT_MINT_AMOUNT]
+      [OrderTestUtils.DEFAULT_MINT_AMOUNT, OrderTestUtils.DEFAULT_MINT_AMOUNT]
     )
 
-    const maker_amount = RfqTestUtils.getRandomAmount()
-    const taker_amount = RfqTestUtils.getRandomAmount()
+    const maker_amount = OrderTestUtils.getRandomAmount()
+    const taker_amount = OrderTestUtils.getRandomAmount()
 
-    await RfqTestUtils.getRfqOrders(maker, RfqTestUtils.contractIdBits(rfqOrders)).functions.deposit()
+    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit()
       .callParams({ forward: { assetId: maker_asset, amount: maker_amount } })
       .call()
 
     /** DEFINE PARAMETERS */
 
-    const order: RfqOrderInput = {
+    const order: OrderInput = {
       maker_asset,
       taker_asset,
       maker_amount,
       taker_amount,
       maker: maker.address.toB256(),
-      nonce: RfqTestUtils.getRandomAmount(1),
-      expiry: RfqTestUtils.MAX_EXPIRY,
+      nonce: OrderTestUtils.getRandomAmount(1),
+      expiry: OrderTestUtils.MAX_EXPIRY,
     }
 
-    const signatureRaw = await maker.signMessage(RfqTestUtils.packOrder(order, rfqOrders))
+    const signatureRaw = await maker.signMessage(OrderTestUtils.packOrder(order, Orders))
 
-    const swap_step = RfqTestUtils.createRfqBatchSwapStep(order, signatureRaw, addressInput(taker.address))
+    const swap_step = OrderTestUtils.createRfqBatchSwapStep(order, signatureRaw, addressInput(taker.address))
 
     const path: [BigNumberish, BigNumberish, boolean, BatchSwapStepInput[]][] = [
       [
@@ -56,37 +56,54 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactInScript', async () =
       ]
     ]
 
-    const deadline = RfqTestUtils.MAX_EXPIRY
-    let reason: string | undefined = undefined
-    try {
-      const request = await (await RfqTestUtils.callExactInScriptScope(path, deadline, taker, rfqOrders.id.toB256()))
-        .addContracts([rfqOrders])
-        .txParams(txParams)
-        .getTransactionRequest()
+    const [
+      taker_maker_asset_balance_before,
+      taker_taker_asset_balance_before
+    ] = await OrderTestUtils.getConventionalBalances(
+      taker,
+      [maker_asset, taker_asset]
+    )
 
-      const inputAssets: CoinQuantity[] = [
-        {
-          assetId: taker_asset,
-          amount: taker_amount,
-        }
-      ];
+    const deadline = OrderTestUtils.MAX_EXPIRY
 
+    const request = await (await OrderTestUtils.callExactInScriptScope(path, deadline, taker, Orders.id.toB256()))
+      .addContracts([Orders])
+      .txParams(txParams)
+      .getTransactionRequest()
 
-      const finalRequest = await prepareRequest(taker, request, 3, inputAssets, [rfqOrders.id.toB256()])
+    const inputAssets: CoinQuantity[] = [
+      {
+        assetId: taker_asset,
+        amount: taker_amount,
+      }
+    ];
 
-      /** EXECUTE TXN */
+    const finalRequest = await prepareRequest(taker, request, 3, inputAssets, [Orders.id.toB256()])
 
-      const tx = await taker.sendTransaction(finalRequest, { estimateTxDependencies: true })
-      await tx.waitForResult()
-    } catch (e) {
-      reason = String(e)
-    }
-    expect(reason).to.toBeDefined()
+    /** EXECUTE TXN */
 
+    const tx = await taker.sendTransaction(finalRequest, { estimateTxDependencies: true })
+    await tx.waitForResult()
+
+    const [
+      taker_maker_asset_balance_after,
+      taker_taker_asset_balance_after
+    ] = await OrderTestUtils.getConventionalBalances(
+      taker,
+      [maker_asset, taker_asset]
+    )
+
+    // validate taker change -> it settled for taker_amount
     expect(
-      reason
-    ).to.include("TakerFillAmountTooHigh")
-
+      taker_maker_asset_balance_after.sub(taker_maker_asset_balance_before).toString()
+    ).to.equal(
+      maker_amount.toString()
+    )
+    expect(
+      taker_taker_asset_balance_before.sub(taker_taker_asset_balance_after).toString()
+    ).to.equal(
+      taker_amount.toString()
+    )
   });
 
   test('Maker cannot execute on maker_amount higher than balance', async () => {
@@ -96,39 +113,39 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactInScript', async () =
       wallets: [maker, deployer, taker]
     } = launched;
 
-    const { rfqOrders, tokens } = await RfqTestUtils.fixture(deployer)
+    const { Orders, tokens } = await OrderTestUtils.fixture(deployer)
 
-    const [maker_asset, taker_asset] = await RfqTestUtils.createTokens(deployer, RfqTestUtils.contractIdBits(tokens))
+    const [maker_asset, taker_asset] = await OrderTestUtils.createTokens(deployer, OrderTestUtils.contractIdBits(tokens))
 
-    await RfqTestUtils.fundWallets(
+    await OrderTestUtils.fundWallets(
       [maker, taker],
-      RfqTestUtils.contractIdBits(tokens),
+      OrderTestUtils.contractIdBits(tokens),
       [maker_asset, taker_asset],
-      [RfqTestUtils.DEFAULT_MINT_AMOUNT, RfqTestUtils.DEFAULT_MINT_AMOUNT]
+      [OrderTestUtils.DEFAULT_MINT_AMOUNT, OrderTestUtils.DEFAULT_MINT_AMOUNT]
     )
 
-    const maker_amount = RfqTestUtils.getRandomAmount()
-    const taker_amount = RfqTestUtils.getRandomAmount()
+    const maker_amount = OrderTestUtils.getRandomAmount()
+    const taker_amount = OrderTestUtils.getRandomAmount()
 
-    await RfqTestUtils.getRfqOrders(maker, RfqTestUtils.contractIdBits(rfqOrders)).functions.deposit()
+    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit()
       .callParams({ forward: { assetId: maker_asset, amount: maker_amount } })
       .call()
 
     /** DEFINE PARAMETERS */
 
-    const order: RfqOrderInput = {
+    const order: OrderInput = {
       maker_asset,
       taker_asset,
       maker_amount: maker_amount.add(1),
       taker_amount,
       maker: maker.address.toB256(),
-      nonce: RfqTestUtils.getRandomAmount(1),
-      expiry: RfqTestUtils.MAX_EXPIRY,
+      nonce: OrderTestUtils.getRandomAmount(1),
+      expiry: OrderTestUtils.MAX_EXPIRY,
     }
 
-    const signatureRaw = await maker.signMessage(RfqTestUtils.packOrder(order, rfqOrders))
+    const signatureRaw = await maker.signMessage(OrderTestUtils.packOrder(order, Orders))
 
-    const swap_step = RfqTestUtils.createRfqBatchSwapStep(order, signatureRaw, addressInput(taker.address))
+    const swap_step = OrderTestUtils.createRfqBatchSwapStep(order, signatureRaw, addressInput(taker.address))
 
     const path: [BigNumberish, BigNumberish, boolean, BatchSwapStepInput[]][] = [
       [
@@ -136,11 +153,11 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactInScript', async () =
       ]
     ]
 
-    const deadline = RfqTestUtils.MAX_EXPIRY
+    const deadline = OrderTestUtils.MAX_EXPIRY
     let reason: string | undefined = undefined
     try {
-      const request = await (await RfqTestUtils.callExactInScriptScope(path, deadline, taker, rfqOrders.id.toB256()))
-        .addContracts([rfqOrders])
+      const request = await (await OrderTestUtils.callExactInScriptScope(path, deadline, taker, Orders.id.toB256()))
+        .addContracts([Orders])
         .txParams(txParams)
         .getTransactionRequest()
 
@@ -152,7 +169,7 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactInScript', async () =
       ];
 
 
-      const finalRequest = await prepareRequest(taker, request, 3, inputAssets, [rfqOrders.id.toB256()])
+      const finalRequest = await prepareRequest(taker, request, 3, inputAssets, [Orders.id.toB256()])
 
       /** EXECUTE TXN */
 
@@ -165,7 +182,7 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactInScript', async () =
 
     expect(
       reason
-    ).to.include("MakerBalanceTooLow")
+    ).to.include(OrderTestUtils.ErrorCodes.MAKER_BALANCE_TOO_LOW)
 
   });
 
@@ -176,22 +193,22 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactInScript', async () =
       wallets: [maker, deployer, taker]
     } = launched;
 
-    const { rfqOrders, tokens } = await RfqTestUtils.fixture(deployer)
+    const { Orders, tokens } = await OrderTestUtils.fixture(deployer)
 
-    const [maker_asset, taker_asset] = await RfqTestUtils.createTokens(deployer, RfqTestUtils.contractIdBits(tokens))
+    const [maker_asset, taker_asset] = await OrderTestUtils.createTokens(deployer, OrderTestUtils.contractIdBits(tokens))
 
-    await RfqTestUtils.fundWallets(
+    await OrderTestUtils.fundWallets(
       [maker, taker],
-      RfqTestUtils.contractIdBits(tokens),
+      OrderTestUtils.contractIdBits(tokens),
       [maker_asset, taker_asset],
-      [RfqTestUtils.DEFAULT_MINT_AMOUNT, RfqTestUtils.DEFAULT_MINT_AMOUNT]
+      [OrderTestUtils.DEFAULT_MINT_AMOUNT, OrderTestUtils.DEFAULT_MINT_AMOUNT]
     )
 
-    const maker_amount = RfqTestUtils.getRandomAmount()
-    const taker_amount = RfqTestUtils.getRandomAmount()
+    const maker_amount = OrderTestUtils.getRandomAmount()
+    const taker_amount = OrderTestUtils.getRandomAmount()
 
 
-    await RfqTestUtils.getRfqOrders(maker, RfqTestUtils.contractIdBits(rfqOrders)).functions.deposit()
+    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit()
       .callParams({ forward: { assetId: maker_asset, amount: maker_amount } })
       .call()
 
@@ -199,44 +216,44 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactInScript', async () =
     const [
       maker_maker_asset_balance_before,
       maker_taker_asset_balance_before
-    ] = await RfqTestUtils.getMakerBalances(
+    ] = await OrderTestUtils.getMakerBalances(
       maker.address.toB256(),
       [maker_asset, taker_asset],
-      rfqOrders
+      Orders
     )
 
     const [
       total_maker_asset_balance_before,
       total_taker_asset_balance_before
-    ] = await RfqTestUtils.getTotalBalances(
+    ] = await OrderTestUtils.getTotalBalances(
       [maker_asset, taker_asset],
-      rfqOrders
+      Orders
     )
 
     const [
       taker_maker_asset_balance_before,
       taker_taker_asset_balance_before
-    ] = await RfqTestUtils.getConventionalBalances(
+    ] = await OrderTestUtils.getConventionalBalances(
       taker,
       [maker_asset, taker_asset]
     )
 
     /** DEFINE PARAMETERS */
-    let nonce = RfqTestUtils.getRandomAmount(1)
+    let nonce = OrderTestUtils.getRandomAmount(1)
 
-    const order: RfqOrderInput = {
+    const order: OrderInput = {
       maker_asset,
       taker_asset,
       maker_amount,
       taker_amount,
       maker: maker.address.toB256(),
       nonce,
-      expiry: RfqTestUtils.MAX_EXPIRY,
+      expiry: OrderTestUtils.MAX_EXPIRY,
     }
 
-    const signatureRaw = await maker.signMessage(RfqTestUtils.packOrder(order, rfqOrders))
+    const signatureRaw = await maker.signMessage(OrderTestUtils.packOrder(order, Orders))
 
-    const swap_step = RfqTestUtils.createRfqBatchSwapStep(order, signatureRaw, addressInput(taker.address))
+    const swap_step = OrderTestUtils.createRfqBatchSwapStep(order, signatureRaw, addressInput(taker.address))
 
     const path: [BigNumberish, BigNumberish, boolean, BatchSwapStepInput[]][] = [
       [
@@ -244,10 +261,10 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactInScript', async () =
       ]
     ]
 
-    const deadline = RfqTestUtils.MAX_EXPIRY
+    const deadline = OrderTestUtils.MAX_EXPIRY
 
-    const request = await (await RfqTestUtils.callExactInScriptScope(path, deadline, taker, rfqOrders.id.toB256()))
-      .addContracts([rfqOrders])
+    const request = await (await OrderTestUtils.callExactInScriptScope(path, deadline, taker, Orders.id.toB256()))
+      .addContracts([Orders])
       .txParams(txParams)
       .getTransactionRequest()
 
@@ -259,30 +276,26 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactInScript', async () =
     ];
 
 
-    const finalRequest = await prepareRequest(taker, request, 3, inputAssets, [rfqOrders.id.toB256()])
+    const finalRequest = await prepareRequest(taker, request, 3, inputAssets, [Orders.id.toB256()])
 
     /** EXECUTE TXN */
 
     const tx = await taker.sendTransaction(finalRequest, { estimateTxDependencies: true })
     await tx.waitForResult()
 
-    // validate nonce
-    const newNonce = await RfqTestUtils.getNonce(order, rfqOrders)
-    expect(newNonce.toString()).to.equal(nonce.toString())
-
     const [
       maker_maker_asset_balance_after,
       maker_taker_asset_balance_after
-    ] = await RfqTestUtils.getMakerBalances(
+    ] = await OrderTestUtils.getMakerBalances(
       maker.address.toB256(),
       [maker_asset, taker_asset],
-      rfqOrders
+      Orders
     )
 
     const [
       taker_maker_asset_balance_after,
       taker_taker_asset_balance_after
-    ] = await RfqTestUtils.getConventionalBalances(
+    ] = await OrderTestUtils.getConventionalBalances(
       taker,
       [maker_asset, taker_asset]
     )
@@ -290,9 +303,9 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactInScript', async () =
     const [
       total_maker_asset_balance_after,
       total_taker_asset_balance_after
-    ] = await RfqTestUtils.getTotalBalances(
+    ] = await OrderTestUtils.getTotalBalances(
       [maker_asset, taker_asset],
-      rfqOrders
+      Orders
     )
 
     // validate maker change
@@ -339,24 +352,24 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactInScript', async () =
       wallets: [maker, deployer, taker]
     } = launched;
 
-    const { rfqOrders, tokens } = await RfqTestUtils.fixture(deployer)
+    const { Orders, tokens } = await OrderTestUtils.fixture(deployer)
 
 
 
-    const [maker_asset, taker_asset] = await RfqTestUtils.createTokens(deployer, RfqTestUtils.contractIdBits(tokens))
+    const [maker_asset, taker_asset] = await OrderTestUtils.createTokens(deployer, OrderTestUtils.contractIdBits(tokens))
 
-    await RfqTestUtils.fundWallets(
+    await OrderTestUtils.fundWallets(
       [maker, taker],
-      RfqTestUtils.contractIdBits(tokens),
+      OrderTestUtils.contractIdBits(tokens),
       [maker_asset, taker_asset],
-      [RfqTestUtils.DEFAULT_MINT_AMOUNT, RfqTestUtils.DEFAULT_MINT_AMOUNT]
+      [OrderTestUtils.DEFAULT_MINT_AMOUNT, OrderTestUtils.DEFAULT_MINT_AMOUNT]
     )
 
-    const maker_amount = RfqTestUtils.getRandomAmount()
-    const taker_amount = RfqTestUtils.getRandomAmount()
+    const maker_amount = OrderTestUtils.getRandomAmount()
+    const taker_amount = OrderTestUtils.getRandomAmount()
 
 
-    await RfqTestUtils.getRfqOrders(maker, RfqTestUtils.contractIdBits(rfqOrders)).functions.deposit()
+    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit()
       .callParams({ forward: { assetId: maker_asset, amount: maker_amount } })
       .call()
 
@@ -364,40 +377,40 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactInScript', async () =
     const [
       maker_maker_asset_balance_before,
       maker_taker_asset_balance_before
-    ] = await RfqTestUtils.getMakerBalances(
+    ] = await OrderTestUtils.getMakerBalances(
       maker.address.toB256(),
       [maker_asset, taker_asset],
-      rfqOrders
+      Orders
     )
 
     const [
       taker_maker_asset_balance_before,
       taker_taker_asset_balance_before
-    ] = await RfqTestUtils.getConventionalBalances(
+    ] = await OrderTestUtils.getConventionalBalances(
       taker,
       [maker_asset, taker_asset]
     )
 
     /** DEFINE PARAMETERS */
 
-    const order: RfqOrderInput = {
+    const order: OrderInput = {
       maker_asset,
       taker_asset,
       maker_amount,
       taker_amount,
       maker: maker.address.toB256(),
-      nonce: RfqTestUtils.getRandomAmount(1),
-      expiry: RfqTestUtils.MAX_EXPIRY,
+      nonce: OrderTestUtils.getRandomAmount(1),
+      expiry: OrderTestUtils.MAX_EXPIRY,
     }
 
-    const taker_fill_amount = RfqTestUtils.getRandomAmount(1, Number(taker_amount.toString()))
+    const taker_fill_amount = OrderTestUtils.getRandomAmount(1, Number(taker_amount.toString()))
 
-    const maker_fill_amount = RfqTestUtils.computeMakerFillAmount(taker_fill_amount, order.maker_amount, order.taker_amount)
+    const maker_fill_amount = OrderTestUtils.computeMakerFillAmount(taker_fill_amount, order.maker_amount, order.taker_amount)
 
 
-    const signatureRaw = await maker.signMessage(RfqTestUtils.packOrder(order, rfqOrders))
+    const signatureRaw = await maker.signMessage(OrderTestUtils.packOrder(order, Orders))
 
-    const swap_step = RfqTestUtils.createRfqBatchSwapStep(order, signatureRaw, addressInput(taker.address))
+    const swap_step = OrderTestUtils.createRfqBatchSwapStep(order, signatureRaw, addressInput(taker.address))
 
     const path: [BigNumberish, BigNumberish, boolean, BatchSwapStepInput[]][] = [
       [
@@ -405,10 +418,10 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactInScript', async () =
       ]
     ]
 
-    const deadline = RfqTestUtils.MAX_EXPIRY
+    const deadline = OrderTestUtils.MAX_EXPIRY
 
-    const request = await (await RfqTestUtils.callExactInScriptScope(path, deadline, taker, rfqOrders.id.toB256()))
-      .addContracts([rfqOrders])
+    const request = await (await OrderTestUtils.callExactInScriptScope(path, deadline, taker, Orders.id.toB256()))
+      .addContracts([Orders])
       .txParams(txParams)
       .getTransactionRequest()
 
@@ -419,7 +432,7 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactInScript', async () =
       }
     ];
 
-    const finalRequest = await prepareRequest(taker, request, 3, inputAssets, [rfqOrders.id.toB256()])
+    const finalRequest = await prepareRequest(taker, request, 3, inputAssets, [Orders.id.toB256()])
 
     /** EXECUTE TXN */
 
@@ -429,16 +442,16 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactInScript', async () =
     const [
       maker_maker_asset_balance_after,
       maker_taker_asset_balance_after
-    ] = await RfqTestUtils.getMakerBalances(
+    ] = await OrderTestUtils.getMakerBalances(
       maker.address.toB256(),
       [maker_asset, taker_asset],
-      rfqOrders
+      Orders
     )
 
     const [
       taker_maker_asset_balance_after,
       taker_taker_asset_balance_after
-    ] = await RfqTestUtils.getConventionalBalances(
+    ] = await OrderTestUtils.getConventionalBalances(
       taker,
       [maker_asset, taker_asset]
     )
@@ -480,37 +493,37 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactInScript', async () =
       wallets: [maker, deployer, taker]
     } = launched;
 
-    const { rfqOrders, tokens } = await RfqTestUtils.fixture(deployer)
+    const { Orders, tokens } = await OrderTestUtils.fixture(deployer)
 
-    const [maker_asset, taker_asset, intermediate_asset] = await RfqTestUtils.createTokens(deployer, RfqTestUtils.contractIdBits(tokens), RfqTestUtils.EXTENDED_NAMES)
+    const [maker_asset, taker_asset, intermediate_asset] = await OrderTestUtils.createTokens(deployer, OrderTestUtils.contractIdBits(tokens), OrderTestUtils.EXTENDED_NAMES)
 
-    await RfqTestUtils.fundWallets(
+    await OrderTestUtils.fundWallets(
       [maker, taker, maker],
-      RfqTestUtils.contractIdBits(tokens),
+      OrderTestUtils.contractIdBits(tokens),
       [maker_asset, taker_asset, intermediate_asset],
-      [RfqTestUtils.DEFAULT_MINT_AMOUNT, RfqTestUtils.DEFAULT_MINT_AMOUNT, RfqTestUtils.DEFAULT_MINT_AMOUNT]
+      [OrderTestUtils.DEFAULT_MINT_AMOUNT, OrderTestUtils.DEFAULT_MINT_AMOUNT, OrderTestUtils.DEFAULT_MINT_AMOUNT]
     )
 
-    const maker_amount = RfqTestUtils.getRandomAmount()
-    const intermediate_amount = RfqTestUtils.getRandomAmount()
-    const taker_amount = RfqTestUtils.getRandomAmount()
+    const maker_amount = OrderTestUtils.getRandomAmount()
+    const intermediate_amount = OrderTestUtils.getRandomAmount()
+    const taker_amount = OrderTestUtils.getRandomAmount()
 
 
-    await RfqTestUtils.createMakerDeposits(maker, rfqOrders, [maker_asset, intermediate_asset], [maker_amount.toNumber(), intermediate_amount.toNumber()])
+    await OrderTestUtils.createMakerDeposits(maker, Orders, [maker_asset, intermediate_asset], [maker_amount.toNumber(), intermediate_amount.toNumber()])
 
     const [
       maker_maker_asset_balance_before,
       maker_taker_asset_balance_before
-    ] = await RfqTestUtils.getMakerBalances(
+    ] = await OrderTestUtils.getMakerBalances(
       maker.address.toB256(),
       [maker_asset, taker_asset],
-      rfqOrders
+      Orders
     )
 
     const [
       taker_maker_asset_balance_before,
       taker_taker_asset_balance_before
-    ] = await RfqTestUtils.getConventionalBalances(
+    ] = await OrderTestUtils.getConventionalBalances(
       taker,
       [maker_asset, taker_asset]
     )
@@ -518,44 +531,44 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactInScript', async () =
     const [
       total_maker_asset_balance_before,
       total_taker_asset_balance_before
-    ] = await RfqTestUtils.getTotalBalances(
+    ] = await OrderTestUtils.getTotalBalances(
       [maker_asset, taker_asset],
-      rfqOrders
+      Orders
     )
 
     /** DEFINE PARAMETERS */
 
-    const order0: RfqOrderInput = {
+    const order0: OrderInput = {
       maker_asset: intermediate_asset, // asset_mid
       taker_asset, // asset_in
       maker_amount: intermediate_amount,
       taker_amount,
       maker: maker.address.toB256(),
-      nonce: RfqTestUtils.getRandomAmount(1),
-      expiry: RfqTestUtils.MAX_EXPIRY,
+      nonce: OrderTestUtils.getRandomAmount(1),
+      expiry: OrderTestUtils.MAX_EXPIRY,
     }
 
-    const order1: RfqOrderInput = {
+    const order1: OrderInput = {
       maker_asset, // asset_out
       taker_asset: intermediate_asset, // asset_mid
       maker_amount,
       taker_amount: intermediate_amount,
       maker: maker.address.toB256(),
-      nonce: RfqTestUtils.getRandomAmount(1),
-      expiry: RfqTestUtils.MAX_EXPIRY,
+      nonce: OrderTestUtils.getRandomAmount(1),
+      expiry: OrderTestUtils.MAX_EXPIRY,
     }
 
-    const taker_fill_amount = RfqTestUtils.getRandomAmount(1, taker_amount.toNumber()) // this is the actual amount_in
+    const taker_fill_amount = OrderTestUtils.getRandomAmount(1, taker_amount.toNumber()) // this is the actual amount_in
 
-    const intermediate_fill_amount = RfqTestUtils.computeMakerFillAmount(taker_fill_amount, order0.maker_amount, order0.taker_amount)
+    const intermediate_fill_amount = OrderTestUtils.computeMakerFillAmount(taker_fill_amount, order0.maker_amount, order0.taker_amount)
 
-    const maker_fill_amount = RfqTestUtils.computeMakerFillAmount(intermediate_fill_amount, order1.maker_amount, order1.taker_amount)
+    const maker_fill_amount = OrderTestUtils.computeMakerFillAmount(intermediate_fill_amount, order1.maker_amount, order1.taker_amount)
 
-    const signatureRaw0 = await maker.signMessage(RfqTestUtils.packOrder(order0, rfqOrders))
-    const signatureRaw1 = await maker.signMessage(RfqTestUtils.packOrder(order1, rfqOrders))
+    const signatureRaw0 = await maker.signMessage(OrderTestUtils.packOrder(order0, Orders))
+    const signatureRaw1 = await maker.signMessage(OrderTestUtils.packOrder(order1, Orders))
 
-    const swap_step0 = RfqTestUtils.createRfqBatchSwapStep(order0, signatureRaw0, contractIdInput(rfqOrders.id))
-    const swap_step1 = RfqTestUtils.createRfqBatchSwapStep(order1, signatureRaw1, addressInput(taker.address))
+    const swap_step0 = OrderTestUtils.createRfqBatchSwapStep(order0, signatureRaw0, contractIdInput(Orders.id))
+    const swap_step1 = OrderTestUtils.createRfqBatchSwapStep(order1, signatureRaw1, addressInput(taker.address))
 
     const path: [BigNumberish, BigNumberish, boolean, BatchSwapStepInput[]][] = [
       [
@@ -569,10 +582,10 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactInScript', async () =
       ]
     ]
 
-    const deadline = RfqTestUtils.MAX_EXPIRY
+    const deadline = OrderTestUtils.MAX_EXPIRY
 
-    const request = await (await RfqTestUtils.callExactInScriptScope(path, deadline, taker, rfqOrders.id.toB256()))
-      .addContracts([rfqOrders])
+    const request = await (await OrderTestUtils.callExactInScriptScope(path, deadline, taker, Orders.id.toB256()))
+      .addContracts([Orders])
       .txParams(txParams)
       .getTransactionRequest()
 
@@ -583,7 +596,7 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactInScript', async () =
       }
     ];
 
-    const finalRequest = await prepareRequest(taker, request, 3, inputAssets, [rfqOrders.id.toB256()])
+    const finalRequest = await prepareRequest(taker, request, 3, inputAssets, [Orders.id.toB256()])
 
     /** EXECUTE TXN */
 
@@ -593,16 +606,16 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactInScript', async () =
     const [
       maker_maker_asset_balance_after,
       maker_taker_asset_balance_after
-    ] = await RfqTestUtils.getMakerBalances(
+    ] = await OrderTestUtils.getMakerBalances(
       maker.address.toB256(),
       [maker_asset, taker_asset],
-      rfqOrders
+      Orders
     )
 
     const [
       taker_maker_asset_balance_after,
       taker_taker_asset_balance_after
-    ] = await RfqTestUtils.getConventionalBalances(
+    ] = await OrderTestUtils.getConventionalBalances(
       taker,
       [maker_asset, taker_asset]
     )
@@ -610,9 +623,9 @@ describe('Rfq fill via `fill_funded` through BatchSwapExactInScript', async () =
     const [
       total_maker_asset_balance_after,
       total_taker_asset_balance_after
-    ] = await RfqTestUtils.getTotalBalances(
+    ] = await OrderTestUtils.getTotalBalances(
       [maker_asset, taker_asset],
-      rfqOrders
+      Orders
     )
 
     // validate maker change

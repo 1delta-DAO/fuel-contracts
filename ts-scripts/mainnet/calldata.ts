@@ -3,7 +3,7 @@ import { MockProvider } from "../utils/provider";
 import { txParams } from "../utils/constants";
 import { MainnetData } from "../contexts";
 import MIRA_ABI from "../../fixtures/mira-amm/mira_amm_contract-abi.json";
-import RFQ_ABI from "../../one_delta_rfq/out/release/one_delta_rfq-abi.json"
+import RFQ_ABI from "../../one_delta_orders/out/release/one_delta_orders-abi.json"
 import { BatchSwapExactInScriptLoader } from "../sway_abis/BatchSwapExactInScriptLoader";
 import { BatchSwapExactOutScriptLoader } from "../sway_abis/BatchSwapExactOutScriptLoader";
 
@@ -13,11 +13,11 @@ export async function getSwapExactInScope(path: any[] = [], deadline = 0) {
     const SwapExactInScript = new BatchSwapExactInScriptLoader(wallet0)
     SwapExactInScript.setConfigurableConstants({
         MIRA_AMM_CONTRACT_ID: { bits: MainnetData.MIRA_AMM_ID },
-        ONE_DELTA_RFQ_CONTRACT_ID: { bits: MainnetData.ONE_DELTA_RFQ },
+        ONE_DELTA_ORDERS_CONTRACT_ID: { bits: MainnetData.one_delta_orders },
     })
     const invocationScope = SwapExactInScript.functions.main(path, deadline);
     const miraAmm = new Contract(MainnetData.MIRA_AMM_ID, MIRA_ABI, MockProvider as any)
-    const rfqmm = new Contract(MainnetData.ONE_DELTA_RFQ, RFQ_ABI, MockProvider as any)
+    const rfqmm = new Contract(MainnetData.one_delta_orders, RFQ_ABI, MockProvider as any)
 
     // Create the transaction request, this can be picked off the invocation
     // scope so the script bytecode is preset on the transaction
@@ -34,7 +34,7 @@ export async function getSwapExactOutScope() {
     const SwapExactInScript = new BatchSwapExactOutScriptLoader(wallet0)
     SwapExactInScript.setConfigurableConstants({
         MIRA_AMM_CONTRACT_ID: { bits: MainnetData.MIRA_AMM_ID },
-        ONE_DELTA_RFQ_CONTRACT_ID: { bits: MainnetData.ONE_DELTA_RFQ },
+        ONE_DELTA_ORDERS_CONTRACT_ID: { bits: MainnetData.one_delta_orders },
     })
     const invocationScope = SwapExactInScript.functions.main([], 0);
     const miraAmm = new Contract(MainnetData.MIRA_AMM_ID, MIRA_ABI, MockProvider as any)

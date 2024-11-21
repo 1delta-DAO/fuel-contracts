@@ -253,7 +253,7 @@
       "offset": 88
     },
     {
-      "name": "ONE_DELTA_RFQ_CONTRACT_ID",
+      "name": "ONE_DELTA_ORDERS_CONTRACT_ID",
       "concreteTypeId": "29c10735d33b5159f0c71ee1dbd17b36a3e69e41f00fab0d42e1bd9f428d8a54",
       "offset": 120
     }

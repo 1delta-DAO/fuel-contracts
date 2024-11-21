@@ -6,7 +6,7 @@ export namespace TestnetData {
 
     export const MIRA_AMM = "0x8dca6db9dfaeed9825f547d2b0d609c255a0f516f806ed829474fda8d7dff969"
 
-    export const ONE_DELTA_RFQ = "0x194c188af8d357171fb4ff8c113d2a260b7d0edf0b2034523e05dbfe8a66e91f"
+    export const one_delta_orders = "0x194c188af8d357171fb4ff8c113d2a260b7d0edf0b2034523e05dbfe8a66e91f"
 
     export const RPC = "https://testnet.fuel.network/v1/graphql"
 
@@ -45,7 +45,7 @@ export namespace TestnetData {
 export namespace MainnetData {
     export const MIRA_AMM_ID = "0x2e40f2b244b98ed6b8204b3de0156c6961f98525c8162f80162fcf53eebd90e7"
 
-    export const ONE_DELTA_RFQ = "0x5deffa67919faa139e390e27bae977b15fdbdeaf4658f239801f73a0e35d71e7"
+    export const one_delta_orders = "0x5deffa67919faa139e390e27bae977b15fdbdeaf4658f239801f73a0e35d71e7"
 
     export const TOKEN_GATEWAY = "0x4ea6ccef1215d9479f1024dff70fc055ca538215d2c8c348beddffd54583d0e8"
 

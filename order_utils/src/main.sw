@@ -93,7 +93,7 @@ abi OneDeltaOrders {
     fn invalidate_nonce(maker_asset: b256, taker_asset: b256, new_nonce: u64);
 
     #[storage(write, read)]
-    fn cancel_order(order_hash: b256, order_signature:B512);
+    fn cancel_order(order: Order, order_signature: B512);
 
     #[storage(write)]
     fn register_order_signer_delegate(signer_delegate:b256, allowed:bool);
@@ -115,11 +115,4 @@ abi OneDeltaOrders {
 
     #[storage(read)]
     fn is_order_signer_delegate(signer: b256, signer_delegate:b256) -> bool;
-   
-
-    fn get_signer_of_order(order: Order, order_signature: B512) -> b256;
-
-    fn get_order_hash(order: Order) -> b256;
-
-    fn pack_order(order: Order) -> Bytes;
 }

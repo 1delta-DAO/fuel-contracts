@@ -1,6 +1,6 @@
 import { launchTestNode } from 'fuels/test-utils';
 import { describe, test, expect } from 'vitest';
-import { hashMessage } from 'fuels';
+import { hashMessage, randomBytes, toHex } from 'fuels';
 import { OrderInput } from '../ts-scripts/typegen/OneDeltaOrders';
 import { OrderTestUtils } from './utils';
 
@@ -17,19 +17,23 @@ describe('Order Validation', async () => {
 
     const order: OrderInput = {
       maker_asset: maker.address.toB256(),
-      taker_asset: maker.address.toB256(),
+      taker_asset: deployer.address.toB256(),
       maker_amount: 10000,
       taker_amount: 10000,
-      maker: maker.address.toB256(),
+      maker: toHex( randomBytes(32)),
       nonce: OrderTestUtils.getRandomAmount(1),
       expiry: OrderTestUtils.MAX_EXPIRY,
     }
 
-    const result = await Orders.functions.get_order_hash(order).simulate();
+    const data_on_chain = await Orders.functions.validate_order(
+      order,
+      // this is a random nonzero bytes blob (and not a valid signature since we only want to test the hash)
+      "0xcc4e1afae871bdd89c4b711f53e047dc82ac30073b704c537aaf972ef71157139d27074926bc0f30fe5aa712aa551832e1ca4b0cbf9814745d6e028bb785e353"
+    ).simulate();
 
     const data = OrderTestUtils.packOrder(order, Orders)
 
-    expect(hashMessage(data as any)).toBe(result.value);
+    expect(hashMessage(data as any)).toBe(data_on_chain.value[0]);
   });
 
   test('Recover and validate order on signer', async () => {
@@ -212,7 +216,7 @@ describe('Order Validation', async () => {
     const signatureRaw = await maker.signMessage(OrderTestUtils.packOrder(order, Orders))
 
     await OrderTestUtils.getOrders(maker, Orders.id.toB256()).functions.cancel_order(
-      OrderTestUtils.getHash(order, Orders),
+      order,
       signatureRaw
     ).call()
 
@@ -253,7 +257,7 @@ describe('Order Validation', async () => {
     let reason: string | undefined = undefined
     try {
       await OrderTestUtils.getOrders(maker, Orders.id.toB256()).functions.cancel_order(
-        OrderTestUtils.getHash(order, Orders),
+        order,
         signatureRaw
       ).call()
     } catch (e) {

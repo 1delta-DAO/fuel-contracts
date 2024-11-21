@@ -145,7 +145,7 @@ impl OneDeltaOrders for Contract {
                 taker_fill_amount_received - taker_filled_amount,
             );
         } else {
-            // make sure that we received enough
+            // make sure that we received the exact amount
             require(
                 taker_fill_amount_received == taker_filled_amount,
                 INSUFFICIENT_TAKER_AMOUNT_RECEIVED,
@@ -282,10 +282,11 @@ impl OneDeltaOrders for Contract {
 
     // cancel an order by hash
     #[storage(write, read)]
-    fn cancel_order(order_hash: b256, order_signature: B512) {
+    fn cancel_order(order: Order, order_signature: B512) {
+        let order_hash = compute_order_hash(order, ContractId::this().bits());
         let signer = recover_signer(order_signature, order_hash).bits();
         let caller = msg_sender().unwrap().bits();
-        if signer != caller {
+        if signer != caller  || is_order_signer_delegate_internal(order.maker, signer){
             revert(INVALID_ORDER_SIGNATURE);
         }
 
@@ -341,23 +342,6 @@ impl OneDeltaOrders for Contract {
     fn get_order_fill_status(order_hash: b256) -> (bool, u64) {
         storage.order_hash_to_filled_amount.get(order_hash).try_read().unwrap_or((false, 0u64))
     }
-
-    // Gets the signer of an order given a signature
-    fn get_signer_of_order(order: Order, order_signature: B512) -> b256 {
-        let order_hash = compute_order_hash(order, ContractId::this().bits());
-        let signer = recover_signer(order_signature, order_hash);
-        signer.bits()
-    }
-
-    // Get the hash of an order
-    fn get_order_hash(order: Order) -> b256 {
-        compute_order_hash(order, ContractId::this().bits())
-    }
-
-    // Pack an order into a signable bytes-blob
-    fn pack_order(order: Order) -> Bytes {
-        pack_order(order, ContractId::this().bits())
-    }
 }
 
 // Getter for the internal total balance
@@ -388,7 +372,7 @@ fn validate_order_internal(order: Order, order_signature: B512) -> (b256, u64, u
 
     let signer = recover_signer(order_signature, order_hash).bits();
     if signer != order.maker
-        || is_order_signer_delegate_internal(order.maker, signer)
+        && !is_order_signer_delegate_internal(order.maker, signer)
     {
         return (order_hash, INVALID_ORDER_SIGNATURE, taker_asset_filled_amount);
     }

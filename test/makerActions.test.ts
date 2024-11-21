@@ -1,6 +1,8 @@
 import { launchTestNode } from 'fuels/test-utils';
 import { describe, test, expect } from 'vitest';
 import { OrderTestUtils } from './utils';
+import { OrderInput } from '../ts-scripts/typegen/OneDeltaOrders';
+import { addressInput } from '../ts-scripts/utils';
 
 describe('Maker Actions', async () => {
   test('Maker can deposit', async () => {
@@ -100,11 +102,11 @@ describe('Maker Actions', async () => {
     const [balance_after_withdraw] = await OrderTestUtils.getMakerBalances(maker, [maker_asset], Orders)
 
     const [maker_balance_after_withdraw] = await OrderTestUtils.getConventionalBalances(maker, [maker_asset])
-   
+
     expect(
       balance_after_withdraw.toString()
     ).to.equal("0")
-    
+
     expect(
       maker_balance_after_withdraw.toString()
     ).to.equal(maker_balance_before_withdraw.toString())
@@ -147,5 +149,148 @@ describe('Maker Actions', async () => {
     expect(
       reason
     ).to.include(OrderTestUtils.ErrorCodes.WITHDRAW_TOO_MUCH)
+  });
+
+  test('Maker can delegate signature', async () => {
+
+    const launched = await launchTestNode({ walletsConfig: { count: 4 } });
+
+    const {
+      wallets: [maker, deployer, delegate, taker]
+    } = launched;
+
+
+    const { Orders, tokens } = await OrderTestUtils.fixture(deployer)
+
+    const [maker_asset, taker_asset] = await OrderTestUtils.createTokens(deployer, OrderTestUtils.contractIdBits(tokens))
+
+    await OrderTestUtils.fundWallets(
+      [maker, taker],
+      OrderTestUtils.contractIdBits(tokens),
+      [maker_asset, taker_asset],
+      [OrderTestUtils.DEFAULT_MINT_AMOUNT, OrderTestUtils.DEFAULT_MINT_AMOUNT]
+    )
+
+    const deposit_amount = OrderTestUtils.getRandomAmount(1)
+
+    const taker_amount = OrderTestUtils.getRandomAmount(1)
+
+    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit()
+      .callParams({ forward: { assetId: maker_asset, amount: deposit_amount } })
+      .call()
+
+    // set delegate
+    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.register_order_signer_delegate(
+      delegate.address.toB256(),
+      true
+    )
+      .call()
+
+
+    let isDelegate = await Orders.functions.is_order_signer_delegate(
+      maker.address.toB256(),
+      delegate.address.toB256(),
+    )
+      .simulate()
+
+    // now is delegate
+    expect(isDelegate.value).to.be.true
+
+    const order: OrderInput = {
+      maker_asset,
+      taker_asset,
+      maker_amount: deposit_amount,
+      taker_amount,
+      maker: maker.address.toB256(),
+      nonce: OrderTestUtils.getRandomAmount(1),
+      expiry: OrderTestUtils.MAX_EXPIRY,
+    }
+
+    const taker_fill_amount = OrderTestUtils.getRandomAmount(1, taker_amount.toNumber())
+
+    const delegateSig = await delegate.signMessage(OrderTestUtils.packOrder(order, Orders))
+
+    const [
+      maker_maker_asset_balance_before,
+      maker_taker_asset_balance_before
+    ] = await OrderTestUtils.getMakerBalances(
+      maker.address.toB256(),
+      [maker_asset, taker_asset],
+      Orders
+    )
+
+    // will fill order delegate's signature
+    await OrderTestUtils.getOrders(taker, OrderTestUtils.contractIdBits(Orders)).functions.fill(
+      order,
+      delegateSig,
+      taker_fill_amount,
+      addressInput(taker.address)
+    )
+      .callParams({ forward: { assetId: taker_asset, amount: taker_fill_amount } })
+      .call()
+
+
+    const [
+      maker_maker_asset_balance_after,
+      maker_taker_asset_balance_after
+    ] = await OrderTestUtils.getMakerBalances(
+      maker.address.toB256(),
+      [maker_asset, taker_asset],
+      Orders
+    )
+
+    const maker_fill_amount = OrderTestUtils.computeMakerFillAmount(taker_fill_amount, order.maker_amount, order.taker_amount)
+
+    // validate maker change (is not accounted for delegate)
+    expect(
+      maker_maker_asset_balance_before.sub(maker_maker_asset_balance_after).toString()
+    ).to.equal(
+      maker_fill_amount.toString()
+    )
+    expect(
+      maker_taker_asset_balance_after.sub(maker_taker_asset_balance_before).toString()
+    ).to.equal(
+      taker_fill_amount.toString()
+    )
+
+    // unset delegate
+    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.register_order_signer_delegate(
+      delegate.address.toB256(),
+      false
+    )
+      .call()
+
+
+    isDelegate = await Orders.functions.is_order_signer_delegate(
+      maker.address.toB256(),
+      delegate.address.toB256(),
+    )
+      .simulate()
+
+    // not delegate anymore
+    expect(isDelegate.value).to.be.false
+
+    // try fill wit delegate's signature
+    let reason: string | undefined = undefined
+    try {
+      await OrderTestUtils.getOrders(taker, OrderTestUtils.contractIdBits(Orders)).functions.fill(
+        order,
+        delegateSig,
+        1,
+        addressInput(taker.address)
+      )
+        .callParams({ forward: { assetId: taker_asset, amount: 1 } })
+        .call()
+    } catch (e) {
+      reason = String(e)
+    }
+
+    expect(reason).to.toBeDefined()
+
+    // will reject delegate's signature
+    expect(
+      reason
+    ).to.include(OrderTestUtils.ErrorCodes.INVALID_ORDER_SIGNATURE)
+
   });
 });

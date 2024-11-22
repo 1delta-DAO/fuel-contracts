@@ -31,3 +31,8 @@ pub struct WithdrawEvent {
     pub asset: b256,
     pub amount: u64,
 }
+
+// we log the hash
+pub struct CancelEvent {
+    pub order_hash: b256,
+}

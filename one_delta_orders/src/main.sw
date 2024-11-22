@@ -23,6 +23,7 @@ use order_utils::{
     pack_order,
     recover_signer,
     structs::{
+        CancelEvent,
         DepositEvent,
         Order,
         OrderFillEvent,
@@ -53,6 +54,7 @@ const MAKER_BALANCE_TOO_LOW = 5u64;
 const WITHDRAW_TOO_MUCH = 6u64;
 const CANCELLED = 7u64;
 const ORDER_ALREADY_FILLED = 8u64;
+const INVALID_CANCEL = 9u64;
 
 impl OneDeltaOrders for Contract {
     // Fills an order
@@ -282,19 +284,17 @@ impl OneDeltaOrders for Contract {
 
     // cancel an order with signature
     #[storage(write, read)]
-    fn cancel_order(order: Order, order_signature: B512) {
+    fn cancel_order(order: Order) {
         reentrancy_guard();
 
         let order_hash = compute_order_hash(order, ContractId::this().bits());
-        let signer = recover_signer(order_signature, order_hash).bits();
         let caller = msg_sender().unwrap().bits();
-        if signer != caller
-            || is_order_signer_delegate_internal(order.maker, signer)
-        {
-            revert(INVALID_ORDER_SIGNATURE);
-        }
+        require(
+            caller == order.maker || is_order_signer_delegate_internal(order.maker, caller),
+            INVALID_CANCEL,
+        );
 
-        // we ignore thje cancel flag
+        // we ignore thje cancel flag here and always override
         let (_, amount_filled) = storage.order_hash_to_filled_amount.get(order_hash).try_read().unwrap_or((false, 0u64));
 
         // we deduct add the fill amount to the already filled amount for the hash 
@@ -302,6 +302,9 @@ impl OneDeltaOrders for Contract {
             .order_hash_to_filled_amount
             // we already know that the order is not cancelled
             .insert(order_hash, (true, amount_filled));
+
+        // log the cancellation
+        log(CancelEvent { order_hash });
     }
 
     // allows the signer_delegate to sign on behalf of the caller if allowed=true
@@ -377,6 +380,7 @@ fn validate_order_internal(order: Order, order_signature: B512) -> (b256, u64, u
         return (order_hash, EXPIRED, taker_asset_filled_amount);
     }
 
+    // check that signer is maker or delegate
     let signer = recover_signer(order_signature, order_hash).bits();
     if signer != order.maker
         && !is_order_signer_delegate_internal(order.maker, signer)

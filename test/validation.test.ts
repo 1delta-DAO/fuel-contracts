@@ -20,7 +20,7 @@ describe('Order Validation', async () => {
       taker_asset: deployer.address.toB256(),
       maker_amount: 10000,
       taker_amount: 10000,
-      maker: toHex( randomBytes(32)),
+      maker: maker.address.toB256(),
       nonce: OrderTestUtils.getRandomAmount(1),
       expiry: OrderTestUtils.MAX_EXPIRY,
     }
@@ -213,13 +213,12 @@ describe('Order Validation', async () => {
       expiry: OrderTestUtils.MAX_EXPIRY,
     }
 
-    const signatureRaw = await maker.signMessage(OrderTestUtils.packOrder(order, Orders))
 
     await OrderTestUtils.getOrders(maker, Orders.id.toB256()).functions.cancel_order(
-      order,
-      signatureRaw
+      order
     ).call()
 
+    const signatureRaw = await maker.signMessage(OrderTestUtils.packOrder(order, Orders))
     const result = await Orders.functions.validate_order(
       order,
       signatureRaw
@@ -228,12 +227,12 @@ describe('Order Validation', async () => {
     expect(result.value[1].toNumber()).to.equal(OrderTestUtils.ErrorCodes.CANCELLED)
   });
 
-  test('Cannot cancel order by hash with invalid signature', async () => {
+  test('Cannot cancel order by hash with invalid caller', async () => {
 
-    const launched = await launchTestNode();
+    const launched = await launchTestNode({walletsConfig:{count:3}});
 
     const {
-      wallets: [maker, deployer, taker]
+      wallets: [maker, deployer, other]
     } = launched;
 
 
@@ -251,14 +250,10 @@ describe('Order Validation', async () => {
       expiry: OrderTestUtils.MAX_EXPIRY,
     }
 
-    // produce invalid signature
-    const signatureRaw = await maker.signMessage(OrderTestUtils.packOrder({ ...order, maker_amount: 10001 }, Orders))
-
     let reason: string | undefined = undefined
     try {
-      await OrderTestUtils.getOrders(maker, Orders.id.toB256()).functions.cancel_order(
-        order,
-        signatureRaw
+      await OrderTestUtils.getOrders(other, Orders.id.toB256()).functions.cancel_order(
+        order
       ).call()
     } catch (e) {
       reason = String(e)
@@ -268,7 +263,7 @@ describe('Order Validation', async () => {
 
     expect(
       reason
-    ).to.include(OrderTestUtils.ErrorCodes.INVALID_ORDER_SIGNATURE)
+    ).to.include(OrderTestUtils.ErrorCodes.INVALID_CANCEL)
 
   });
 });

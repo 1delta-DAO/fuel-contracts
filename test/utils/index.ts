@@ -23,6 +23,7 @@ export namespace OrderTestUtils {
     WITHDRAW_TOO_MUCH = 0x6,
     CANCELLED = 0x7,
     ORDER_ALREADY_FILLED = 0x8,
+    INVALID_CANCEL = 0x9
   }
 
   export enum ScriptErrorCodes {

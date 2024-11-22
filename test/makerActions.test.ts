@@ -291,6 +291,147 @@ describe('Maker Actions', async () => {
     expect(
       reason
     ).to.include(OrderTestUtils.ErrorCodes.INVALID_ORDER_SIGNATURE)
+  });
 
+
+  test('Maker can delegate signature for cancellation', async () => {
+
+    const launched = await launchTestNode({ walletsConfig: { count: 4 } });
+
+    const {
+      wallets: [maker, deployer, delegate, taker]
+    } = launched;
+
+
+    const { Orders, tokens } = await OrderTestUtils.fixture(deployer)
+
+    const [maker_asset, taker_asset] = await OrderTestUtils.createTokens(deployer, OrderTestUtils.contractIdBits(tokens))
+
+    await OrderTestUtils.fundWallets(
+      [maker, taker],
+      OrderTestUtils.contractIdBits(tokens),
+      [maker_asset, taker_asset],
+      [OrderTestUtils.DEFAULT_MINT_AMOUNT, OrderTestUtils.DEFAULT_MINT_AMOUNT]
+    )
+
+    const deposit_amount = OrderTestUtils.getRandomAmount(1)
+
+    const taker_amount = OrderTestUtils.getRandomAmount(1)
+
+    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit()
+      .callParams({ forward: { assetId: maker_asset, amount: deposit_amount } })
+      .call()
+
+    // set delegate
+    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.register_order_signer_delegate(
+      delegate.address.toB256(),
+      true
+    )
+      .call()
+
+
+    let isDelegate = await Orders.functions.is_order_signer_delegate(
+      maker.address.toB256(),
+      delegate.address.toB256(),
+    )
+      .simulate()
+
+    // now is delegate
+    expect(isDelegate.value).to.be.true
+
+    const order: OrderInput = {
+      maker_asset,
+      taker_asset,
+      maker_amount: deposit_amount,
+      taker_amount,
+      maker: maker.address.toB256(),
+      nonce: OrderTestUtils.getRandomAmount(1),
+      expiry: OrderTestUtils.MAX_EXPIRY,
+    }
+
+    const delegateSig = await delegate.signMessage(OrderTestUtils.packOrder(order, Orders))
+
+    // will fill order delegate's signature
+    await OrderTestUtils.getOrders(delegate, OrderTestUtils.contractIdBits(Orders)).functions.cancel_order(
+      order,
+    )
+      .call()
+
+    const data = await Orders.functions.validate_order(order, delegateSig).simulate()
+
+    expect(data.value[1].toNumber()).to.equal(OrderTestUtils.ErrorCodes.CANCELLED)
+  });
+
+
+  test('Delegate cannot cancel after removed', async () => {
+
+    const launched = await launchTestNode({ walletsConfig: { count: 4 } });
+
+    const {
+      wallets: [maker, deployer, delegate, taker]
+    } = launched;
+
+
+    const { Orders, tokens } = await OrderTestUtils.fixture(deployer)
+
+    const [maker_asset, taker_asset] = await OrderTestUtils.createTokens(deployer, OrderTestUtils.contractIdBits(tokens))
+
+    await OrderTestUtils.fundWallets(
+      [maker, taker],
+      OrderTestUtils.contractIdBits(tokens),
+      [maker_asset, taker_asset],
+      [OrderTestUtils.DEFAULT_MINT_AMOUNT, OrderTestUtils.DEFAULT_MINT_AMOUNT]
+    )
+
+    const deposit_amount = OrderTestUtils.getRandomAmount(1)
+
+    const taker_amount = OrderTestUtils.getRandomAmount(1)
+
+    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit()
+      .callParams({ forward: { assetId: maker_asset, amount: deposit_amount } })
+      .call()
+
+    // set delegate
+    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.register_order_signer_delegate(
+      delegate.address.toB256(),
+      true
+    )
+      .call()
+
+
+    // unset delegate
+    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.register_order_signer_delegate(
+      delegate.address.toB256(),
+      false
+    )
+      .call()
+
+
+    const order: OrderInput = {
+      maker_asset,
+      taker_asset,
+      maker_amount: deposit_amount,
+      taker_amount,
+      maker: maker.address.toB256(),
+      nonce: OrderTestUtils.getRandomAmount(1),
+      expiry: OrderTestUtils.MAX_EXPIRY,
+    }
+    let reason: string | undefined = undefined
+    try {
+      // will fill order delegate's signature
+      await OrderTestUtils.getOrders(delegate, OrderTestUtils.contractIdBits(Orders)).functions.cancel_order(
+        order,
+      )
+        .call()
+    }
+    catch (e) {
+      reason = String(e)
+    }
+
+    expect(reason).to.toBeDefined()
+
+    expect(
+      reason
+    ).to.include(OrderTestUtils.ErrorCodes.INVALID_CANCEL)
   });
 });

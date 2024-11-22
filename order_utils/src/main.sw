@@ -111,7 +111,7 @@ abi OneDeltaOrders {
     fn invalidate_nonce(maker_asset: b256, taker_asset: b256, new_nonce: u64);
 
     #[storage(write, read)]
-    fn cancel_order(order: Order, order_signature: B512);
+    fn cancel_order(order: Order);
 
     #[storage(write)]
     fn register_order_signer_delegate(signer_delegate: b256, allowed: bool);

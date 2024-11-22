@@ -7,7 +7,7 @@ import { OrderTestUtils } from './utils';
 
 describe('Order fill via `msg_amount`', async () => {
 
-  test('If attempt to fill more than taker_amount, receive refund', async () => {
+  test('If attempt to fill more than taker_amount, do not error', async () => {
     const launched = await launchTestNode({ walletsConfig: { count: 3 } });
 
     const {
@@ -83,7 +83,7 @@ describe('Order fill via `msg_amount`', async () => {
     expect(
       taker_taker_asset_balance_before.sub(taker_taker_asset_balance_after).toString()
     ).to.equal(
-      taker_amount.toString()
+      taker_amount.add(1).toString()
     )
 
   });

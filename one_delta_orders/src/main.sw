@@ -55,6 +55,7 @@ const WITHDRAW_TOO_MUCH = 6u64;
 const CANCELLED = 7u64;
 const ORDER_ALREADY_FILLED = 8u64;
 const INVALID_CANCEL = 9u64;
+const ZERO_FILL_AMOUNT = 10u64;
 
 impl OneDeltaOrders for Contract {
     // Fills an order
@@ -96,6 +97,13 @@ impl OneDeltaOrders for Contract {
             order.taker_amount,
         );
 
+        // if any of the amounts is zero, we revert
+        // this is to ensure that no msg_amount is lost 
+        // attempting to fill an empty order
+        if maker_filled_amount == 0u64 || taker_filled_amount == 0u64 {
+            revert(ZERO_FILL_AMOUNT);
+        }
+
         // make sure that the maker balance is high enough
         require(
             maker_filled_amount <= maker_maker_asset_balance,
@@ -136,19 +144,8 @@ impl OneDeltaOrders for Contract {
         let taker_fill_amount_received = real_taker_asset_balance - taker_asset_accounting_balance;
 
         // validate that we received enough
-        if taker_fill_amount_received > taker_filled_amount {
-            // received too much -> refund excess
-            // this can happen if the caller unintentionally sends the full 
-            // amount for an already partially filled order
-            transfer(
-                sender,
-                AssetId::from(order.taker_asset),
-                taker_fill_amount_received - taker_filled_amount,
-            );
-        } else {
-            // make sure that we received the exact amount
-            require(
-                taker_fill_amount_received == taker_filled_amount,
+        if taker_fill_amount_received < taker_filled_amount {
+            revert(
                 INSUFFICIENT_TAKER_AMOUNT_RECEIVED,
             );
         }
@@ -187,7 +184,7 @@ impl OneDeltaOrders for Contract {
         });
 
         // return filled amounts
-        (taker_filled_amount, maker_filled_amount)
+        (taker_fill_amount_received, maker_filled_amount)
     }
 
     #[storage(write, read), payable]

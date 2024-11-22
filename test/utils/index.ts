@@ -25,6 +25,12 @@ export namespace OrderTestUtils {
     ORDER_ALREADY_FILLED = 0x8,
   }
 
+  export enum ScriptErrorCodes {
+    INVALID_DEX = 0x1,
+    ORDER_OUTPUT_TOO_HIGH = 0x2,
+    ORDER_INCOMPLETE_FILL = 0x3,
+  }
+
   export const MAX_EXPIRY = 4_294_967_295
   export const RFQ_DEX_ID = 100
 

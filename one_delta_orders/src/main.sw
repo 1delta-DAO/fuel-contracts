@@ -1,20 +1,5 @@
 contract;
 
-use order_utils::{
-    compute_order_hash,
-    IFlashCallback,
-    min64,
-    OneDeltaOrders,
-    pack_order,
-    recover_signer,
-    structs::{
-        DepositEvent,
-        Order,
-        OrderFillEvent,
-        WithdrawEvent,
-    },
-};
-use sway_libs::reentrancy::reentrancy_guard;
 use std::{
     asset::transfer,
     b512::B512,
@@ -28,6 +13,21 @@ use std::{
     hash::*,
     revert::require,
     storage::storage_vec::*,
+};
+use sway_libs::reentrancy::reentrancy_guard;
+use order_utils::{
+    compute_order_hash,
+    IFlashCallback,
+    min64,
+    OneDeltaOrders,
+    pack_order,
+    recover_signer,
+    structs::{
+        DepositEvent,
+        Order,
+        OrderFillEvent,
+        WithdrawEvent,
+    },
 };
 
 storage {
@@ -55,13 +55,12 @@ const CANCELLED = 7u64;
 const ORDER_ALREADY_FILLED = 8u64;
 
 impl OneDeltaOrders for Contract {
-    // Fills a funded order
-    // This means that the filler either
+    // Fills an order
+    // The filler either
+    //    - attaches msg_amount=taker_fill_amount with msg_asset_id=taker_asset; or
     //    - pre-funded the order by sending the taker amount to this
-    //      contract and then calls this function
+    //      contract and then calls this function; or
     //    - has no funds and intents to use the callback to originate them
-    // This version is less efficient than the `fill` function that is directly
-    // payable.
     #[storage(write, read), payable]
     fn fill(
         order: Order,
@@ -186,7 +185,7 @@ impl OneDeltaOrders for Contract {
         });
 
         // return filled amounts
-        (taker_fill_amount_received, maker_filled_amount)
+        (taker_filled_amount, maker_filled_amount)
     }
 
     #[storage(write, read), payable]
@@ -265,6 +264,7 @@ impl OneDeltaOrders for Contract {
     #[storage(write, read)]
     fn invalidate_nonce(maker_asset: b256, taker_asset: b256, new_nonce: u64) {
         reentrancy_guard();
+
         let owner = msg_sender().unwrap().bits();
         // get current maker nonce
         let mut old_nonce: u64 = storage.nonces.get(owner).get(maker_asset).get(taker_asset).try_read().unwrap_or(0u64);
@@ -280,13 +280,17 @@ impl OneDeltaOrders for Contract {
             .insert(taker_asset, new_nonce);
     }
 
-    // cancel an order by hash
+    // cancel an order with signature
     #[storage(write, read)]
     fn cancel_order(order: Order, order_signature: B512) {
+        reentrancy_guard();
+
         let order_hash = compute_order_hash(order, ContractId::this().bits());
         let signer = recover_signer(order_signature, order_hash).bits();
         let caller = msg_sender().unwrap().bits();
-        if signer != caller  || is_order_signer_delegate_internal(order.maker, signer){
+        if signer != caller
+            || is_order_signer_delegate_internal(order.maker, signer)
+        {
             revert(INVALID_ORDER_SIGNATURE);
         }
 
@@ -300,8 +304,11 @@ impl OneDeltaOrders for Contract {
             .insert(order_hash, (true, amount_filled));
     }
 
+    // allows the signer_delegate to sign on behalf of the caller if allowed=true
     #[storage(write)]
     fn register_order_signer_delegate(signer_delegate: b256, allowed: bool) {
+        reentrancy_guard();
+
         let caller = msg_sender().unwrap().bits();
         storage
             .order_signer_registry

@@ -9,7 +9,7 @@ import { txParams } from '../ts-scripts/utils/constants';
 import { OrderTestUtils } from './utils';
 
 describe('Order fill via `fill_funded` through BatchSwapExactInScript', async () => {
-  test('If attempt to fill more than taker_amount, receive refund', async () => {
+  test('If attempt to fill more than taker_amount, throw error in script', async () => {
     const launched = await launchTestNode({ walletsConfig: { count: 3 } });
 
     const {
@@ -56,54 +56,37 @@ describe('Order fill via `fill_funded` through BatchSwapExactInScript', async ()
       ]
     ]
 
-    const [
-      taker_maker_asset_balance_before,
-      taker_taker_asset_balance_before
-    ] = await OrderTestUtils.getConventionalBalances(
-      taker,
-      [maker_asset, taker_asset]
-    )
-
     const deadline = OrderTestUtils.MAX_EXPIRY
+    let reason: string | undefined = undefined
+    try {
+      const request = await (await OrderTestUtils.callExactInScriptScope(path, deadline, taker, Orders.id.toB256()))
+        .addContracts([Orders])
+        .txParams(txParams)
+        .getTransactionRequest()
 
-    const request = await (await OrderTestUtils.callExactInScriptScope(path, deadline, taker, Orders.id.toB256()))
-      .addContracts([Orders])
-      .txParams(txParams)
-      .getTransactionRequest()
+      const inputAssets: CoinQuantity[] = [
+        {
+          assetId: taker_asset,
+          amount: taker_amount,
+        }
+      ];
 
-    const inputAssets: CoinQuantity[] = [
-      {
-        assetId: taker_asset,
-        amount: taker_amount,
-      }
-    ];
+      const finalRequest = await prepareRequest(taker, request, 3, inputAssets, [Orders.id.toB256()])
 
-    const finalRequest = await prepareRequest(taker, request, 3, inputAssets, [Orders.id.toB256()])
+      /** EXECUTE TXN */
 
-    /** EXECUTE TXN */
+      const tx = await taker.sendTransaction(finalRequest, { estimateTxDependencies: true })
+      await tx.waitForResult()
 
-    const tx = await taker.sendTransaction(finalRequest, { estimateTxDependencies: true })
-    await tx.waitForResult()
+    } catch (e) {
+      reason = String(e)
+    }
+    expect(reason).to.toBeDefined()
 
-    const [
-      taker_maker_asset_balance_after,
-      taker_taker_asset_balance_after
-    ] = await OrderTestUtils.getConventionalBalances(
-      taker,
-      [maker_asset, taker_asset]
-    )
-
-    // validate taker change -> it settled for taker_amount
     expect(
-      taker_maker_asset_balance_after.sub(taker_maker_asset_balance_before).toString()
-    ).to.equal(
-      maker_amount.toString()
-    )
-    expect(
-      taker_taker_asset_balance_before.sub(taker_taker_asset_balance_after).toString()
-    ).to.equal(
-      taker_amount.toString()
-    )
+      reason
+    ).to.include(OrderTestUtils.ScriptErrorCodes.ORDER_INCOMPLETE_FILL)
+
   });
 
   test('Maker cannot execute on maker_amount higher than balance', async () => {

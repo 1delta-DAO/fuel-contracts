@@ -16,6 +16,11 @@ Run tests: `cargo test` and `cargo test -- --nocapture` for tests with logs.
 
 ## Contents
 
+### 1delta orders
+
+Off-chain order settlement contract.
+Can be used for RFQ and standard limit orders.
+
 ### Batch swap scripts
 
 Execute complex exact input and exact output batch swaps.
@@ -27,3 +32,4 @@ Execute complex exact input and exact output batch swaps.
 Swap multiple paths and path-fragments dynamically across multiple DEXs. Currenly we integrate the following DEXs:
 - Mira V1 Volatile
 - Mira V1 Stable
+- 1delta Orders

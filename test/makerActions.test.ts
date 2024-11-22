@@ -270,7 +270,7 @@ describe('Maker Actions', async () => {
     // not delegate anymore
     expect(isDelegate.value).to.be.false
 
-    // try fill wit delegate's signature
+    // try fill with delegate's signature
     let reason: string | undefined = undefined
     try {
       await OrderTestUtils.getOrders(taker, OrderTestUtils.contractIdBits(Orders)).functions.fill(

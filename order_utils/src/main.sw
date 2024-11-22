@@ -1,17 +1,20 @@
 library;
 pub mod structs;
 
-use std::{b512::B512,};
-use std::bytes::Bytes;
-use std::hash::*;
 use structs::Order;
 use std::{
+    b512::B512,
+    bytes::Bytes,
     bytes_conversions::b256::*,
-    bytes_conversions::u64::*,
     bytes_conversions::u32::*,
+    bytes_conversions::u64::*,
+    ecr::{
+        ec_recover,
+        ec_recover_address,
+        EcRecoverError,
+    },
+    hash::*,
 };
-
-use std::{ecr::{ec_recover, ec_recover_address, EcRecoverError}};
 
 // we allow flash callbacks for indirect filling
 abi IFlashCallback {
@@ -38,12 +41,12 @@ pub fn recover_signer(signature: B512, msg_hash: b256) -> Address {
 
 // the order hash is the sha256 hash of the packed
 // verifying contract address, followed by the order values
-pub fn compute_order_hash(order: Order, verifying_contract:b256) -> b256 {
+pub fn compute_order_hash(order: Order, verifying_contract: b256) -> b256 {
     // hash the order
     sha256(pack_order(order, verifying_contract))
 }
 
-pub fn pack_order(order: Order, verifying_contract:b256) -> Bytes {
+pub fn pack_order(order: Order, verifying_contract: b256) -> Bytes {
     // Progressively append the order data as bytes
     let mut encoded_order: Bytes = verifying_contract.to_be_bytes();
     encoded_order.append(order.maker_asset.to_be_bytes());
@@ -58,22 +61,37 @@ pub fn pack_order(order: Order, verifying_contract:b256) -> Bytes {
 }
 
 // computes the maker amount relative to the rates given in the order and taker amount
-pub fn compute_maker_fill_amount(taker_fill_amount:u64, maker_amount:u64, taker_amount:u64) -> u64 {
-    taker_fill_amount * maker_amount / taker_amount
+pub fn compute_maker_fill_amount(
+    taker_fill_amount: u64,
+    maker_amount: u64,
+    taker_amount: u64,
+) -> u64 {
+    // make sure we prevent u64 overflows in calculations
+    let taker_fill_amount_u256: u256 = taker_fill_amount.into();
+    let maker_amount_u256: u256 = maker_amount.into();
+    let taker_amount_u256: u256 = taker_amount.into();
+    u64::try_from(taker_fill_amount_u256 * maker_amount_u256 / taker_amount_u256).unwrap()
 }
 
 // computes the taker amount relative to the rates given in the order and taker amount
-pub fn compute_taker_fill_amount(maker_fill_amount:u64, maker_amount:u64, taker_amount:u64) -> u64 {
-    maker_fill_amount * taker_amount / maker_amount + 1
+pub fn compute_taker_fill_amount(
+    maker_fill_amount: u64,
+    maker_amount: u64,
+    taker_amount: u64,
+) -> u64 {
+    // make sure we prevent u64 overflows in calculations
+    let maker_fill_amount_u256: u256 = maker_fill_amount.into();
+    let maker_amount_u256: u256 = maker_amount.into();
+    let taker_amount_u256: u256 = taker_amount.into();
+    u64::try_from(maker_fill_amount_u256 * taker_amount_u256 / maker_amount_u256).unwrap() + 1u64
 }
 
-pub fn min64( a:u64,  b:u64) -> u64 {
-    if a < b { a} else { b}
+pub fn min64(a: u64, b: u64) -> u64 {
+    if a < b { a } else { b }
 }
 
 // The interface for interacting with Rfq orders 
 abi OneDeltaOrders {
-
     #[storage(write, read), payable]
     fn fill(
         order: Order,
@@ -96,7 +114,7 @@ abi OneDeltaOrders {
     fn cancel_order(order: Order, order_signature: B512);
 
     #[storage(write)]
-    fn register_order_signer_delegate(signer_delegate:b256, allowed:bool);
+    fn register_order_signer_delegate(signer_delegate: b256, allowed: bool);
 
     #[storage(read)]
     fn validate_order(order: Order, order_signature: B512) -> (b256, u64, u64);
@@ -114,5 +132,5 @@ abi OneDeltaOrders {
     fn get_maker_balance(maker: b256, asset: b256) -> u64;
 
     #[storage(read)]
-    fn is_order_signer_delegate(signer: b256, signer_delegate:b256) -> bool;
+    fn is_order_signer_delegate(signer: b256, signer_delegate: b256) -> bool;
 }

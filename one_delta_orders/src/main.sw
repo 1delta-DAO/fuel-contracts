@@ -100,7 +100,9 @@ impl OneDeltaOrders for Contract {
         // if any of the amounts is zero, we revert
         // this is to ensure that no msg_amount is lost 
         // attempting to fill an empty order
-        if maker_filled_amount == 0u64 || taker_filled_amount == 0u64 {
+        if maker_filled_amount == 0u64
+            || taker_filled_amount == 0u64
+        {
             revert(ZERO_FILL_AMOUNT);
         }
 
@@ -145,9 +147,7 @@ impl OneDeltaOrders for Contract {
 
         // validate that we received enough
         if taker_fill_amount_received < taker_filled_amount {
-            revert(
-                INSUFFICIENT_TAKER_AMOUNT_RECEIVED,
-            );
+            revert(INSUFFICIENT_TAKER_AMOUNT_RECEIVED);
         }
 
         // update accounting state for totals

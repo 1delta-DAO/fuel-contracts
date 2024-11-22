@@ -63,7 +63,12 @@ fn main(
         // transfer to first DEX if needed
         if transfer_in {
             transfer(
-                get_dex_input_receiver(swap_step.dex_id, MIRA_AMM_CONTRACT_ID, ONE_DELTA_ORDERS_CONTRACT_ID),
+                get_dex_input_receiver(
+                    swap_step
+                        .dex_id,
+                    MIRA_AMM_CONTRACT_ID,
+                    ONE_DELTA_ORDERS_CONTRACT_ID,
+                ),
                 swap_step
                     .asset_in,
                 amount_in_used,

@@ -15,7 +15,7 @@ const EMPTY_PATH_ENTRY: u64 = 100;
 ////////////////////////////////////////////////////
 configurable {
     MIRA_AMM_CONTRACT_ID: ContractId = ContractId::from(0x2e40f2b244b98ed6b8204b3de0156c6961f98525c8162f80162fcf53eebd90e7),
-    ONE_DELTA_ORDERS_CONTRACT_ID: ContractId = ContractId::zero(),
+    ONE_DELTA_ORDERS_CONTRACT_ID: ContractId = ContractId::from(0xd6da28183b421e336504b96bd1f8571d692222542f89c860ed1407caeb637303),
 }
 
 // Swap split paths exact in

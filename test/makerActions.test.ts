@@ -3,6 +3,7 @@ import { describe, test, expect } from 'vitest';
 import { OrderTestUtils } from './utils';
 import { OrderInput } from '../ts-scripts/typegen/OneDeltaOrders';
 import { addressInput } from '../ts-scripts/utils';
+import { ZeroBytes32 } from 'fuels';
 
 describe('Maker Actions', async () => {
   test('Maker can deposit', async () => {
@@ -196,15 +197,16 @@ describe('Maker Actions', async () => {
     // now is delegate
     expect(isDelegate.value).to.be.true
 
-    const order: OrderInput = {
+    const order: OrderInput =  OrderTestUtils.getOrder({
       maker_asset,
       taker_asset,
       maker_amount: deposit_amount,
       taker_amount,
       maker: maker.address.toB256(),
       nonce: OrderTestUtils.getRandomAmount(1),
-      expiry: OrderTestUtils.MAX_EXPIRY,
-    }
+      maker_traits: OrderTestUtils.MAX_EXPIRY,
+      maker_receiver: ZeroBytes32
+    })
 
     const taker_fill_amount = OrderTestUtils.getRandomAmount(1, taker_amount.toNumber())
 
@@ -339,15 +341,16 @@ describe('Maker Actions', async () => {
     // now is delegate
     expect(isDelegate.value).to.be.true
 
-    const order: OrderInput = {
+    const order: OrderInput =  OrderTestUtils.getOrder({
       maker_asset,
       taker_asset,
       maker_amount: deposit_amount,
       taker_amount,
       maker: maker.address.toB256(),
       nonce: OrderTestUtils.getRandomAmount(1),
-      expiry: OrderTestUtils.MAX_EXPIRY,
-    }
+      maker_traits: OrderTestUtils.MAX_EXPIRY,
+      maker_receiver: ZeroBytes32
+    })
 
     const delegateSig = await delegate.signMessage(OrderTestUtils.packOrder(order, Orders))
 
@@ -407,15 +410,16 @@ describe('Maker Actions', async () => {
       .call()
 
 
-    const order: OrderInput = {
+    const order: OrderInput =  OrderTestUtils.getOrder({
       maker_asset,
       taker_asset,
       maker_amount: deposit_amount,
       taker_amount,
       maker: maker.address.toB256(),
       nonce: OrderTestUtils.getRandomAmount(1),
-      expiry: OrderTestUtils.MAX_EXPIRY,
-    }
+      maker_traits: OrderTestUtils.MAX_EXPIRY,
+      maker_receiver: ZeroBytes32
+    })
     let reason: string | undefined = undefined
     try {
       // will fill order delegate's signature

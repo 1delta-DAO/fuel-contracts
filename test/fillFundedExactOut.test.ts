@@ -1,6 +1,6 @@
 import { launchTestNode } from 'fuels/test-utils';
 import { describe, test, expect } from 'vitest';
-import { BigNumberish, CoinQuantity, } from 'fuels';
+import { BigNumberish, CoinQuantity, ZeroBytes32, } from 'fuels';
 import { addressInput, contractIdInput, prepareRequest } from '../ts-scripts/utils';
 
 import { OrderInput } from '../ts-scripts/typegen/OneDeltaOrders';
@@ -56,15 +56,16 @@ describe('Order fill via `fill_funded` through BatchSwapExactOutScript', async (
 
     /** DEFINE PARAMETERS */
 
-    const order: OrderInput = {
+    const order: OrderInput =  OrderTestUtils.getOrder({
       maker_asset,
       taker_asset,
       maker_amount,
       taker_amount,
       maker: maker.address.toB256(),
       nonce: OrderTestUtils.getRandomAmount(1),
-      expiry: OrderTestUtils.MAX_EXPIRY,
-    }
+      maker_traits: OrderTestUtils.MAX_EXPIRY,
+      maker_receiver: ZeroBytes32
+    })
 
     const maker_fill_amount = OrderTestUtils.getRandomAmount(1, maker_amount.toNumber())
 
@@ -232,25 +233,27 @@ describe('Order fill via `fill_funded` through BatchSwapExactOutScript', async (
 
     /** DEFINE PARAMETERS */
 
-    const order0: OrderInput = {
+    const order0: OrderInput =  OrderTestUtils.getOrder({
       maker_asset: intermediate_asset, // asset_mid
       taker_asset, // asset_in
       maker_amount: intermediate_amount,
       taker_amount,
       maker: maker.address.toB256(),
       nonce: OrderTestUtils.getRandomAmount(1),
-      expiry: OrderTestUtils.MAX_EXPIRY,
-    }
+      maker_traits: OrderTestUtils.MAX_EXPIRY,
+      maker_receiver: ZeroBytes32
+    })
 
-    const order1: OrderInput = {
+    const order1: OrderInput =  OrderTestUtils.getOrder({
       maker_asset, // asset_out
       taker_asset: intermediate_asset, // asset_mid
       maker_amount,
       taker_amount: intermediate_amount,
       maker: maker.address.toB256(),
       nonce: OrderTestUtils.getRandomAmount(1),
-      expiry: OrderTestUtils.MAX_EXPIRY,
-    }
+      maker_traits: OrderTestUtils.MAX_EXPIRY,
+      maker_receiver: ZeroBytes32
+    })
 
 
     const maker_fill_amount = OrderTestUtils.getRandomAmount(1, maker_amount.toNumber()) // this is the actual amount_in

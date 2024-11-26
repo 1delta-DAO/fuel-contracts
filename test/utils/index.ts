@@ -1,4 +1,4 @@
-import { BigNumberish, BN, concatBytes, Contract, hashMessage, toBytes, WalletUnlocked } from 'fuels';
+import { BigNumberish, BN, concatBytes, Contract, hashMessage, randomBytes, toBytes, WalletUnlocked } from 'fuels';
 import { assetIdInput, contractIdInput } from '../../ts-scripts/utils';
 
 import { MockTokenFactory } from '../../ts-scripts/typegen/MockTokenFactory';
@@ -54,6 +54,33 @@ export namespace OrderTestUtils {
     }
   }
 
+  export function getRandomOrder() {
+    const maker_asset = randomBytes(32)
+    const taker_asset = randomBytes(32)
+    const maker_amount = getRandomAmount(1)
+    const taker_amount = getRandomAmount(1)
+    const maker = randomBytes(32)
+    const nonce = OrderTestUtils.getRandomAmount(1)
+    const maker_traits = OrderTestUtils.getRandomAmount(1, OrderTestUtils.MAX_EXPIRY)
+    const maker_receiver = randomBytes(32)
+    return {
+      maker_asset,
+      taker_asset,
+      maker_amount,
+      taker_amount,
+      maker,
+      nonce,
+      maker_traits,
+      maker_receiver
+    } as unknown as OrderInput
+  }
+
+
+  export function getOrder(inputs: Partial<OrderInput> = {}): OrderInput {
+    const order = getRandomOrder()
+    return { ...order, ...inputs }
+  }
+  
   export async function callExactInScriptScope(
     path: any,
     deadline: number,
@@ -175,7 +202,8 @@ export namespace OrderTestUtils {
       toBytes(order.taker_amount, 8),
       toBytes(order.maker, 32),
       toBytes(order.nonce, 8),
-      toBytes(order.expiry, 4),
+      toBytes(order.maker_traits, 8),
+      toBytes(order.maker_receiver, 32),
     ]) as any
   }
 
@@ -242,7 +270,8 @@ export namespace OrderTestUtils {
         toBytes(order.taker_amount, 8),
         toBytes(order.maker, 32),
         toBytes(order.nonce, 8),
-        toBytes(order.expiry, 4),
+        toBytes(order.maker_traits, 8),
+        toBytes(order.maker_receiver, 32),
         toBytes(signature, 64),
       ]) as any,
       receiver

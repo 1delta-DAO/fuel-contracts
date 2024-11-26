@@ -1,6 +1,6 @@
 import { launchTestNode } from 'fuels/test-utils';
 import { describe, test, expect } from 'vitest';
-import { BigNumberish, CoinQuantity, } from 'fuels';
+import { BigNumberish, CoinQuantity, ZeroBytes32, } from 'fuels';
 import { addressInput, contractIdInput, prepareRequest } from '../ts-scripts/utils';
 
 import { OrderInput } from '../ts-scripts/typegen/OneDeltaOrders';
@@ -37,15 +37,15 @@ describe('Order fill via `fill_funded` through BatchSwapExactInScript', async ()
 
     /** DEFINE PARAMETERS */
 
-    const order: OrderInput = {
+    const order: OrderInput = OrderTestUtils.getOrder({
       maker_asset,
       taker_asset,
       maker_amount: maker_amount.add(1),
       taker_amount,
       maker: maker.address.toB256(),
-      nonce: OrderTestUtils.getRandomAmount(1),
-      expiry: OrderTestUtils.MAX_EXPIRY,
-    }
+      maker_traits: OrderTestUtils.MAX_EXPIRY,
+      maker_receiver: ZeroBytes32
+    })
 
     const signatureRaw = await maker.signMessage(OrderTestUtils.packOrder(order, Orders))
 
@@ -145,15 +145,16 @@ describe('Order fill via `fill_funded` through BatchSwapExactInScript', async ()
     /** DEFINE PARAMETERS */
     let nonce = OrderTestUtils.getRandomAmount(1)
 
-    const order: OrderInput = {
+    const order: OrderInput = OrderTestUtils.getOrder({
       maker_asset,
       taker_asset,
       maker_amount,
       taker_amount,
       maker: maker.address.toB256(),
       nonce,
-      expiry: OrderTestUtils.MAX_EXPIRY,
-    }
+      maker_traits: OrderTestUtils.MAX_EXPIRY,
+      maker_receiver: ZeroBytes32
+    })
 
     const signatureRaw = await maker.signMessage(OrderTestUtils.packOrder(order, Orders))
 
@@ -297,15 +298,15 @@ describe('Order fill via `fill_funded` through BatchSwapExactInScript', async ()
 
     /** DEFINE PARAMETERS */
 
-    const order: OrderInput = {
+    const order: OrderInput = OrderTestUtils.getOrder({
       maker_asset,
       taker_asset,
       maker_amount,
       taker_amount,
       maker: maker.address.toB256(),
-      nonce: OrderTestUtils.getRandomAmount(1),
-      expiry: OrderTestUtils.MAX_EXPIRY,
-    }
+      maker_traits: OrderTestUtils.MAX_EXPIRY,
+      maker_receiver: ZeroBytes32
+    })
 
     const taker_fill_amount = OrderTestUtils.getRandomAmount(1, Number(taker_amount.toString()))
 
@@ -442,26 +443,26 @@ describe('Order fill via `fill_funded` through BatchSwapExactInScript', async ()
 
     /** DEFINE PARAMETERS */
 
-    const order0: OrderInput = {
+    const order0: OrderInput = OrderTestUtils.getOrder({
       maker_asset: intermediate_asset, // asset_mid
       taker_asset, // asset_in
       maker_amount: intermediate_amount,
       taker_amount,
       maker: maker.address.toB256(),
-      nonce: OrderTestUtils.getRandomAmount(1),
-      expiry: OrderTestUtils.MAX_EXPIRY,
-    }
+      maker_traits: OrderTestUtils.MAX_EXPIRY,
+      maker_receiver: ZeroBytes32
+    })
 
-    const order1: OrderInput = {
+    const order1: OrderInput =  OrderTestUtils.getOrder({
       maker_asset, // asset_out
       taker_asset: intermediate_asset, // asset_mid
       maker_amount,
       taker_amount: intermediate_amount,
       maker: maker.address.toB256(),
-      nonce: OrderTestUtils.getRandomAmount(1),
-      expiry: OrderTestUtils.MAX_EXPIRY,
-    }
-
+      maker_traits: OrderTestUtils.MAX_EXPIRY,
+      maker_receiver: ZeroBytes32
+    })
+    
     const taker_fill_amount = OrderTestUtils.getRandomAmount(1, taker_amount.toNumber()) // this is the actual amount_in
 
     const intermediate_fill_amount = OrderTestUtils.computeMakerFillAmount(taker_fill_amount, order0.maker_amount, order0.taker_amount)
@@ -485,7 +486,7 @@ describe('Order fill via `fill_funded` through BatchSwapExactInScript', async ()
         ]
       ]
     ]
-
+    
     const deadline = OrderTestUtils.MAX_EXPIRY
 
     const request = await (await OrderTestUtils.callExactInScriptScope(path, deadline, taker, Orders.id.toB256()))

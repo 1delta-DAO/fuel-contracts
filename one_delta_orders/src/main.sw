@@ -183,7 +183,7 @@ impl OneDeltaOrders for Contract {
                 } else {
                     Identity::Address(Address::from(order.maker_receiver))
                 },
-                AssetId::from(order.maker_asset),
+                AssetId::from(order.taker_asset),
                 taker_fill_amount_received,
             );
 

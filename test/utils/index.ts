@@ -23,7 +23,8 @@ export namespace OrderTestUtils {
     WITHDRAW_TOO_MUCH = 0x6,
     CANCELLED = 0x7,
     ORDER_ALREADY_FILLED = 0x8,
-    INVALID_CANCEL = 0x9
+    INVALID_CANCEL = 0x9,
+    NO_PARTIAL_FILL = 11
   }
 
   export enum ScriptErrorCodes {
@@ -54,6 +55,18 @@ export namespace OrderTestUtils {
     }
   }
 
+  const HIGH_BIT_0 = 1n << 63n;
+  const HIGH_BIT_1 = 1n << 62n;
+  const EXPIRY_MASK  = BigInt("0x00000000ffffffff");
+  
+
+  export function encodeTraits(contractReceiver = false, noPartialFills = false, expiry = OrderTestUtils.MAX_EXPIRY) {
+    let traits = BigInt(expiry)
+    if(contractReceiver) traits = (traits & ~HIGH_BIT_0) | HIGH_BIT_0
+    if(noPartialFills) traits  = (traits & ~HIGH_BIT_1) | HIGH_BIT_1
+    return traits.toString()
+  }
+
   export function getRandomOrder() {
     const maker_asset = randomBytes(32)
     const taker_asset = randomBytes(32)
@@ -80,7 +93,7 @@ export namespace OrderTestUtils {
     const order = getRandomOrder()
     return { ...order, ...inputs }
   }
-  
+
   export async function callExactInScriptScope(
     path: any,
     deadline: number,
@@ -232,7 +245,6 @@ export namespace OrderTestUtils {
       const result = await rfq.functions.get_maker_balance(makerStringified, assetId).simulate()
       bal.push(result.value)
     }
-
     return bal
   }
 

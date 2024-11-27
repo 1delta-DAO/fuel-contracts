@@ -116,10 +116,9 @@ impl OneDeltaOrders for Contract {
         );
 
         // make sure that the maker balance is high enough
-        require(
-            maker_filled_amount <= maker_maker_asset_balance,
-            MAKER_BALANCE_TOO_LOW,
-        );
+        if (maker_filled_amount > maker_maker_asset_balance) {
+            revert(MAKER_BALANCE_TOO_LOW)
+        }
 
         // optimistically transfer maker_token::maker -> receiver
         transfer(
@@ -131,8 +130,6 @@ impl OneDeltaOrders for Contract {
         // this internal balance is unadjusted for the amount received 
         let taker_asset_accounting_balance = get_total_asset_balance(order.taker_asset);
 
-        let sender = msg_sender().unwrap();
-
         // flash callback to the taker_receiver if the data is specified
         if let Some(d) = data {
             abi(IFlashCallback, taker_receiver
@@ -140,7 +137,8 @@ impl OneDeltaOrders for Contract {
                 .unwrap()
                 .into())
                 .flash(
-                    sender,
+                    msg_sender()
+                        .unwrap(),
                     order.maker_asset,
                     order.taker_asset,
                     maker_filled_amount,

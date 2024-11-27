@@ -434,6 +434,7 @@ fn validate_order_internal(order: Order, order_signature: B512) -> (b256, u64, u
     // the the amount that is already filled
     let (cancelled, taker_asset_filled_amount) = storage.order_hash_to_filled_amount.get(order_hash).try_read().unwrap_or((false, 0u64));
 
+    // check cancellation status
     if cancelled {
         return (order_hash, CANCELLED, taker_asset_filled_amount);
     }

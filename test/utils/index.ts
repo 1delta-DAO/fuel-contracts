@@ -1,5 +1,5 @@
-import { BigNumberish, BN, concatBytes, Contract, hashMessage, toBytes, WalletUnlocked } from 'fuels';
-import { assetIdInput, contractIdInput } from '../../ts-scripts/utils';
+import { BigNumberish, BN, concatBytes, Contract, hashMessage, randomBytes, toBytes, WalletUnlocked } from 'fuels';
+import { addressInput, assetIdInput, contractIdInput } from '../../ts-scripts/utils';
 
 import { MockTokenFactory } from '../../ts-scripts/typegen/MockTokenFactory';
 import { MockToken } from '../../ts-scripts/typegen/MockToken';
@@ -8,6 +8,8 @@ import { OneDeltaOrdersFactory } from '../../ts-scripts/typegen/OneDeltaOrdersFa
 import { BatchSwapStepInput, BatchSwapExactInScript, IdentityInput } from '../../ts-scripts/typegen/BatchSwapExactInScript';
 import { BatchSwapExactOutScript } from '../../ts-scripts/typegen/BatchSwapExactOutScript';
 import { expect } from 'vitest';
+import { OrderRouterFactory } from '../../ts-scripts/typegen/OrderRouterFactory';
+import { OrderRouter } from '../../ts-scripts/typegen/OrderRouter';
 
 
 export namespace OrderTestUtils {
@@ -23,7 +25,9 @@ export namespace OrderTestUtils {
     WITHDRAW_TOO_MUCH = 0x6,
     CANCELLED = 0x7,
     ORDER_ALREADY_FILLED = 0x8,
-    INVALID_CANCEL = 0x9
+    INVALID_CANCEL = 0x9,
+    NO_PARTIAL_FILL = 11,
+    BALANCE_VIOLATION = 12,
   }
 
   export enum ScriptErrorCodes {
@@ -52,6 +56,72 @@ export namespace OrderTestUtils {
       tokens,
       Orders
     }
+  }
+
+  // deploy all relevant fixtures
+  export async function fixtureWithRouter(deployer: WalletUnlocked) {
+
+    const deployTokenTx = await MockTokenFactory.deploy(deployer)
+
+    const { contract: tokens } = await deployTokenTx.waitForResult()
+
+    const deployRfqTx = await OneDeltaOrdersFactory.deploy(deployer)
+
+    const { contract: Orders } = await deployRfqTx.waitForResult()
+
+    const routerDeployTx = await OrderRouterFactory.deploy(deployer, {
+      configurableConstants: {
+        ONE_DELTA_ORDERS_CONTRACT_ID: contractIdInput(Orders.id).ContractId
+      }
+    })
+
+    const { contract: Router } = await routerDeployTx.waitForResult()
+
+
+    return {
+      tokens,
+      Orders,
+      Router
+    }
+  }
+
+  const HIGH_BIT_0 = 1n << 63n;
+  const HIGH_BIT_1 = 1n << 62n;
+  const EXPIRY_MASK = BigInt("0x00000000ffffffff");
+
+
+  export function encodeTraits(contractReceiver = false, noPartialFills = false, expiry = OrderTestUtils.MAX_EXPIRY) {
+    let traits = BigInt(expiry)
+    if (contractReceiver) traits = (traits & ~HIGH_BIT_0) | HIGH_BIT_0
+    if (noPartialFills) traits = (traits & ~HIGH_BIT_1) | HIGH_BIT_1
+    return traits.toString()
+  }
+
+  export function getRandomOrder() {
+    const maker_asset = randomBytes(32)
+    const taker_asset = randomBytes(32)
+    const maker_amount = getRandomAmount(1)
+    const taker_amount = getRandomAmount(1)
+    const maker = randomBytes(32)
+    const nonce = OrderTestUtils.getRandomAmount(1)
+    const maker_traits = OrderTestUtils.getRandomAmount(1, OrderTestUtils.MAX_EXPIRY)
+    const maker_receiver = randomBytes(32)
+    return {
+      maker_asset,
+      taker_asset,
+      maker_amount,
+      taker_amount,
+      maker,
+      nonce,
+      maker_traits,
+      maker_receiver
+    } as unknown as OrderInput
+  }
+
+
+  export function getOrder(inputs: Partial<OrderInput> = {}): OrderInput {
+    const order = getRandomOrder()
+    return { ...order, ...inputs }
   }
 
   export async function callExactInScriptScope(
@@ -94,6 +164,11 @@ export namespace OrderTestUtils {
   /** Get the Rfq order contract with a specific signer */
   export function getOrders(signer: WalletUnlocked, orderAddr: string) {
     return new OneDeltaOrders(orderAddr, signer)
+  }
+
+  /** Get the Rfq order contract with a specific signer */
+  export function getRouter(signer: WalletUnlocked, orderAddr: string) {
+    return new OrderRouter(orderAddr, signer)
   }
 
   export const DEFAULT_RANDOM_AMOUNT_LIMIT = 1_000_000
@@ -147,7 +222,7 @@ export namespace OrderTestUtils {
       throw new Error("createTakerDeposits: inconsistent input lengths")
     let i = 0
     for (let token of tokens) {
-      await getOrders(maker, contractIdBits(orders)).functions.deposit()
+      await getOrders(maker, contractIdBits(orders)).functions.deposit(token, addressInput(maker.address))
         .callParams({ forward: { assetId: token, amount: amounts[i] } })
         .call()
       i++;
@@ -175,7 +250,22 @@ export namespace OrderTestUtils {
       toBytes(order.taker_amount, 8),
       toBytes(order.maker, 32),
       toBytes(order.nonce, 8),
-      toBytes(order.expiry, 4),
+      toBytes(order.maker_traits, 8),
+      toBytes(order.maker_receiver, 32),
+    ]) as any
+  }
+
+  export function routerParams(order: OrderInput, signature: string) {
+    return concatBytes([
+      toBytes(order.maker_asset, 32),
+      toBytes(order.taker_asset, 32),
+      toBytes(order.maker_amount, 8),
+      toBytes(order.taker_amount, 8),
+      toBytes(order.maker, 32),
+      toBytes(order.nonce, 8),
+      toBytes(order.maker_traits, 8),
+      toBytes(order.maker_receiver, 32),
+      toBytes(signature, 64),
     ]) as any
   }
 
@@ -204,7 +294,6 @@ export namespace OrderTestUtils {
       const result = await rfq.functions.get_maker_balance(makerStringified, assetId).simulate()
       bal.push(result.value)
     }
-
     return bal
   }
 
@@ -242,7 +331,8 @@ export namespace OrderTestUtils {
         toBytes(order.taker_amount, 8),
         toBytes(order.maker, 32),
         toBytes(order.nonce, 8),
-        toBytes(order.expiry, 4),
+        toBytes(order.maker_traits, 8),
+        toBytes(order.maker_receiver, 32),
         toBytes(signature, 64),
       ]) as any,
       receiver

@@ -69,6 +69,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "order_router"
+source = "member"
+dependencies = [
+    "order_utils",
+    "std",
+    "sway_libs",
+]
+
+[[package]]
 name = "order_utils"
 source = "member"
 dependencies = ["std"]

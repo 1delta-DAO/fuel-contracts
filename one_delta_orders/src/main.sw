@@ -17,13 +17,17 @@ use std::{
 use sway_libs::reentrancy::reentrancy_guard;
 use order_utils::{
     compute_order_hash,
+    get_expiry,
     IFlashCallback,
+    is_contract_receiver,
     min64,
+    no_partial_fill,
     OneDeltaOrders,
     pack_order,
     recover_signer,
     structs::{
         CancelEvent,
+        CancelPairEvent,
         DepositEvent,
         Order,
         OrderFillEvent,
@@ -44,6 +48,9 @@ storage {
     order_signer_registry: StorageMap<b256, StorageMap<b256, bool>> = StorageMap {},
 }
 
+// constants
+const ZERO_B256 = b256::zero();
+
 // error codes
 const NO_ERROR = 0u64;
 const INVALID_ORDER_SIGNATURE = 1u64;
@@ -56,6 +63,9 @@ const CANCELLED = 7u64;
 const ORDER_ALREADY_FILLED = 8u64;
 const INVALID_CANCEL = 9u64;
 const ZERO_FILL_AMOUNT = 10u64;
+const NO_PARTIAL_FILL = 11u64;
+const BALANCE_VIOLATION = 12u64;
+const MAKER_RECEIVER_CANNOT_BE_THIS = 13u64;
 
 impl OneDeltaOrders for Contract {
     // Fills an order
@@ -100,17 +110,15 @@ impl OneDeltaOrders for Contract {
         // if any of the amounts is zero, we revert
         // this is to ensure that no msg_amount is lost 
         // attempting to fill an empty order
-        if maker_filled_amount == 0u64
-            || taker_filled_amount == 0u64
-        {
-            revert(ZERO_FILL_AMOUNT);
-        }
+        require(
+            maker_filled_amount != 0u64 && taker_filled_amount != 0u64,
+            ZERO_FILL_AMOUNT,
+        );
 
         // make sure that the maker balance is high enough
-        require(
-            maker_filled_amount <= maker_maker_asset_balance,
-            MAKER_BALANCE_TOO_LOW,
-        );
+        if (maker_filled_amount > maker_maker_asset_balance) {
+            revert(MAKER_BALANCE_TOO_LOW)
+        }
 
         // optimistically transfer maker_token::maker -> receiver
         transfer(
@@ -120,18 +128,17 @@ impl OneDeltaOrders for Contract {
         );
 
         // this internal balance is unadjusted for the amount received 
-        let taker_asset_accounting_balance = get_asset_balance(order.taker_asset);
+        let taker_asset_accounting_balance = get_total_asset_balance(order.taker_asset);
 
-        let sender = msg_sender().unwrap();
-
-        // flash callback
+        // flash callback to the taker_receiver if the data is specified
         if let Some(d) = data {
             abi(IFlashCallback, taker_receiver
                 .as_contract_id()
                 .unwrap()
                 .into())
                 .flash(
-                    sender,
+                    msg_sender()
+                        .unwrap(),
                     order.maker_asset,
                     order.taker_asset,
                     maker_filled_amount,
@@ -141,13 +148,65 @@ impl OneDeltaOrders for Contract {
         }
 
         // fetch the real taker asset balance
-        let real_taker_asset_balance = this_balance(AssetId::from(order.taker_asset));
+        let mut real_taker_asset_balance = this_balance(AssetId::from(order.taker_asset));
         // the funds received are real balance minus accounting balance
         let taker_fill_amount_received = real_taker_asset_balance - taker_asset_accounting_balance;
 
         // validate that we received enough
+        // note that a too high amount will be consumed by the maker
         if taker_fill_amount_received < taker_filled_amount {
             revert(INSUFFICIENT_TAKER_AMOUNT_RECEIVED);
+        }
+
+        // prevent partial fills if specified as such
+        if no_partial_fill(order.maker_traits) {
+            if taker_fill_amount_received < order.taker_amount {
+                revert(NO_PARTIAL_FILL);
+            }
+        }
+
+        // if the maker_receiver is defined, we send the funds to
+        // the provided address
+        if order.maker_receiver != ZERO_B256 {
+            // reduce real balance by amount to be sent in the next line
+            real_taker_asset_balance -= taker_fill_amount_received;
+            transfer(
+                if is_contract_receiver(order.maker_traits) {
+                    // we enforce that the maker_receiver cannot be this contract
+                    // this is the default behaviour which assumes maker_receiver==0
+                    require(
+                        order.maker_receiver != ContractId::this()
+                            .bits(),
+                        MAKER_RECEIVER_CANNOT_BE_THIS,
+                    );
+                    Identity::ContractId(ContractId::from(order.maker_receiver))
+                } else {
+                    Identity::Address(Address::from(order.maker_receiver))
+                },
+                AssetId::from(order.taker_asset),
+                taker_fill_amount_received,
+            );
+
+            // update accounting state for maker
+            // for the maker asset only
+            update_maker_maker_asset_balances(
+                order.maker_asset,
+                maker_maker_asset_balance,
+                maker_filled_amount,
+                order.maker,
+            );
+        } else {
+            // update accounting state for maker
+            // for both maker and taker asset
+            update_maker_all_balances(
+                order.maker_asset,
+                order.taker_asset,
+                maker_taker_asset_balance,
+                maker_maker_asset_balance,
+                maker_filled_amount,
+                taker_fill_amount_received,
+                order.maker,
+            );
         }
 
         // update accounting state for totals
@@ -157,17 +216,7 @@ impl OneDeltaOrders for Contract {
             maker_asset_balance,
             real_taker_asset_balance,
             maker_filled_amount,
-        );
-
-        // update accounting state for maker
-        update_maker_balances(
-            order.maker_asset,
-            order.taker_asset,
-            maker_taker_asset_balance,
-            maker_maker_asset_balance,
-            maker_filled_amount,
-            taker_fill_amount_received,
-            order.maker,
+            taker_receiver,
         );
 
         update_remaining_fill_amount(
@@ -187,33 +236,35 @@ impl OneDeltaOrders for Contract {
         (taker_fill_amount_received, maker_filled_amount)
     }
 
+    // deposit assets to the contract
+    // absorbs the difference between accounting and real balance
     #[storage(write, read), payable]
-    fn deposit() {
+    fn deposit(asset: b256, receiver: Identity) {
         reentrancy_guard();
-        // validate asset sent
-        let asset = msg_asset_id().bits();
 
-        let deposit_amount = msg_amount();
+        let fund_recipient = receiver.bits();
+        let fund_recipient_asset_balance = storage.maker_balances.get(fund_recipient).get(asset).try_read().unwrap_or(0u64);
 
-        let owner = msg_sender().unwrap().bits();
-        let mut owner_asset_balance = storage.maker_balances.get(owner).get(asset).try_read().unwrap_or(0u64);
+        // get the accounting balance
+        let total_asset_balance_accounting = get_total_asset_balance(asset);
+        // get the actual balance
+        let total_asset_balance_real = this_balance(AssetId::from(asset));
 
-        owner_asset_balance += deposit_amount;
+        // deposit amount is the difference between real balance and accounting balance
+        let deposit_amount = total_asset_balance_real - total_asset_balance_accounting;
 
         // update depositor's balance
         storage
             .maker_balances
-            .get(owner)
-            .insert(asset, owner_asset_balance);
+            .get(fund_recipient)
+            .insert(asset, fund_recipient_asset_balance + deposit_amount);
 
         // update total balance
-        storage
-            .balances
-            .insert(asset, this_balance(AssetId::from(asset)));
+        storage.balances.insert(asset, total_asset_balance_real);
 
         // log the deposit
         log(DepositEvent {
-            maker: owner,
+            maker: fund_recipient,
             asset,
             amount: deposit_amount,
         });
@@ -222,33 +273,39 @@ impl OneDeltaOrders for Contract {
     // Makers deposit their exchange balances and internally mutate them as swappers fill
     // their orders 
     #[storage(write, read)]
-    fn withdraw(asset: b256, amount: u64) {
+    fn withdraw(asset: b256, amount: u64, receiver: Identity) {
         reentrancy_guard();
-        let owner = msg_sender().unwrap();
 
         // convert to bits for maps
-        let owner_bits = owner.bits();
-        let mut owner_asset_balance = storage.maker_balances.get(owner_bits).get(asset).try_read().unwrap_or(0u64);
+        let owner_bits = msg_sender().unwrap().bits();
+        let owner_asset_balance = storage.maker_balances.get(owner_bits).get(asset).try_read().unwrap_or(0u64);
 
-        require(owner_asset_balance >= amount, WITHDRAW_TOO_MUCH);
+        // require that the owner has enough balance
+        if owner_asset_balance < amount {
+            revert(WITHDRAW_TOO_MUCH);
+        }
 
-        owner_asset_balance -= amount;
-
+        // update balance as reduced
         storage
             .maker_balances
             .get(owner_bits)
-            .insert(asset, owner_asset_balance);
+            .insert(asset, owner_asset_balance - amount);
 
         // we sync the overall balance by 
         let total_balance_before = storage.balances.get(asset).try_read().unwrap_or(0u64);
 
-        // update total balance
-        storage
-            .balances
-            .insert(asset, total_balance_before - amount);
+        // ensure that in no way there are withdrawals
+        // that violate the total balance post transfer
+        let new_balance = total_balance_before - amount;
+        if new_balance > this_balance(AssetId::from(asset)) {
+            revert(BALANCE_VIOLATION);
+        }
 
-        // asset -> owner
-        transfer(owner, AssetId::from(asset), amount);
+        // update total balance
+        storage.balances.insert(asset, new_balance);
+
+        // finalize transfer from this to owner
+        transfer(receiver, AssetId::from(asset), amount);
 
         // log the withdrawal
         log(WithdrawEvent {
@@ -264,9 +321,9 @@ impl OneDeltaOrders for Contract {
     fn invalidate_nonce(maker_asset: b256, taker_asset: b256, new_nonce: u64) {
         reentrancy_guard();
 
-        let owner = msg_sender().unwrap().bits();
+        let maker = msg_sender().unwrap().bits();
         // get current maker nonce
-        let mut old_nonce: u64 = storage.nonces.get(owner).get(maker_asset).get(taker_asset).try_read().unwrap_or(0u64);
+        let mut old_nonce: u64 = storage.nonces.get(maker).get(maker_asset).get(taker_asset).try_read().unwrap_or(0u64);
 
         // valdiate nonce
         require(new_nonce > old_nonce, INVALID_NONCE);
@@ -274,9 +331,16 @@ impl OneDeltaOrders for Contract {
         // set new nonce
         storage
             .nonces
-            .get(owner) // maker
+            .get(maker) // maker
             .get(maker_asset) // maker_asset
             .insert(taker_asset, new_nonce);
+
+        log(CancelPairEvent {
+            maker,
+            maker_asset,
+            taker_asset,
+            nonce: new_nonce,
+        });
     }
 
     // cancel an order with signature
@@ -353,7 +417,7 @@ impl OneDeltaOrders for Contract {
 
 // Getter for the internal total balance
 #[storage(read)]
-fn get_asset_balance(asset: b256) -> u64 {
+fn get_total_asset_balance(asset: b256) -> u64 {
     storage.balances.get(asset).try_read().unwrap_or(0)
 }
 
@@ -368,12 +432,13 @@ fn validate_order_internal(order: Order, order_signature: B512) -> (b256, u64, u
     // the the amount that is already filled
     let (cancelled, taker_asset_filled_amount) = storage.order_hash_to_filled_amount.get(order_hash).try_read().unwrap_or((false, 0u64));
 
+    // check cancellation status
     if cancelled {
         return (order_hash, CANCELLED, taker_asset_filled_amount);
     }
 
     // check expiry
-    if order.expiry < height() {
+    if get_expiry(order.maker_traits) < height() {
         return (order_hash, EXPIRED, taker_asset_filled_amount);
     }
 
@@ -402,16 +467,31 @@ fn update_internal_total_balances(
     maker_asset_balance: u64,
     real_taker_asset_balance: u64,
     maker_fill_amount: u64,
+    taker_receiver: Identity,
 ) {
     // add taker asset filled amount to total balance
     storage
         .balances
         .insert(taker_asset, real_taker_asset_balance);
 
+    // compute the expected ooutflow
+    let new_maker_balance = maker_asset_balance - maker_fill_amount;
+    // note that we have to adjust the real balance if the receiver of the maker tokjens is this contract
+    let real_balance = if (Identity::ContractId(ContractId::this()) == taker_receiver)
+    {
+        this_balance(AssetId::from(maker_asset)) - maker_fill_amount
+    } else {
+        this_balance(AssetId::from(maker_asset))
+    };
+    // make sure that maker_asset balance does not decline
+    // more than expected after payout
+    // this is to ensure that the amounts never decline more than the
+    // payouts
+    if new_maker_balance > real_balance {
+        revert(BALANCE_VIOLATION);
+    }
     // deduct maker asset filled amount from total balance
-    storage
-        .balances
-        .insert(maker_asset, maker_asset_balance - maker_fill_amount);
+    storage.balances.insert(maker_asset, new_maker_balance);
 }
 
 // Update the internal balances based on order fill info
@@ -420,7 +500,7 @@ fn update_internal_total_balances(
 //      incremented for taker_asset
 //      decremented for maker_asset
 #[storage(read, write)]
-fn update_maker_balances(
+fn update_maker_all_balances(
     maker_asset: b256,
     taker_asset: b256,
     maker_taker_asset_balance: u64,
@@ -434,6 +514,22 @@ fn update_maker_balances(
         .maker_balances
         .get(maker)
         .insert(taker_asset, maker_taker_asset_balance + taker_fill_amount);
+    // deduct maker asset filled amount from maker's balance
+    storage
+        .maker_balances
+        .get(maker)
+        .insert(maker_asset, maker_maker_asset_balance - maker_fill_amount);
+}
+
+// Update the internal balances based on order fill info inca se a custom maker receiver is provided
+// just update the maker balances
+#[storage(read, write)]
+fn update_maker_maker_asset_balances(
+    maker_asset: b256,
+    maker_maker_asset_balance: u64,
+    maker_fill_amount: u64,
+    maker: b256,
+) {
     // deduct maker asset filled amount from maker's balance
     storage
         .maker_balances
@@ -459,7 +555,7 @@ fn update_remaining_fill_amount(
         );
 }
 
-pub fn compute_fill_amounts(
+fn compute_fill_amounts(
     taker_fill_amount: u64,
     taker_asset_already_filled_amount: u64,
     maker_amount: u64,
@@ -487,6 +583,6 @@ pub fn compute_fill_amounts(
 
 // check the registry if signer delegated to signer_delegate
 #[storage(read)]
-pub fn is_order_signer_delegate_internal(signer: b256, signer_delegate: b256) -> bool {
+fn is_order_signer_delegate_internal(signer: b256, signer_delegate: b256) -> bool {
     storage.order_signer_registry.get(signer).get(signer_delegate).try_read().unwrap_or(false)
 }

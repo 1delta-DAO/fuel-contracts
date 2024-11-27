@@ -1,8 +1,9 @@
 import { launchTestNode } from 'fuels/test-utils';
 import { describe, test, expect } from 'vitest';
-import { hashMessage, randomBytes, toHex } from 'fuels';
+import { hashMessage} from 'fuels';
 import { OrderInput } from '../ts-scripts/typegen/OneDeltaOrders';
 import { OrderTestUtils } from './utils';
+import { addressInput } from '../ts-scripts/utils';
 
 describe('Order Validation', async () => {
   test('Order Hash', async () => {
@@ -10,20 +11,12 @@ describe('Order Validation', async () => {
     const launched = await launchTestNode();
 
     const {
-      wallets: [maker, deployer]
+      wallets: [_, deployer]
     } = launched;
 
     const { Orders } = await OrderTestUtils.fixture(deployer)
 
-    const order: OrderInput = {
-      maker_asset: maker.address.toB256(),
-      taker_asset: deployer.address.toB256(),
-      maker_amount: 10000,
-      taker_amount: 10000,
-      maker: maker.address.toB256(),
-      nonce: OrderTestUtils.getRandomAmount(1),
-      expiry: OrderTestUtils.MAX_EXPIRY,
-    }
+    const order = OrderTestUtils.getOrder()
 
     const data_on_chain = await Orders.functions.validate_order(
       order,
@@ -51,19 +44,19 @@ describe('Order Validation', async () => {
     await OrderTestUtils.fundWallets([maker], OrderTestUtils.contractIdBits(tokens), [maker_asset], [OrderTestUtils.DEFAULT_MINT_AMOUNT])
 
     const deposit_amount = OrderTestUtils.getRandomAmount(1, 10000)
-    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit()
+    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit(maker_asset, addressInput(maker.address))
       .callParams({ forward: { assetId: maker_asset, amount: deposit_amount } })
       .call()
 
-    const order: OrderInput = {
+    const order: OrderInput = OrderTestUtils.getOrder({
       maker_asset: maker_asset,
       taker_asset: maker.address.toB256(),
       maker_amount: deposit_amount,
       taker_amount: 10000,
       maker: maker.address.toB256(),
       nonce: OrderTestUtils.getRandomAmount(1),
-      expiry: OrderTestUtils.MAX_EXPIRY,
-    }
+      maker_traits: OrderTestUtils.MAX_EXPIRY,
+    })
 
     const signatureRaw = await maker.signMessage(OrderTestUtils.packOrder(order, Orders))
 
@@ -85,15 +78,15 @@ describe('Order Validation', async () => {
 
     const { Orders } = await OrderTestUtils.fixture(deployer)
 
-    let order: OrderInput = {
+    let order: OrderInput = OrderTestUtils.getOrder({
       maker_asset: maker.address.toB256(),
       taker_asset: maker.address.toB256(),
       maker_amount: 10000,
       taker_amount: 10000,
       maker: maker.address.toB256(),
       nonce: OrderTestUtils.getRandomAmount(1),
-      expiry: OrderTestUtils.MAX_EXPIRY,
-    }
+      maker_traits: OrderTestUtils.MAX_EXPIRY,
+    })
 
     const signatureRaw = await maker.signMessage(OrderTestUtils.packOrder(order, Orders))
 
@@ -124,19 +117,19 @@ describe('Order Validation', async () => {
     await OrderTestUtils.fundWallets([maker], OrderTestUtils.contractIdBits(tokens), [maker_asset], [OrderTestUtils.DEFAULT_MINT_AMOUNT])
 
     const deposit_amount = OrderTestUtils.getRandomAmount(1, 10000)
-    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit()
+    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit(maker_asset, addressInput(maker.address))
       .callParams({ forward: { assetId: maker_asset, amount: deposit_amount } })
       .call()
 
-    const order: OrderInput = {
+    const order: OrderInput = OrderTestUtils.getOrder({
       maker_asset: maker_asset,
       taker_asset: maker_asset,
       maker_amount: deposit_amount,
       taker_amount: 10000,
       maker: maker.address.toB256(),
       nonce: OrderTestUtils.getRandomAmount(1),
-      expiry: 0,
-    }
+      maker_traits: 0,
+    })
 
 
     const signatureRaw = await maker.signMessage(OrderTestUtils.packOrder(order, Orders))
@@ -164,15 +157,15 @@ describe('Order Validation', async () => {
 
     const nonce = OrderTestUtils.getRandomAmount(1)
 
-    const order: OrderInput = {
+    const order: OrderInput = OrderTestUtils.getOrder({
       maker_asset: maker.address.toB256(),
       taker_asset: maker.address.toB256(),
       maker_amount: 10000,
       taker_amount: 10000,
       maker: maker.address.toB256(),
       nonce,
-      expiry: OrderTestUtils.MAX_EXPIRY,
-    }
+      maker_traits: OrderTestUtils.MAX_EXPIRY,
+    })
 
     const signatureRaw = await maker.signMessage(OrderTestUtils.packOrder(order, Orders))
 
@@ -203,15 +196,15 @@ describe('Order Validation', async () => {
 
     const nonce = OrderTestUtils.getRandomAmount(1)
 
-    const order: OrderInput = {
+    const order: OrderInput = OrderTestUtils.getOrder({
       maker_asset: maker.address.toB256(),
       taker_asset: maker.address.toB256(),
       maker_amount: 10000,
       taker_amount: 10000,
       maker: maker.address.toB256(),
       nonce,
-      expiry: OrderTestUtils.MAX_EXPIRY,
-    }
+      maker_traits: OrderTestUtils.MAX_EXPIRY,
+    })
 
 
     await OrderTestUtils.getOrders(maker, Orders.id.toB256()).functions.cancel_order(
@@ -229,7 +222,7 @@ describe('Order Validation', async () => {
 
   test('Cannot cancel order by hash with invalid caller', async () => {
 
-    const launched = await launchTestNode({walletsConfig:{count:3}});
+    const launched = await launchTestNode({ walletsConfig: { count: 3 } });
 
     const {
       wallets: [maker, deployer, other]
@@ -240,15 +233,15 @@ describe('Order Validation', async () => {
 
     const nonce = OrderTestUtils.getRandomAmount(1)
 
-    let order: OrderInput = {
+    let order: OrderInput = OrderTestUtils.getOrder({
       maker_asset: maker.address.toB256(),
       taker_asset: maker.address.toB256(),
       maker_amount: 10000,
       taker_amount: 10000,
       maker: maker.address.toB256(),
       nonce,
-      expiry: OrderTestUtils.MAX_EXPIRY,
-    }
+      maker_traits: OrderTestUtils.MAX_EXPIRY,
+    })
 
     let reason: string | undefined = undefined
     try {

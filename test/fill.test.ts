@@ -3,6 +3,7 @@ import { describe, test, expect } from 'vitest';
 import { addressInput } from '../ts-scripts/utils';
 import { OrderInput } from '../ts-scripts/typegen/OneDeltaOrders';
 import { OrderTestUtils } from './utils';
+import { ZeroBytes32 } from 'fuels';
 
 
 describe('Order fill via `msg_amount`', async () => {
@@ -27,22 +28,23 @@ describe('Order fill via `msg_amount`', async () => {
 
     const maker_amount = OrderTestUtils.getRandomAmount()
 
-    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit()
+    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit(maker_asset, addressInput(maker.address))
       .callParams({ forward: { assetId: maker_asset, amount: maker_amount } })
       .call()
 
 
     const taker_amount = OrderTestUtils.getRandomAmount()
 
-    const order: OrderInput = {
+    const order: OrderInput = OrderTestUtils.getOrder({
       maker_asset,
       taker_asset,
       maker_amount,
       taker_amount,
       maker: maker.address.toB256(),
       nonce: OrderTestUtils.getRandomAmount(1),
-      expiry: OrderTestUtils.MAX_EXPIRY,
-    }
+      maker_traits: OrderTestUtils.MAX_EXPIRY,
+      maker_receiver: ZeroBytes32
+    })
 
     const taker_fill_amount = taker_amount.add(1)
 
@@ -108,21 +110,22 @@ describe('Order fill via `msg_amount`', async () => {
 
     const maker_amount = OrderTestUtils.getRandomAmount()
 
-    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit()
+    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit(maker_asset, addressInput(maker.address))
       .callParams({ forward: { assetId: maker_asset, amount: maker_amount } })
       .call()
 
     const taker_amount = OrderTestUtils.getRandomAmount()
 
-    const order: OrderInput = {
+    const order: OrderInput = OrderTestUtils.getOrder({
       maker_asset,
       taker_asset,
       maker_amount: maker_amount.add(1),
       taker_amount,
       maker: maker.address.toB256(),
       nonce: OrderTestUtils.getRandomAmount(1),
-      expiry: OrderTestUtils.MAX_EXPIRY,
-    }
+      maker_traits: OrderTestUtils.MAX_EXPIRY,
+      maker_receiver: ZeroBytes32
+    })
 
     const taker_fill_amount = taker_amount
 
@@ -171,7 +174,7 @@ describe('Order fill via `msg_amount`', async () => {
 
     const maker_amount = OrderTestUtils.getRandomAmount()
 
-    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit()
+    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit(maker_asset, addressInput(maker.address))
       .callParams({ forward: { assetId: maker_asset, amount: maker_amount } })
       .call()
 
@@ -180,15 +183,16 @@ describe('Order fill via `msg_amount`', async () => {
 
     let nonce = OrderTestUtils.getRandomAmount(1)
 
-    const order: OrderInput = {
+    const order: OrderInput = OrderTestUtils.getOrder({
       maker_asset,
       taker_asset,
       maker_amount,
       taker_amount,
       maker: maker.address.toB256(),
       nonce,
-      expiry: OrderTestUtils.MAX_EXPIRY,
-    }
+      maker_traits: OrderTestUtils.MAX_EXPIRY,
+      maker_receiver: ZeroBytes32
+    })
 
     const signatureRaw = await maker.signMessage(OrderTestUtils.packOrder(order, Orders))
 
@@ -337,19 +341,20 @@ describe('Order fill via `msg_amount`', async () => {
     const taker_amount = OrderTestUtils.getRandomAmount()
 
 
-    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit()
+    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit(maker_asset, addressInput(maker.address))
       .callParams({ forward: { assetId: maker_asset, amount: maker_amount } })
       .call()
 
-    const order: OrderInput = {
+    const order: OrderInput = OrderTestUtils.getOrder({
       maker_asset,
       taker_asset,
       maker_amount,
       taker_amount,
       maker: maker.address.toB256(),
       nonce: OrderTestUtils.getRandomAmount(1),
-      expiry: OrderTestUtils.MAX_EXPIRY,
-    }
+      maker_traits: OrderTestUtils.MAX_EXPIRY,
+      maker_receiver: ZeroBytes32
+    })
     const signatureRaw = await maker.signMessage(OrderTestUtils.packOrder(order, Orders))
 
 
@@ -480,19 +485,20 @@ describe('Order fill via `msg_amount`', async () => {
     const taker_amount = OrderTestUtils.getRandomAmount()
 
 
-    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit()
+    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit(maker_asset, addressInput(maker.address))
       .callParams({ forward: { assetId: maker_asset, amount: maker_amount } })
       .call()
 
-    const order: OrderInput = {
+    const order: OrderInput = OrderTestUtils.getOrder({
       maker_asset,
       taker_asset,
       maker_amount,
       taker_amount,
       maker: maker.address.toB256(),
       nonce: OrderTestUtils.getRandomAmount(1),
-      expiry: OrderTestUtils.MAX_EXPIRY,
-    }
+      maker_traits: OrderTestUtils.MAX_EXPIRY,
+      maker_receiver: ZeroBytes32
+    })
     const signatureRaw = await maker.signMessage(OrderTestUtils.packOrder(order, Orders))
 
 
@@ -639,19 +645,20 @@ describe('Order fill via `msg_amount`', async () => {
     const taker_amount = OrderTestUtils.getRandomAmount()
 
 
-    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit()
+    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit(maker_asset, addressInput(maker.address))
       .callParams({ forward: { assetId: maker_asset, amount: maker_amount } })
       .call()
 
-    const order: OrderInput = {
+    const order: OrderInput = OrderTestUtils.getOrder({
       maker_asset,
       taker_asset,
       maker_amount,
       taker_amount,
       maker: maker.address.toB256(),
       nonce: OrderTestUtils.getRandomAmount(1),
-      expiry: OrderTestUtils.MAX_EXPIRY,
-    }
+      maker_traits: OrderTestUtils.MAX_EXPIRY,
+      maker_receiver: ZeroBytes32
+    })
     const signatureRaw = await maker.signMessage(OrderTestUtils.packOrder(order, Orders))
 
 

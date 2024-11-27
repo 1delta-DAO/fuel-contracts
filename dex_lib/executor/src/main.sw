@@ -421,28 +421,22 @@ pub fn to_order(bytes: Bytes, asset_in: AssetId, asset_out: AssetId) -> (Order, 
     let (taker_amount_bytes, rest) = rest.split_at(8);
     let (maker_bytes, rest) = rest.split_at(32);
     let (nonce_bytes, rest) = rest.split_at(8);
-    let (expiry_bytes, rest) = rest.split_at(4);
+    let (maker_traits_bytes, rest) = rest.split_at(8);
+    let (maker_receiver_bytes, rest) = rest.split_at(32);
 
     // signature_a together with rest will form the B512 signature
     let (signature_a_bytes, rest) = rest.split_at(32); // the rest is now the signature
-
-    // convert remaining order fields
-    let maker_amount = u64::from_be_bytes(maker_amount_bytes);
-    let taker_amount = u64::from_be_bytes(taker_amount_bytes);
-    let maker = b256::from_be_bytes(maker_bytes);
-    let nonce = u64::from_be_bytes(nonce_bytes);
-    let expiry = u32::from_be_bytes(expiry_bytes);
-
     let signature = B512::from((b256::from_be_bytes(signature_a_bytes), b256::from_be_bytes(rest)));
     (
         Order {
             maker_asset: asset_out.bits(),
             taker_asset: asset_in.bits(),
-            maker_amount,
-            taker_amount,
-            maker,
-            nonce,
-            expiry,
+            maker_amount: u64::from_be_bytes(maker_amount_bytes),
+            taker_amount: u64::from_be_bytes(taker_amount_bytes),
+            maker: b256::from_be_bytes(maker_bytes),
+            nonce: u64::from_be_bytes(nonce_bytes),
+            maker_traits: u64::from_be_bytes(maker_traits_bytes),
+            maker_receiver: b256::from_be_bytes(maker_receiver_bytes),
         },
         signature,
     )
@@ -504,10 +498,11 @@ fn test_get_order_params() {
     let asset_in: b256 = 0x4d3a44b2e2e53a5a452f3acac85bdd4f0e38a170a5cfbe4dfce2c79bf21a0f07;
     let asset_out: b256 = 0xa1e88e8fba0e93b94bee471d7447dcc86967389e0a8bf875a0f638c631627127;
     let maker: b256 = 0x0f46587a870bbffb7f00e5fbfbc967476388521e1378ab9c0693667a1a5adb94;
+    let maker_receiver: b256 = 0xeed3d84616553b7cfaa8330d72107e536fe17db136d9caab6304fbd1336f63f8;
     let maker_amount = 7843213424u64;
     let taker_amount = 32758324u64;
     let nonce = 89u64;
-    let expiry = 9999u32;
+    let maker_traits = 9999u64;
 
     let signature_a: b256 = 0x2da47aa4d7bacc8a8456ea19a0588af9dbb24bd352d44918690741a9b42dfbf0;
     let signature_b: b256 = 0x3d2e76594460054f00b86bfc43a944b8c7b739d2b604137aa427372819a2ee42;
@@ -518,7 +513,8 @@ fn test_get_order_params() {
     encoded_order.append(taker_amount.to_be_bytes());
     encoded_order.append(maker.to_be_bytes());
     encoded_order.append(nonce.to_be_bytes());
-    encoded_order.append(expiry.to_be_bytes());
+    encoded_order.append(maker_traits.to_be_bytes());
+    encoded_order.append(maker_receiver.to_be_bytes());
     // signature
     encoded_order.append(signature_a.to_be_bytes());
     encoded_order.append(signature_b.to_be_bytes());
@@ -533,7 +529,7 @@ fn test_get_order_params() {
     assert_eq(order.maker_asset, asset_out);
     assert_eq(order.maker, maker);
     assert_eq(order.nonce, nonce);
-    assert_eq(order.expiry, expiry);
+    assert_eq(order.maker_traits, maker_traits);
     assert_eq(order.taker_amount, taker_amount);
     assert_eq(order.maker_amount, maker_amount);
     assert_eq(signature, signature_expected);

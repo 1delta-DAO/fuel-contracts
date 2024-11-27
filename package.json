@@ -5,7 +5,7 @@
   "scripts": {
     "test": "vitest",
     "build": "tsc",
-    "types": "fuels typegen -i scripts/*/out/*/*-abi.json -o ./ts-scripts/typegen --script & fuels typegen -i fixtures/*/*-abi.json -o ./ts-scripts/typegen --contract & fuels typegen -i one_delta_orders/*/*/*-abi.json -o ./ts-scripts/typegen --contract"
+    "types": "fuels typegen -i scripts/*/out/*/*-abi.json -o ./ts-scripts/typegen --script & fuels typegen -i fixtures/*/*-abi.json -o ./ts-scripts/typegen --contract & fuels typegen -i one_delta_orders/*/*/*-abi.json -o ./ts-scripts/typegen --contract & fuels typegen -i order_router/*/*/*-abi.json -o ./ts-scripts/typegen --contract"
   },
   "keywords": [],
   "author": "1delta",

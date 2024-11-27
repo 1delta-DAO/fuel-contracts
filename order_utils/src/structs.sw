@@ -8,7 +8,8 @@ pub struct Order {
     pub taker_amount: u64,
     pub maker: b256,
     pub nonce: u64,
-    pub expiry: u32,
+    pub maker_traits: u64,
+    pub maker_receiver: b256,
 }
 
 // we log the hash and the funds exchanged
@@ -35,4 +36,12 @@ pub struct WithdrawEvent {
 // we log the hash
 pub struct CancelEvent {
     pub order_hash: b256,
+}
+
+// we log the hash
+pub struct CancelPairEvent {
+    pub maker: b256,
+    pub maker_asset: b256,
+    pub taker_asset: b256,
+    pub nonce: u64,
 }

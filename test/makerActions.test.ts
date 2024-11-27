@@ -23,7 +23,7 @@ describe('Maker Actions', async () => {
 
     const deposit_amount = OrderTestUtils.getRandomAmount(1, 10000)
 
-    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit()
+    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit(addressInput(maker.address))
       .callParams({ forward: { assetId: maker_asset, amount: deposit_amount } })
       .call()
 
@@ -49,7 +49,7 @@ describe('Maker Actions', async () => {
 
     const deposit_amount = OrderTestUtils.getRandomAmount(1, 10000)
 
-    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit()
+    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit(addressInput(maker.address))
       .callParams({ forward: { assetId: maker_asset, amount: deposit_amount } })
       .call()
 
@@ -57,7 +57,7 @@ describe('Maker Actions', async () => {
     const [balance_before_withdraw] = await OrderTestUtils.getMakerBalances(maker, [maker_asset], Orders)
     const [maker_balance_before_withdraw] = await OrderTestUtils.getConventionalBalances(maker, [maker_asset])
 
-    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.withdraw(maker_asset, withdraw_amount)
+    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.withdraw(maker_asset, withdraw_amount, addressInput(maker.address))
       .call()
 
     const [balance_after_withdraw] = await OrderTestUtils.getMakerBalances(maker, [maker_asset], Orders)
@@ -91,13 +91,13 @@ describe('Maker Actions', async () => {
 
     const [maker_balance_before_withdraw] = await OrderTestUtils.getConventionalBalances(maker, [maker_asset])
 
-    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit()
+    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit(addressInput(maker.address))
       .callParams({ forward: { assetId: maker_asset, amount: deposit_amount } })
       .call()
 
     const withdraw_amount = deposit_amount
 
-    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.withdraw(maker_asset, withdraw_amount)
+    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.withdraw(maker_asset, withdraw_amount, addressInput(maker.address))
       .call()
 
     const [balance_after_withdraw] = await OrderTestUtils.getMakerBalances(maker, [maker_asset], Orders)
@@ -131,7 +131,7 @@ describe('Maker Actions', async () => {
 
     const deposit_amount = OrderTestUtils.getRandomAmount(1, 10000)
 
-    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit()
+    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit(addressInput(maker.address))
       .callParams({ forward: { assetId: maker_asset, amount: deposit_amount } })
       .call()
 
@@ -139,7 +139,7 @@ describe('Maker Actions', async () => {
 
     let reason: string | undefined = undefined
     try {
-      await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.withdraw(maker_asset, withdraw_amount)
+      await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.withdraw(maker_asset, withdraw_amount, addressInput(maker.address))
         .call()
     } catch (e) {
       reason = String(e)
@@ -176,7 +176,7 @@ describe('Maker Actions', async () => {
 
     const taker_amount = OrderTestUtils.getRandomAmount(1)
 
-    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit()
+    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit(addressInput(maker.address))
       .callParams({ forward: { assetId: maker_asset, amount: deposit_amount } })
       .call()
 
@@ -320,7 +320,7 @@ describe('Maker Actions', async () => {
 
     const taker_amount = OrderTestUtils.getRandomAmount(1)
 
-    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit()
+    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit(addressInput(maker.address))
       .callParams({ forward: { assetId: maker_asset, amount: deposit_amount } })
       .call()
 
@@ -390,7 +390,7 @@ describe('Maker Actions', async () => {
 
     const taker_amount = OrderTestUtils.getRandomAmount(1)
 
-    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit()
+    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit(addressInput(maker.address))
       .callParams({ forward: { assetId: maker_asset, amount: deposit_amount } })
       .call()
 
@@ -463,7 +463,7 @@ describe('Maker Actions', async () => {
 
     const taker_amount = OrderTestUtils.getRandomAmount(1)
 
-    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit()
+    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit(addressInput(maker.address))
       .callParams({ forward: { assetId: maker_asset, amount: deposit_amount } })
       .call()
 
@@ -530,7 +530,7 @@ describe('Maker Actions', async () => {
 
     const taker_amount = OrderTestUtils.getRandomAmount(1)
 
-    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit()
+    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit(addressInput(maker.address))
       .callParams({ forward: { assetId: maker_asset, amount: deposit_amount } })
       .call()
 

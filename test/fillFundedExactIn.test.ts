@@ -31,7 +31,7 @@ describe('Order fill via `fill_funded` through BatchSwapExactInScript', async ()
     const maker_amount = OrderTestUtils.getRandomAmount()
     const taker_amount = OrderTestUtils.getRandomAmount()
 
-    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit()
+    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit(addressInput(maker.address))
       .callParams({ forward: { assetId: maker_asset, amount: maker_amount } })
       .call()
 
@@ -112,7 +112,7 @@ describe('Order fill via `fill_funded` through BatchSwapExactInScript', async ()
     const taker_amount = OrderTestUtils.getRandomAmount()
 
 
-    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit()
+    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit(addressInput(maker.address))
       .callParams({ forward: { assetId: maker_asset, amount: maker_amount } })
       .call()
 
@@ -274,7 +274,7 @@ describe('Order fill via `fill_funded` through BatchSwapExactInScript', async ()
     const taker_amount = OrderTestUtils.getRandomAmount()
 
 
-    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit()
+    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit(addressInput(maker.address))
       .callParams({ forward: { assetId: maker_asset, amount: maker_amount } })
       .call()
 

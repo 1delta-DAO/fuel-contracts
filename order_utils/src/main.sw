@@ -125,10 +125,10 @@ abi OneDeltaOrders {
     ) -> (u64, u64);
 
     #[storage(write, read), payable]
-    fn deposit();
+    fn deposit(receiver: Identity);
 
     #[storage(write, read)]
-    fn withdraw(asset: b256, amount: u64);
+    fn withdraw(asset: b256, amount: u64, receiver: Identity);
 
     #[storage(write, read)]
     fn invalidate_nonce(maker_asset: b256, taker_asset: b256, new_nonce: u64);

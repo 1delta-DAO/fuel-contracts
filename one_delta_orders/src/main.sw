@@ -128,7 +128,7 @@ impl OneDeltaOrders for Contract {
         );
 
         // this internal balance is unadjusted for the amount received 
-        let taker_asset_accounting_balance = get_asset_balance(order.taker_asset);
+        let taker_asset_accounting_balance = get_total_asset_balance(order.taker_asset);
 
         let sender = msg_sender().unwrap();
 
@@ -176,7 +176,8 @@ impl OneDeltaOrders for Contract {
                     // we enforce that the maker_receiver cannot be this contract
                     // this is the default behaviour which assumes maker_receiver==0
                     require(
-                        order.maker_receiver != ContractId::this().bits(),
+                        order.maker_receiver != ContractId::this()
+                            .bits(),
                         MAKER_RECEIVER_CANNOT_BE_THIS,
                     );
                     Identity::ContractId(ContractId::from(order.maker_receiver))
@@ -236,40 +237,35 @@ impl OneDeltaOrders for Contract {
         (taker_fill_amount_received, maker_filled_amount)
     }
 
+    // deposit assets to the contract
+    // absorbs the difference between accounting and real balance
     #[storage(write, read), payable]
-    fn deposit() {
+    fn deposit(receiver: Identity) {
         reentrancy_guard();
-        // validate asset sent
         let asset = msg_asset_id().bits();
+        let fund_recipient = receiver.bits();
+        let fund_recipient_asset_balance = storage.maker_balances.get(fund_recipient).get(asset).try_read().unwrap_or(0u64);
 
-        let deposit_amount = msg_amount();
+        // get the accounting balance
+        let total_asset_balance_accounting = get_total_asset_balance(asset);
+        // get the actual balance
+        let total_asset_balance_real = this_balance(AssetId::from(asset));
 
-        let owner = msg_sender().unwrap().bits();
-        let mut owner_asset_balance = storage.maker_balances.get(owner).get(asset).try_read().unwrap_or(0u64);
-
-        owner_asset_balance += deposit_amount;
+        // deposit amount is the difference between real balance and accounting balance
+        let deposit_amount = total_asset_balance_real - total_asset_balance_accounting;
 
         // update depositor's balance
         storage
             .maker_balances
-            .get(owner)
-            .insert(asset, owner_asset_balance);
-
-        let total_asset_balance = get_asset_balance(asset);
-
-        // ensure that in no way there are deposits
-        // that result in declining total baalnce vs. accounting
-        let new_balance = total_asset_balance + deposit_amount;
-        if new_balance > this_balance(AssetId::from(asset)) {
-            revert(BALANCE_VIOLATION);
-        }
+            .get(fund_recipient)
+            .insert(asset, fund_recipient_asset_balance + deposit_amount);
 
         // update total balance
-        storage.balances.insert(asset, new_balance);
+        storage.balances.insert(asset, total_asset_balance_real);
 
         // log the deposit
         log(DepositEvent {
-            maker: owner,
+            maker: fund_recipient,
             asset,
             amount: deposit_amount,
         });
@@ -278,31 +274,26 @@ impl OneDeltaOrders for Contract {
     // Makers deposit their exchange balances and internally mutate them as swappers fill
     // their orders 
     #[storage(write, read)]
-    fn withdraw(asset: b256, amount: u64) {
+    fn withdraw(asset: b256, amount: u64, receiver: Identity) {
         reentrancy_guard();
-        let owner = msg_sender().unwrap();
 
         // convert to bits for maps
-        let owner_bits = owner.bits();
-        let mut owner_asset_balance = storage.maker_balances.get(owner_bits).get(asset).try_read().unwrap_or(0u64);
+        let owner_bits = msg_sender().unwrap().bits();
+        let owner_asset_balance = storage.maker_balances.get(owner_bits).get(asset).try_read().unwrap_or(0u64);
 
-        // require that the 
+        // require that the owner has enough balance
         if owner_asset_balance < amount {
             revert(WITHDRAW_TOO_MUCH);
         }
 
-        owner_asset_balance -= amount;
-
+        // update balance as reduced
         storage
             .maker_balances
             .get(owner_bits)
-            .insert(asset, owner_asset_balance);
+            .insert(asset, owner_asset_balance - amount);
 
         // we sync the overall balance by 
         let total_balance_before = storage.balances.get(asset).try_read().unwrap_or(0u64);
-
-        // asset -> owner
-        transfer(owner, AssetId::from(asset), amount);
 
         // ensure that in no way there are withdrawals
         // that violate the total balance post transfer
@@ -313,6 +304,9 @@ impl OneDeltaOrders for Contract {
 
         // update total balance
         storage.balances.insert(asset, new_balance);
+
+        // finalize transfer from this to owner
+        transfer(receiver, AssetId::from(asset), amount);
 
         // log the withdrawal
         log(WithdrawEvent {
@@ -417,7 +411,7 @@ impl OneDeltaOrders for Contract {
 
 // Getter for the internal total balance
 #[storage(read)]
-fn get_asset_balance(asset: b256) -> u64 {
+fn get_total_asset_balance(asset: b256) -> u64 {
     storage.balances.get(asset).try_read().unwrap_or(0)
 }
 

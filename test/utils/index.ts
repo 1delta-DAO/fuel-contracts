@@ -1,5 +1,5 @@
 import { BigNumberish, BN, concatBytes, Contract, hashMessage, randomBytes, toBytes, WalletUnlocked } from 'fuels';
-import { assetIdInput, contractIdInput } from '../../ts-scripts/utils';
+import { addressInput, assetIdInput, contractIdInput } from '../../ts-scripts/utils';
 
 import { MockTokenFactory } from '../../ts-scripts/typegen/MockTokenFactory';
 import { MockToken } from '../../ts-scripts/typegen/MockToken';
@@ -188,7 +188,7 @@ export namespace OrderTestUtils {
       throw new Error("createTakerDeposits: inconsistent input lengths")
     let i = 0
     for (let token of tokens) {
-      await getOrders(maker, contractIdBits(orders)).functions.deposit()
+      await getOrders(maker, contractIdBits(orders)).functions.deposit(addressInput(maker.address))
         .callParams({ forward: { assetId: token, amount: amounts[i] } })
         .call()
       i++;

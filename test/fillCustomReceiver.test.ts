@@ -31,7 +31,7 @@ describe('Order fill with custom maker_receiver', async () => {
 
     const maker_amount = OrderTestUtils.getRandomAmount()
 
-    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit()
+    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit(addressInput(maker.address))
       .callParams({ forward: { assetId: maker_asset, amount: maker_amount } })
       .call()
 

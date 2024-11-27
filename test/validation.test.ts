@@ -3,6 +3,7 @@ import { describe, test, expect } from 'vitest';
 import { hashMessage} from 'fuels';
 import { OrderInput } from '../ts-scripts/typegen/OneDeltaOrders';
 import { OrderTestUtils } from './utils';
+import { addressInput } from '../ts-scripts/utils';
 
 describe('Order Validation', async () => {
   test('Order Hash', async () => {
@@ -43,7 +44,7 @@ describe('Order Validation', async () => {
     await OrderTestUtils.fundWallets([maker], OrderTestUtils.contractIdBits(tokens), [maker_asset], [OrderTestUtils.DEFAULT_MINT_AMOUNT])
 
     const deposit_amount = OrderTestUtils.getRandomAmount(1, 10000)
-    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit()
+    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit(addressInput(maker.address))
       .callParams({ forward: { assetId: maker_asset, amount: deposit_amount } })
       .call()
 
@@ -116,7 +117,7 @@ describe('Order Validation', async () => {
     await OrderTestUtils.fundWallets([maker], OrderTestUtils.contractIdBits(tokens), [maker_asset], [OrderTestUtils.DEFAULT_MINT_AMOUNT])
 
     const deposit_amount = OrderTestUtils.getRandomAmount(1, 10000)
-    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit()
+    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit(addressInput(maker.address))
       .callParams({ forward: { assetId: maker_asset, amount: deposit_amount } })
       .call()
 

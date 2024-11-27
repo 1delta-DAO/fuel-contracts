@@ -37,3 +37,11 @@ pub struct WithdrawEvent {
 pub struct CancelEvent {
     pub order_hash: b256,
 }
+
+// we log the hash
+pub struct CancelPairEvent {
+    pub maker: b256,
+    pub maker_asset: b256,
+    pub taker_asset: b256,
+    pub nonce: u64,
+}

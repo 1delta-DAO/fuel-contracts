@@ -27,6 +27,7 @@ use order_utils::{
     recover_signer,
     structs::{
         CancelEvent,
+        CancelPairEvent,
         DepositEvent,
         Order,
         OrderFillEvent,
@@ -322,9 +323,9 @@ impl OneDeltaOrders for Contract {
     fn invalidate_nonce(maker_asset: b256, taker_asset: b256, new_nonce: u64) {
         reentrancy_guard();
 
-        let owner = msg_sender().unwrap().bits();
+        let maker = msg_sender().unwrap().bits();
         // get current maker nonce
-        let mut old_nonce: u64 = storage.nonces.get(owner).get(maker_asset).get(taker_asset).try_read().unwrap_or(0u64);
+        let mut old_nonce: u64 = storage.nonces.get(maker).get(maker_asset).get(taker_asset).try_read().unwrap_or(0u64);
 
         // valdiate nonce
         require(new_nonce > old_nonce, INVALID_NONCE);
@@ -332,9 +333,16 @@ impl OneDeltaOrders for Contract {
         // set new nonce
         storage
             .nonces
-            .get(owner) // maker
+            .get(maker) // maker
             .get(maker_asset) // maker_asset
             .insert(taker_asset, new_nonce);
+
+        log(CancelPairEvent {
+            maker,
+            maker_asset,
+            taker_asset,
+            nonce: new_nonce,
+        });
     }
 
     // cancel an order with signature

@@ -24,7 +24,8 @@ export namespace OrderTestUtils {
     CANCELLED = 0x7,
     ORDER_ALREADY_FILLED = 0x8,
     INVALID_CANCEL = 0x9,
-    NO_PARTIAL_FILL = 11
+    NO_PARTIAL_FILL = 11,
+    BALANCE_VIOLATION = 12,
   }
 
   export enum ScriptErrorCodes {

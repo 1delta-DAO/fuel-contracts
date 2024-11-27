@@ -166,7 +166,7 @@ impl OneDeltaOrders for Contract {
             }
         }
 
-        // of maker_receiver is defined, we send the funds to
+        // if the maker_receiver is defined, we send the funds to
         // the provided address
         if order.maker_receiver != ZERO_B256 {
             // reduce real balance by amount to be sent in the next line
@@ -260,7 +260,7 @@ impl OneDeltaOrders for Contract {
         // ensure that in no way there are deposits
         // that result in declining total baalnce vs. accounting
         let new_balance = total_asset_balance + deposit_amount;
-        if new_balance < this_balance(AssetId::from(asset)) {
+        if new_balance > this_balance(AssetId::from(asset)) {
             revert(BALANCE_VIOLATION);
         }
 
@@ -307,7 +307,7 @@ impl OneDeltaOrders for Contract {
         // ensure that in no way there are withdrawals
         // that violate the total balance post transfer
         let new_balance = total_balance_before - amount;
-        if new_balance < this_balance(AssetId::from(asset)) {
+        if new_balance > this_balance(AssetId::from(asset)) {
             revert(BALANCE_VIOLATION);
         }
 
@@ -486,8 +486,8 @@ fn update_internal_total_balances(
     // more than expected after payout
     // this is to ensure that the amounts never decline more than the
     // payouts
-    if new_maker_balance < real_balance {
-        revert(this_balance(AssetId::from(maker_asset)) - new_maker_balance);
+    if new_maker_balance > real_balance {
+        revert(BALANCE_VIOLATION);
     }
     // deduct maker asset filled amount from total balance
     storage.balances.insert(maker_asset, new_maker_balance);

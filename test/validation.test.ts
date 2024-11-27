@@ -1,6 +1,6 @@
 import { launchTestNode } from 'fuels/test-utils';
 import { describe, test, expect } from 'vitest';
-import { hashMessage, randomBytes, toHex } from 'fuels';
+import { hashMessage} from 'fuels';
 import { OrderInput } from '../ts-scripts/typegen/OneDeltaOrders';
 import { OrderTestUtils } from './utils';
 
@@ -10,7 +10,7 @@ describe('Order Validation', async () => {
     const launched = await launchTestNode();
 
     const {
-      wallets: [maker, deployer]
+      wallets: [_, deployer]
     } = launched;
 
     const { Orders } = await OrderTestUtils.fixture(deployer)

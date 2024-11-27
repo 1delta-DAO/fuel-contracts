@@ -13,4 +13,5 @@ members = [
     # "contracts/mocks/mock_token",
     "order_utils",
     "one_delta_orders",
+    "order_router",
 ]

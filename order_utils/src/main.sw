@@ -158,6 +158,36 @@ abi OneDeltaOrders {
     fn is_order_signer_delegate(signer: b256, signer_delegate: b256) -> bool;
 }
 
+// convert bytes to an order
+pub fn to_order_and_sig(bytes: Bytes) -> (Order, B512) {
+    let (maker_asset, rest) = bytes.split_at(32);
+    let (taker_asset, rest) = rest.split_at(32);
+    let (maker_amount_bytes, rest) = rest.split_at(8);
+    let (taker_amount_bytes, rest) = rest.split_at(8);
+    let (maker_bytes, rest) = rest.split_at(32);
+    let (nonce_bytes, rest) = rest.split_at(8);
+    let (maker_traits_bytes, rest) = rest.split_at(8);
+    let (maker_receiver_bytes, rest) = rest.split_at(32);
+
+    // signature_a together with rest will form the B512 signature
+    let (signature_a_bytes, rest) = rest.split_at(32); // the rest is now the signature
+    let signature = B512::from((b256::from_be_bytes(signature_a_bytes), b256::from_be_bytes(rest)));
+    (
+        Order {
+            maker_asset: b256::from_be_bytes(maker_asset),
+            taker_asset: b256::from_be_bytes(taker_asset),
+            maker_amount: u64::from_be_bytes(maker_amount_bytes),
+            taker_amount: u64::from_be_bytes(taker_amount_bytes),
+            maker: b256::from_be_bytes(maker_bytes),
+            nonce: u64::from_be_bytes(nonce_bytes),
+            maker_traits: u64::from_be_bytes(maker_traits_bytes),
+            maker_receiver: b256::from_be_bytes(maker_receiver_bytes),
+        },
+        signature,
+    )
+}
+
+
 #[test]
 fn test_maker_traits() {
     // populating everything

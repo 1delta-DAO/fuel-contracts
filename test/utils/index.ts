@@ -8,6 +8,8 @@ import { OneDeltaOrdersFactory } from '../../ts-scripts/typegen/OneDeltaOrdersFa
 import { BatchSwapStepInput, BatchSwapExactInScript, IdentityInput } from '../../ts-scripts/typegen/BatchSwapExactInScript';
 import { BatchSwapExactOutScript } from '../../ts-scripts/typegen/BatchSwapExactOutScript';
 import { expect } from 'vitest';
+import { OrderRouterFactory } from '../../ts-scripts/typegen/OrderRouterFactory';
+import { OrderRouter } from '../../ts-scripts/typegen/OrderRouter';
 
 
 export namespace OrderTestUtils {
@@ -56,15 +58,42 @@ export namespace OrderTestUtils {
     }
   }
 
+  // deploy all relevant fixtures
+  export async function fixtureWithRouter(deployer: WalletUnlocked) {
+
+    const deployTokenTx = await MockTokenFactory.deploy(deployer)
+
+    const { contract: tokens } = await deployTokenTx.waitForResult()
+
+    const deployRfqTx = await OneDeltaOrdersFactory.deploy(deployer)
+
+    const { contract: Orders } = await deployRfqTx.waitForResult()
+
+    const routerDeployTx = await OrderRouterFactory.deploy(deployer, {
+      configurableConstants: {
+        ONE_DELTA_ORDERS_CONTRACT_ID: contractIdInput(Orders.id).ContractId
+      }
+    })
+
+    const { contract: Router } = await routerDeployTx.waitForResult()
+
+
+    return {
+      tokens,
+      Orders,
+      Router
+    }
+  }
+
   const HIGH_BIT_0 = 1n << 63n;
   const HIGH_BIT_1 = 1n << 62n;
-  const EXPIRY_MASK  = BigInt("0x00000000ffffffff");
-  
+  const EXPIRY_MASK = BigInt("0x00000000ffffffff");
+
 
   export function encodeTraits(contractReceiver = false, noPartialFills = false, expiry = OrderTestUtils.MAX_EXPIRY) {
     let traits = BigInt(expiry)
-    if(contractReceiver) traits = (traits & ~HIGH_BIT_0) | HIGH_BIT_0
-    if(noPartialFills) traits  = (traits & ~HIGH_BIT_1) | HIGH_BIT_1
+    if (contractReceiver) traits = (traits & ~HIGH_BIT_0) | HIGH_BIT_0
+    if (noPartialFills) traits = (traits & ~HIGH_BIT_1) | HIGH_BIT_1
     return traits.toString()
   }
 
@@ -135,6 +164,11 @@ export namespace OrderTestUtils {
   /** Get the Rfq order contract with a specific signer */
   export function getOrders(signer: WalletUnlocked, orderAddr: string) {
     return new OneDeltaOrders(orderAddr, signer)
+  }
+
+  /** Get the Rfq order contract with a specific signer */
+  export function getRouter(signer: WalletUnlocked, orderAddr: string) {
+    return new OrderRouter(orderAddr, signer)
   }
 
   export const DEFAULT_RANDOM_AMOUNT_LIMIT = 1_000_000
@@ -218,6 +252,20 @@ export namespace OrderTestUtils {
       toBytes(order.nonce, 8),
       toBytes(order.maker_traits, 8),
       toBytes(order.maker_receiver, 32),
+    ]) as any
+  }
+
+  export function routerParams(order: OrderInput, signature: string) {
+    return concatBytes([
+      toBytes(order.maker_asset, 32),
+      toBytes(order.taker_asset, 32),
+      toBytes(order.maker_amount, 8),
+      toBytes(order.taker_amount, 8),
+      toBytes(order.maker, 32),
+      toBytes(order.nonce, 8),
+      toBytes(order.maker_traits, 8),
+      toBytes(order.maker_receiver, 32),
+      toBytes(signature, 64),
     ]) as any
   }
 

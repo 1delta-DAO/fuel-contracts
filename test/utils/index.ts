@@ -188,7 +188,7 @@ export namespace OrderTestUtils {
       throw new Error("createTakerDeposits: inconsistent input lengths")
     let i = 0
     for (let token of tokens) {
-      await getOrders(maker, contractIdBits(orders)).functions.deposit(addressInput(maker.address))
+      await getOrders(maker, contractIdBits(orders)).functions.deposit(token, addressInput(maker.address))
         .callParams({ forward: { assetId: token, amount: amounts[i] } })
         .call()
       i++;

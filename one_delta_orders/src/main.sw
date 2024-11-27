@@ -240,9 +240,9 @@ impl OneDeltaOrders for Contract {
     // deposit assets to the contract
     // absorbs the difference between accounting and real balance
     #[storage(write, read), payable]
-    fn deposit(receiver: Identity) {
+    fn deposit(asset: b256, receiver: Identity) {
         reentrancy_guard();
-        let asset = msg_asset_id().bits();
+
         let fund_recipient = receiver.bits();
         let fund_recipient_asset_balance = storage.maker_balances.get(fund_recipient).get(asset).try_read().unwrap_or(0u64);
 

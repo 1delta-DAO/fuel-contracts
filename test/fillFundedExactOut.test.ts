@@ -32,7 +32,7 @@ describe('Order fill via `fill_funded` through BatchSwapExactOutScript', async (
     const taker_amount = OrderTestUtils.getRandomAmount()
 
 
-    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit(addressInput(maker.address))
+    await OrderTestUtils.getOrders(maker, OrderTestUtils.contractIdBits(Orders)).functions.deposit(maker_asset, addressInput(maker.address))
       .callParams({ forward: { assetId: maker_asset, amount: maker_amount } })
       .call()
 

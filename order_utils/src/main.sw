@@ -125,7 +125,7 @@ abi OneDeltaOrders {
     ) -> (u64, u64);
 
     #[storage(write, read), payable]
-    fn deposit(receiver: Identity);
+    fn deposit(asset: b256, receiver: Identity);
 
     #[storage(write, read)]
     fn withdraw(asset: b256, amount: u64, receiver: Identity);

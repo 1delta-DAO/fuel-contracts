@@ -45,7 +45,7 @@ export namespace TestnetData {
 export namespace MainnetData {
     export const MIRA_AMM_ID = "0x2e40f2b244b98ed6b8204b3de0156c6961f98525c8162f80162fcf53eebd90e7"
 
-    export const one_delta_orders = "0xd6da28183b421e336504b96bd1f8571d692222542f89c860ed1407caeb637303"
+    export const one_delta_orders = "0xf6caa75386fe9ba4da15b82723ecffb0d56b28ae7ece396b15c5650b605359ac"
 
     export const TOKEN_GATEWAY = "0x4ea6ccef1215d9479f1024dff70fc055ca538215d2c8c348beddffd54583d0e8"
 

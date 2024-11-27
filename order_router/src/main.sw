@@ -59,7 +59,7 @@ abi OrderRouter {
 }
 
 configurable {
-    ONE_DELTA_ORDERS_CONTRACT_ID: ContractId = ContractId::from(0xd6da28183b421e336504b96bd1f8571d692222542f89c860ed1407caeb637303),
+    ONE_DELTA_ORDERS_CONTRACT_ID: ContractId = ContractId::from(0xf6caa75386fe9ba4da15b82723ecffb0d56b28ae7ece396b15c5650b605359ac),
 }
 
 storage {}

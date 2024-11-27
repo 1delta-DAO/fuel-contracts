@@ -120,6 +120,13 @@ impl OneDeltaOrders for Contract {
             revert(MAKER_BALANCE_TOO_LOW)
         }
 
+        // prevent partial fills if specified as such
+        if no_partial_fill(order.maker_traits) {
+            if taker_fill_amount < order.taker_amount {
+                revert(NO_PARTIAL_FILL);
+            }
+        }
+
         // optimistically transfer maker_token::maker -> receiver
         transfer(
             taker_receiver,
@@ -156,13 +163,6 @@ impl OneDeltaOrders for Contract {
         // note that a too high amount will be consumed by the maker
         if taker_fill_amount_received < taker_filled_amount {
             revert(INSUFFICIENT_TAKER_AMOUNT_RECEIVED);
-        }
-
-        // prevent partial fills if specified as such
-        if no_partial_fill(order.maker_traits) {
-            if taker_fill_amount_received < order.taker_amount {
-                revert(NO_PARTIAL_FILL);
-            }
         }
 
         // if the maker_receiver is defined, we send the funds to

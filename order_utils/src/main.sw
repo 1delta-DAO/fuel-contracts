@@ -20,7 +20,6 @@ use std::{
 abi IFlashCallback {
     #[storage(read, write)]
     fn flash(
-        sender: Identity,
         maker_asset: b256,
         taker_asset: b256,
         maker_amount: u64,

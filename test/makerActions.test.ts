@@ -214,12 +214,19 @@ describe('Maker Actions', async () => {
 
     const [
       maker_maker_asset_balance_before,
-      maker_taker_asset_balance_before
     ] = await OrderTestUtils.getMakerBalances(
       maker.address.toB256(),
-      [maker_asset, taker_asset],
+      [maker_asset],
       Orders
     )
+
+    const [
+      maker_taker_asset_balance_before
+    ] = await OrderTestUtils.getConventionalBalances(
+      maker,
+      [taker_asset],
+    )
+
 
     // will fill order delegate's signature
     await OrderTestUtils.getOrders(taker, OrderTestUtils.contractIdBits(Orders)).functions.fill(
@@ -231,14 +238,19 @@ describe('Maker Actions', async () => {
       .callParams({ forward: { assetId: taker_asset, amount: taker_fill_amount } })
       .call()
 
-
     const [
       maker_maker_asset_balance_after,
-      maker_taker_asset_balance_after
     ] = await OrderTestUtils.getMakerBalances(
       maker.address.toB256(),
-      [maker_asset, taker_asset],
+      [maker_asset],
       Orders
+    )
+
+    const [
+      maker_taker_asset_balance_after
+    ] = await OrderTestUtils.getConventionalBalances(
+      maker,
+      [taker_asset],
     )
 
     const maker_fill_amount = OrderTestUtils.computeMakerFillAmount(taker_fill_amount, order.maker_amount, order.taker_amount)
@@ -296,7 +308,7 @@ describe('Maker Actions', async () => {
   });
 
 
-  test('Maker can delegate signature for cancellation', async () => {
+  test('Maker can delegate cancellation', async () => {
 
     const launched = await launchTestNode({ walletsConfig: { count: 4 } });
 

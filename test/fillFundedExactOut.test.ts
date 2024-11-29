@@ -37,13 +37,20 @@ describe('Order fill via `fill_funded` through BatchSwapExactOutScript', async (
       .call()
 
 
+
     const [
       maker_maker_asset_balance_before,
-      maker_taker_asset_balance_before
     ] = await OrderTestUtils.getMakerBalances(
       maker.address.toB256(),
-      [maker_asset, taker_asset],
+      [maker_asset],
       Orders
+    )
+
+    const [
+      maker_taker_asset_balance_before
+    ] = await OrderTestUtils.getConventionalBalances(
+      maker,
+      [taker_asset],
     )
 
     const [
@@ -54,9 +61,17 @@ describe('Order fill via `fill_funded` through BatchSwapExactOutScript', async (
       [maker_asset, taker_asset]
     )
 
+    const [
+      total_maker_asset_balance_before,
+    ] = await OrderTestUtils.getTotalBalances(
+      [maker_asset],
+      Orders
+    )
+
+
     /** DEFINE PARAMETERS */
 
-    const order: OrderInput =  OrderTestUtils.getOrder({
+    const order: OrderInput = OrderTestUtils.getOrder({
       maker_asset,
       taker_asset,
       maker_amount,
@@ -110,11 +125,17 @@ describe('Order fill via `fill_funded` through BatchSwapExactOutScript', async (
 
     const [
       maker_maker_asset_balance_after,
-      maker_taker_asset_balance_after
     ] = await OrderTestUtils.getMakerBalances(
       maker.address.toB256(),
-      [maker_asset, taker_asset],
+      [maker_asset],
       Orders
+    )
+
+    const [
+      maker_taker_asset_balance_after
+    ] = await OrderTestUtils.getConventionalBalances(
+      maker,
+      [taker_asset],
     )
 
     const [
@@ -123,6 +144,13 @@ describe('Order fill via `fill_funded` through BatchSwapExactOutScript', async (
     ] = await OrderTestUtils.getConventionalBalances(
       taker,
       [maker_asset, taker_asset]
+    )
+
+    const [
+      total_maker_asset_balance_after,
+    ] = await OrderTestUtils.getTotalBalances(
+      [maker_asset],
+      Orders
     )
 
     // validate maker change 
@@ -152,6 +180,15 @@ describe('Order fill via `fill_funded` through BatchSwapExactOutScript', async (
     ).to.equal(
       taker_fill_amount.toString()
     )
+
+    // validate total balances
+    expect(
+      total_maker_asset_balance_before.sub(total_maker_asset_balance_after).toNumber()
+    ).to.approximately(
+      maker_fill_amount.toNumber(),
+      makerRoundingError
+    )
+
 
     // these checks make sure that swap routes always execute (we always receive enough)
 
@@ -214,13 +251,20 @@ describe('Order fill via `fill_funded` through BatchSwapExactOutScript', async (
 
     await OrderTestUtils.createMakerDeposits(maker, Orders, [maker_asset, intermediate_asset], [maker_amount.toNumber(), intermediate_amount.toNumber()])
 
+
     const [
       maker_maker_asset_balance_before,
-      maker_taker_asset_balance_before
     ] = await OrderTestUtils.getMakerBalances(
       maker.address.toB256(),
-      [maker_asset, taker_asset],
+      [maker_asset],
       Orders
+    )
+
+    const [
+      maker_taker_asset_balance_before
+    ] = await OrderTestUtils.getConventionalBalances(
+      maker,
+      [taker_asset],
     )
 
     const [
@@ -231,9 +275,10 @@ describe('Order fill via `fill_funded` through BatchSwapExactOutScript', async (
       [maker_asset, taker_asset]
     )
 
+
     /** DEFINE PARAMETERS */
 
-    const order0: OrderInput =  OrderTestUtils.getOrder({
+    const order0: OrderInput = OrderTestUtils.getOrder({
       maker_asset: intermediate_asset, // asset_mid
       taker_asset, // asset_in
       maker_amount: intermediate_amount,
@@ -244,7 +289,7 @@ describe('Order fill via `fill_funded` through BatchSwapExactOutScript', async (
       maker_receiver: ZeroBytes32
     })
 
-    const order1: OrderInput =  OrderTestUtils.getOrder({
+    const order1: OrderInput = OrderTestUtils.getOrder({
       maker_asset, // asset_out
       taker_asset: intermediate_asset, // asset_mid
       maker_amount,
@@ -311,11 +356,17 @@ describe('Order fill via `fill_funded` through BatchSwapExactOutScript', async (
 
     const [
       maker_maker_asset_balance_after,
-      maker_taker_asset_balance_after
     ] = await OrderTestUtils.getMakerBalances(
       maker.address.toB256(),
-      [maker_asset, taker_asset],
+      [maker_asset],
       Orders
+    )
+
+    const [
+      maker_taker_asset_balance_after
+    ] = await OrderTestUtils.getConventionalBalances(
+      maker,
+      [taker_asset],
     )
 
     const [
@@ -325,6 +376,7 @@ describe('Order fill via `fill_funded` through BatchSwapExactOutScript', async (
       taker,
       [maker_asset, taker_asset]
     )
+
 
     // weh have to adjust the rounding error as it propagates to the intermediate swap
     const makerRoundingError = Math.ceil((maker_amount.toNumber() / intermediate_amount.toNumber())) * Math.ceil(intermediate_amount.toNumber() / taker_amount.toNumber())

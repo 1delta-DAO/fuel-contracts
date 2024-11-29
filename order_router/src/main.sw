@@ -116,7 +116,8 @@ impl OrderRouter for Contract {
             INVALID_MATCH,
         );
 
-        let (taker_filled, maker_filled) = abi(OneDeltaOrders, ONE_DELTA_ORDERS_CONTRACT_ID.bits()).fill(
+        let orders = abi(OneDeltaOrders, ONE_DELTA_ORDERS_CONTRACT_ID.into());
+        let (taker_filled, maker_filled) = orders.fill(
             order,
             signature,
             maker_amount,

@@ -116,22 +116,19 @@ describe('Order fill via `fill_funded` through BatchSwapExactInScript', async ()
       .callParams({ forward: { assetId: maker_asset, amount: maker_amount } })
       .call()
 
-
     const [
       maker_maker_asset_balance_before,
-      maker_taker_asset_balance_before
     ] = await OrderTestUtils.getMakerBalances(
       maker.address.toB256(),
-      [maker_asset, taker_asset],
+      [maker_asset],
       Orders
     )
 
     const [
-      total_maker_asset_balance_before,
-      total_taker_asset_balance_before
-    ] = await OrderTestUtils.getTotalBalances(
-      [maker_asset, taker_asset],
-      Orders
+      maker_taker_asset_balance_before
+    ] = await OrderTestUtils.getConventionalBalances(
+      maker,
+      [taker_asset],
     )
 
     const [
@@ -140,6 +137,13 @@ describe('Order fill via `fill_funded` through BatchSwapExactInScript', async ()
     ] = await OrderTestUtils.getConventionalBalances(
       taker,
       [maker_asset, taker_asset]
+    )
+
+    const [
+      total_maker_asset_balance_before,
+    ] = await OrderTestUtils.getTotalBalances(
+      [maker_asset],
+      Orders
     )
 
     /** DEFINE PARAMETERS */
@@ -188,13 +192,21 @@ describe('Order fill via `fill_funded` through BatchSwapExactInScript', async ()
     const tx = await taker.sendTransaction(finalRequest, { estimateTxDependencies: true })
     await tx.waitForResult()
 
+    await OrderTestUtils.testFillStatus(order, Orders, taker_amount, false)
+
     const [
       maker_maker_asset_balance_after,
-      maker_taker_asset_balance_after
     ] = await OrderTestUtils.getMakerBalances(
       maker.address.toB256(),
-      [maker_asset, taker_asset],
+      [maker_asset],
       Orders
+    )
+
+    const [
+      maker_taker_asset_balance_after
+    ] = await OrderTestUtils.getConventionalBalances(
+      maker,
+      [taker_asset],
     )
 
     const [
@@ -207,9 +219,8 @@ describe('Order fill via `fill_funded` through BatchSwapExactInScript', async ()
 
     const [
       total_maker_asset_balance_after,
-      total_taker_asset_balance_after
     ] = await OrderTestUtils.getTotalBalances(
-      [maker_asset, taker_asset],
+      [maker_asset],
       Orders
     )
 
@@ -230,11 +241,6 @@ describe('Order fill via `fill_funded` through BatchSwapExactInScript', async ()
       total_maker_asset_balance_before.sub(total_maker_asset_balance_after).toString()
     ).to.equal(
       maker_amount.toString()
-    )
-    expect(
-      total_taker_asset_balance_after.sub(total_taker_asset_balance_before).toString()
-    ).to.equal(
-      taker_amount.toString()
     )
 
     // validate taker change
@@ -278,14 +284,19 @@ describe('Order fill via `fill_funded` through BatchSwapExactInScript', async ()
       .callParams({ forward: { assetId: maker_asset, amount: maker_amount } })
       .call()
 
-
     const [
       maker_maker_asset_balance_before,
-      maker_taker_asset_balance_before
     ] = await OrderTestUtils.getMakerBalances(
       maker.address.toB256(),
-      [maker_asset, taker_asset],
+      [maker_asset],
       Orders
+    )
+
+    const [
+      maker_taker_asset_balance_before
+    ] = await OrderTestUtils.getConventionalBalances(
+      maker,
+      [taker_asset],
     )
 
     const [
@@ -294,6 +305,13 @@ describe('Order fill via `fill_funded` through BatchSwapExactInScript', async ()
     ] = await OrderTestUtils.getConventionalBalances(
       taker,
       [maker_asset, taker_asset]
+    )
+
+    const [
+      total_maker_asset_balance_before,
+    ] = await OrderTestUtils.getTotalBalances(
+      [maker_asset],
+      Orders
     )
 
     /** DEFINE PARAMETERS */
@@ -344,13 +362,20 @@ describe('Order fill via `fill_funded` through BatchSwapExactInScript', async ()
     const tx = await taker.sendTransaction(finalRequest, { estimateTxDependencies: true })
     await tx.waitForResult()
 
+
     const [
       maker_maker_asset_balance_after,
-      maker_taker_asset_balance_after
     ] = await OrderTestUtils.getMakerBalances(
       maker.address.toB256(),
-      [maker_asset, taker_asset],
+      [maker_asset],
       Orders
+    )
+
+    const [
+      maker_taker_asset_balance_after
+    ] = await OrderTestUtils.getConventionalBalances(
+      maker,
+      [taker_asset],
     )
 
     const [
@@ -359,6 +384,13 @@ describe('Order fill via `fill_funded` through BatchSwapExactInScript', async ()
     ] = await OrderTestUtils.getConventionalBalances(
       taker,
       [maker_asset, taker_asset]
+    )
+
+    const [
+      total_maker_asset_balance_after,
+    ] = await OrderTestUtils.getTotalBalances(
+      [maker_asset],
+      Orders
     )
 
     // validate maker change
@@ -372,6 +404,14 @@ describe('Order fill via `fill_funded` through BatchSwapExactInScript', async ()
     ).to.equal(
       taker_fill_amount.toString()
     )
+
+    // validate total balances
+    expect(
+      total_maker_asset_balance_before.sub(total_maker_asset_balance_after).toString()
+    ).to.equal(
+      maker_fill_amount.toString()
+    )
+
 
     // validate taker change
     expect(
@@ -418,11 +458,17 @@ describe('Order fill via `fill_funded` through BatchSwapExactInScript', async ()
 
     const [
       maker_maker_asset_balance_before,
-      maker_taker_asset_balance_before
     ] = await OrderTestUtils.getMakerBalances(
       maker.address.toB256(),
-      [maker_asset, taker_asset],
+      [maker_asset],
       Orders
+    )
+
+    const [
+      maker_taker_asset_balance_before
+    ] = await OrderTestUtils.getConventionalBalances(
+      maker,
+      [taker_asset],
     )
 
     const [
@@ -435,9 +481,8 @@ describe('Order fill via `fill_funded` through BatchSwapExactInScript', async ()
 
     const [
       total_maker_asset_balance_before,
-      total_taker_asset_balance_before
     ] = await OrderTestUtils.getTotalBalances(
-      [maker_asset, taker_asset],
+      [maker_asset],
       Orders
     )
 
@@ -453,7 +498,7 @@ describe('Order fill via `fill_funded` through BatchSwapExactInScript', async ()
       maker_receiver: ZeroBytes32
     })
 
-    const order1: OrderInput =  OrderTestUtils.getOrder({
+    const order1: OrderInput = OrderTestUtils.getOrder({
       maker_asset, // asset_out
       taker_asset: intermediate_asset, // asset_mid
       maker_amount,
@@ -462,7 +507,7 @@ describe('Order fill via `fill_funded` through BatchSwapExactInScript', async ()
       maker_traits: OrderTestUtils.MAX_EXPIRY,
       maker_receiver: ZeroBytes32
     })
-    
+
     const taker_fill_amount = OrderTestUtils.getRandomAmount(1, taker_amount.toNumber()) // this is the actual amount_in
 
     const intermediate_fill_amount = OrderTestUtils.computeMakerFillAmount(taker_fill_amount, order0.maker_amount, order0.taker_amount)
@@ -486,7 +531,7 @@ describe('Order fill via `fill_funded` through BatchSwapExactInScript', async ()
         ]
       ]
     ]
-    
+
     const deadline = OrderTestUtils.MAX_EXPIRY
 
     const request = await (await OrderTestUtils.callExactInScriptScope(path, deadline, taker, Orders.id.toB256()))
@@ -510,11 +555,17 @@ describe('Order fill via `fill_funded` through BatchSwapExactInScript', async ()
 
     const [
       maker_maker_asset_balance_after,
-      maker_taker_asset_balance_after
     ] = await OrderTestUtils.getMakerBalances(
       maker.address.toB256(),
-      [maker_asset, taker_asset],
+      [maker_asset],
       Orders
+    )
+
+    const [
+      maker_taker_asset_balance_after
+    ] = await OrderTestUtils.getConventionalBalances(
+      maker,
+      [taker_asset],
     )
 
     const [
@@ -527,12 +578,10 @@ describe('Order fill via `fill_funded` through BatchSwapExactInScript', async ()
 
     const [
       total_maker_asset_balance_after,
-      total_taker_asset_balance_after
     ] = await OrderTestUtils.getTotalBalances(
-      [maker_asset, taker_asset],
+      [maker_asset],
       Orders
     )
-
     // validate maker change
     expect(
       maker_maker_asset_balance_before.sub(maker_maker_asset_balance_after).toString()
@@ -550,11 +599,6 @@ describe('Order fill via `fill_funded` through BatchSwapExactInScript', async ()
       total_maker_asset_balance_before.sub(total_maker_asset_balance_after).toString()
     ).to.equal(
       maker_fill_amount.toString()
-    )
-    expect(
-      total_taker_asset_balance_after.sub(total_taker_asset_balance_before).toString()
-    ).to.equal(
-      taker_fill_amount.toString()
     )
 
     // validate taker change

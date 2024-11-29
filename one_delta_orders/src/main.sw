@@ -128,7 +128,7 @@ impl OneDeltaOrders for Contract {
 
         // prevent partial fills if specified as such
         if no_partial_fill(order.maker_traits) {
-            if taker_fill_amount < order.taker_amount {
+            if taker_filled_amount < order.taker_amount {
                 revert(NO_PARTIAL_FILL);
             }
         }
@@ -146,7 +146,7 @@ impl OneDeltaOrders for Contract {
         update_remaining_fill_amount(
             order_hash,
             taker_asset_already_filled_amount,
-            taker_fill_amount,
+            taker_filled_amount,
         );
 
         // reduce the total maker balance
@@ -166,7 +166,7 @@ impl OneDeltaOrders for Contract {
                     order.maker_asset,
                     order.taker_asset,
                     maker_filled_amount,
-                    taker_fill_amount,
+                    taker_filled_amount,
                     d,
                 );
         }
@@ -207,7 +207,7 @@ impl OneDeltaOrders for Contract {
                 Identity::Address(Address::from(maker_receiver))
             },
             AssetId::from(order.taker_asset),
-            taker_fill_amount_received,
+            taker_filled_amount,
         );
 
         // log the fill info and hash
@@ -216,8 +216,10 @@ impl OneDeltaOrders for Contract {
             taker_filled_amount,
             maker_filled_amount,
         });
+
         // unlock taker_asset
         storage.taker_asset_locked.insert(order.taker_asset, false);
+
         // return filled amounts
         (taker_filled_amount, maker_filled_amount)
     }
@@ -523,17 +525,17 @@ fn compute_fill_amounts(
         ORDER_ALREADY_FILLED,
     );
     // Clamp the taker asset fill amount to the fillable amount.
-    let taker_asset_amount_available: u256 = min64(
+    let taker_asset_filled_amount: u256 = min64(
         taker_fill_amount,
         taker_amount - taker_asset_already_filled_amount,
     ).into();
     // Compute the maker asset amount.
     // This should never overflow because the values are all clamped to
     // (2^64-1).
-    let maker_asset_filled_amount = (taker_asset_amount_available * maker_amount.into() / taker_amount.into());
+    let maker_asset_filled_amount = (taker_asset_filled_amount * maker_amount.into() / taker_amount.into());
     (
         u64::try_from(maker_asset_filled_amount).unwrap(),
-        u64::try_from(taker_asset_amount_available).unwrap(),
+        u64::try_from(taker_asset_filled_amount).unwrap(),
     )
 }
 

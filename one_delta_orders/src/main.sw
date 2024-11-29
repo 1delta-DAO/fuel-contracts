@@ -6,13 +6,13 @@ use std::{
     block::height,
     bytes::Bytes,
     call_frames::msg_asset_id,
-    context::{
-        msg_amount,
-        this_balance,
+    context::this_balance,
+    ecr::{
+        ec_recover_address,
+        EcRecoverError,
     },
-    hash::*,
+    hash::Hash,
     revert::require,
-    storage::storage_vec::*,
 };
 use sway_libs::reentrancy::reentrancy_guard;
 use order_utils::{
@@ -23,8 +23,6 @@ use order_utils::{
     min64,
     no_partial_fill,
     OneDeltaOrders,
-    pack_order,
-    recover_signer,
     structs::{
         CancelEvent,
         CancelPairEvent,
@@ -69,6 +67,7 @@ const NO_PARTIAL_FILL = 11u64;
 const BALANCE_VIOLATION = 12u64;
 const MAKER_RECEIVER_CANNOT_BE_THIS = 13u64;
 const REENTER_TAKER_ASSET = 14u64;
+const SIGNER_NOT_RECOVERED = 15u64;
 
 impl OneDeltaOrders for Contract {
     /* Fills an order
@@ -513,6 +512,12 @@ fn update_remaining_fill_amount(
         );
 }
 
+// check the registry if signer delegated to signer_delegate
+#[storage(read)]
+fn is_order_signer_delegate_internal(signer: b256, signer_delegate: b256) -> bool {
+    storage.order_signer_registry.get(signer).get(signer_delegate).try_read().unwrap_or(false)
+}
+
 fn compute_fill_amounts(
     taker_fill_amount: u64,
     taker_asset_already_filled_amount: u64,
@@ -539,8 +544,13 @@ fn compute_fill_amounts(
     )
 }
 
-// check the registry if signer delegated to signer_delegate
-#[storage(read)]
-fn is_order_signer_delegate_internal(signer: b256, signer_delegate: b256) -> bool {
-    storage.order_signer_registry.get(signer).get(signer_delegate).try_read().unwrap_or(false)
+// recovers signer of hash
+fn recover_signer(signature: B512, msg_hash: b256) -> Address {
+    // A recovered Fuel address.
+    let result_address: Result<Address, EcRecoverError> = ec_recover_address(signature, msg_hash);
+    if let Ok(address) = result_address {
+        return address;
+    } else {
+        revert(SIGNER_NOT_RECOVERED);
+    }
 }

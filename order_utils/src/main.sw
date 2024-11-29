@@ -28,16 +28,6 @@ abi IFlashCallback {
     );
 }
 
-pub fn recover_signer(signature: B512, msg_hash: b256) -> Address {
-    // A recovered Fuel address.
-    let result_address: Result<Address, EcRecoverError> = ec_recover_address(signature, msg_hash);
-    if let Ok(address) = result_address {
-        return address;
-    } else {
-        revert(0);
-    }
-}
-
 // the order hash is the sha256 hash of the packed
 // verifying contract address, followed by the order values
 pub fn compute_order_hash(order: Order, verifying_contract: b256) -> b256 {

@@ -3,28 +3,15 @@ contract;
 use std::{
     asset::transfer,
     b512::B512,
-    block::height,
     bytes::Bytes,
-    call_frames::msg_asset_id,
-    context::{
-        msg_amount,
-        this_balance,
-    },
+    context::this_balance,
     hash::*,
     revert::require,
-    storage::storage_vec::*,
 };
-use sway_libs::reentrancy::reentrancy_guard;
 use order_utils::{
     compute_taker_fill_amount,
-    get_expiry,
     IFlashCallback,
-    is_contract_receiver,
-    min64,
-    no_partial_fill,
     OneDeltaOrders,
-    pack_order,
-    recover_signer,
     structs::{
         CancelEvent,
         CancelPairEvent,

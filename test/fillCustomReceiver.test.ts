@@ -9,7 +9,6 @@ import { txParams } from '../ts-scripts/utils/constants';
 
 describe('Order fill with custom maker_receiver', async () => {
 
-
   test('Facilitates full order fill to custom receiver', async () => {
 
     const launched = await launchTestNode({ walletsConfig: { count: 3 } });

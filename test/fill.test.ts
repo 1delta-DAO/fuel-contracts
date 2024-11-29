@@ -5,7 +5,6 @@ import { OrderInput } from '../ts-scripts/typegen/OneDeltaOrders';
 import { OrderTestUtils } from './utils';
 import { ZeroBytes32 } from 'fuels';
 
-
 describe('Order fill via `msg_amount`', async () => {
 
   test('If attempt to fill more than taker_amount, do not error', async () => {
@@ -198,11 +197,17 @@ describe('Order fill via `msg_amount`', async () => {
 
     const [
       maker_maker_asset_balance_before,
-      maker_taker_asset_balance_before
     ] = await OrderTestUtils.getMakerBalances(
       maker.address.toB256(),
-      [maker_asset, taker_asset],
+      [maker_asset],
       Orders
+    )
+
+    const [
+      maker_taker_asset_balance_before
+    ] = await OrderTestUtils.getConventionalBalances(
+      maker,
+      [taker_asset],
     )
 
     const [
@@ -216,9 +221,8 @@ describe('Order fill via `msg_amount`', async () => {
 
     const [
       total_maker_asset_balance_before,
-      total_taker_asset_balance_before
     ] = await OrderTestUtils.getTotalBalances(
-      [maker_asset, taker_asset],
+      [maker_asset],
       Orders
     )
 
@@ -236,11 +240,17 @@ describe('Order fill via `msg_amount`', async () => {
 
     const [
       maker_maker_asset_balance_after,
-      maker_taker_asset_balance_after
     ] = await OrderTestUtils.getMakerBalances(
       maker.address.toB256(),
-      [maker_asset, taker_asset],
+      [maker_asset],
       Orders
+    )
+
+    const [
+      maker_taker_asset_balance_after
+    ] = await OrderTestUtils.getConventionalBalances(
+      maker,
+      [taker_asset],
     )
 
     const [
@@ -253,9 +263,8 @@ describe('Order fill via `msg_amount`', async () => {
 
     const [
       total_maker_asset_balance_after,
-      total_taker_asset_balance_after
     ] = await OrderTestUtils.getTotalBalances(
-      [maker_asset, taker_asset],
+      [maker_asset],
       Orders
     )
 
@@ -276,11 +285,6 @@ describe('Order fill via `msg_amount`', async () => {
       total_maker_asset_balance_before.sub(total_maker_asset_balance_after).toString()
     ).to.equal(
       maker_amount.toString()
-    )
-    expect(
-      total_taker_asset_balance_after.sub(total_taker_asset_balance_before).toString()
-    ).to.equal(
-      taker_amount.toString()
     )
 
     // validate taker change
@@ -357,14 +361,19 @@ describe('Order fill via `msg_amount`', async () => {
     })
     const signatureRaw = await maker.signMessage(OrderTestUtils.packOrder(order, Orders))
 
-
     const [
       maker_maker_asset_balance_before,
-      maker_taker_asset_balance_before
     ] = await OrderTestUtils.getMakerBalances(
       maker.address.toB256(),
-      [maker_asset, taker_asset],
+      [maker_asset],
       Orders
+    )
+
+    const [
+      maker_taker_asset_balance_before
+    ] = await OrderTestUtils.getConventionalBalances(
+      maker,
+      [taker_asset],
     )
 
     const [
@@ -377,11 +386,11 @@ describe('Order fill via `msg_amount`', async () => {
 
     const [
       total_maker_asset_balance_before,
-      total_taker_asset_balance_before
     ] = await OrderTestUtils.getTotalBalances(
-      [maker_asset, taker_asset],
+      [maker_asset],
       Orders
     )
+
 
     const taker_fill_amount = OrderTestUtils.getRandomAmount(1, Number(taker_amount.toString()))
 
@@ -401,11 +410,17 @@ describe('Order fill via `msg_amount`', async () => {
 
     const [
       maker_maker_asset_balance_after,
-      maker_taker_asset_balance_after
     ] = await OrderTestUtils.getMakerBalances(
       maker.address.toB256(),
-      [maker_asset, taker_asset],
+      [maker_asset],
       Orders
+    )
+
+    const [
+      maker_taker_asset_balance_after
+    ] = await OrderTestUtils.getConventionalBalances(
+      maker,
+      [taker_asset],
     )
 
     const [
@@ -418,9 +433,8 @@ describe('Order fill via `msg_amount`', async () => {
 
     const [
       total_maker_asset_balance_after,
-      total_taker_asset_balance_after
     ] = await OrderTestUtils.getTotalBalances(
-      [maker_asset, taker_asset],
+      [maker_asset],
       Orders
     )
 
@@ -441,11 +455,6 @@ describe('Order fill via `msg_amount`', async () => {
       total_maker_asset_balance_before.sub(total_maker_asset_balance_after).toString()
     ).to.equal(
       maker_fill_amount.toString()
-    )
-    expect(
-      total_taker_asset_balance_after.sub(total_taker_asset_balance_before).toString()
-    ).to.equal(
-      taker_fill_amount.toString()
     )
 
     // validate taker change
@@ -500,15 +509,20 @@ describe('Order fill via `msg_amount`', async () => {
       maker_receiver: ZeroBytes32
     })
     const signatureRaw = await maker.signMessage(OrderTestUtils.packOrder(order, Orders))
-
-
+    
     const [
       maker_maker_asset_balance_before,
-      maker_taker_asset_balance_before
     ] = await OrderTestUtils.getMakerBalances(
       maker.address.toB256(),
-      [maker_asset, taker_asset],
+      [maker_asset],
       Orders
+    )
+
+    const [
+      maker_taker_asset_balance_before
+    ] = await OrderTestUtils.getConventionalBalances(
+      maker,
+      [taker_asset],
     )
 
     const [
@@ -521,9 +535,8 @@ describe('Order fill via `msg_amount`', async () => {
 
     const [
       total_maker_asset_balance_before,
-      total_taker_asset_balance_before
     ] = await OrderTestUtils.getTotalBalances(
-      [maker_asset, taker_asset],
+      [maker_asset],
       Orders
     )
 
@@ -562,11 +575,17 @@ describe('Order fill via `msg_amount`', async () => {
 
     const [
       maker_maker_asset_balance_after,
-      maker_taker_asset_balance_after
     ] = await OrderTestUtils.getMakerBalances(
       maker.address.toB256(),
-      [maker_asset, taker_asset],
+      [maker_asset],
       Orders
+    )
+
+    const [
+      maker_taker_asset_balance_after
+    ] = await OrderTestUtils.getConventionalBalances(
+      maker,
+      [taker_asset],
     )
 
     const [
@@ -579,9 +598,8 @@ describe('Order fill via `msg_amount`', async () => {
 
     const [
       total_maker_asset_balance_after,
-      total_taker_asset_balance_after
     ] = await OrderTestUtils.getTotalBalances(
-      [maker_asset, taker_asset],
+      [maker_asset],
       Orders
     )
 
@@ -602,11 +620,6 @@ describe('Order fill via `msg_amount`', async () => {
       total_maker_asset_balance_before.sub(total_maker_asset_balance_after).toString()
     ).to.equal(
       maker_fill_amount.toString()
-    )
-    expect(
-      total_taker_asset_balance_after.sub(total_taker_asset_balance_before).toString()
-    ).to.equal(
-      taker_amount.toString()
     )
 
     // validate taker change
@@ -660,15 +673,20 @@ describe('Order fill via `msg_amount`', async () => {
       maker_receiver: ZeroBytes32
     })
     const signatureRaw = await maker.signMessage(OrderTestUtils.packOrder(order, Orders))
-
-
+   
     const [
       maker_maker_asset_balance_before,
-      maker_taker_asset_balance_before
     ] = await OrderTestUtils.getMakerBalances(
       maker.address.toB256(),
-      [maker_asset, taker_asset],
+      [maker_asset],
       Orders
+    )
+
+    const [
+      maker_taker_asset_balance_before
+    ] = await OrderTestUtils.getConventionalBalances(
+      maker,
+      [taker_asset],
     )
 
     const [
@@ -677,6 +695,14 @@ describe('Order fill via `msg_amount`', async () => {
     ] = await OrderTestUtils.getConventionalBalances(
       taker,
       [maker_asset, taker_asset]
+    )
+
+
+    const [
+      total_maker_asset_balance_before,
+    ] = await OrderTestUtils.getTotalBalances(
+      [maker_asset],
+      Orders
     )
 
     const maker_fill_amount = OrderTestUtils.getRandomAmount(1, Number(maker_amount.toString()))
@@ -692,22 +718,38 @@ describe('Order fill via `msg_amount`', async () => {
       .callParams({ forward: { assetId: taker_asset, amount: taker_fill_amount } })
       .call()
 
-    const [
-      maker_maker_asset_balance_after,
-      maker_taker_asset_balance_after
-    ] = await OrderTestUtils.getMakerBalances(
-      maker.address.toB256(),
-      [maker_asset, taker_asset],
-      Orders
-    )
+      await OrderTestUtils.testFillStatus(order, Orders, taker_fill_amount, false)
 
-    const [
-      taker_maker_asset_balance_after,
-      taker_taker_asset_balance_after
-    ] = await OrderTestUtils.getConventionalBalances(
-      taker,
-      [maker_asset, taker_asset]
-    )
+      const [
+        maker_maker_asset_balance_after,
+      ] = await OrderTestUtils.getMakerBalances(
+        maker.address.toB256(),
+        [maker_asset],
+        Orders
+      )
+  
+      const [
+        maker_taker_asset_balance_after
+      ] = await OrderTestUtils.getConventionalBalances(
+        maker,
+        [taker_asset],
+      )
+  
+      const [
+        taker_maker_asset_balance_after,
+        taker_taker_asset_balance_after
+      ] = await OrderTestUtils.getConventionalBalances(
+        taker,
+        [maker_asset, taker_asset]
+      )
+  
+      const [
+        total_maker_asset_balance_after,
+      ] = await OrderTestUtils.getTotalBalances(
+        [maker_asset],
+        Orders
+      )
+  
 
     const expected_roundingError = Math.ceil(maker_amount.toNumber() / taker_amount.toNumber())
 
@@ -725,6 +767,13 @@ describe('Order fill via `msg_amount`', async () => {
       taker_fill_amount.toString()
     )
 
+    // validate total balances
+    expect(
+      total_maker_asset_balance_before.sub(total_maker_asset_balance_after).toNumber()
+    ).to.approximately(
+      maker_fill_amount.toNumber(),
+      expected_roundingError
+    )
     // validate taker change
     expect(
       taker_maker_asset_balance_after.sub(taker_maker_asset_balance_before).toNumber()

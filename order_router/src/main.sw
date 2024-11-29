@@ -16,7 +16,7 @@ use std::{
 };
 use sway_libs::reentrancy::reentrancy_guard;
 use order_utils::{
-    compute_order_hash,
+    compute_taker_fill_amount,
     get_expiry,
     IFlashCallback,
     is_contract_receiver,
@@ -45,11 +45,10 @@ abi OrderRouter {
         taker_fill_amount: u64,
         taker_receiver: Identity,
         data: Option<Bytes>,
-    ) -> (u64, u64);
+    );
 
     #[storage(read, write)]
     fn flash(
-        sender: Identity,
         maker_asset: b256,
         taker_asset: b256,
         maker_amount: u64,
@@ -65,8 +64,8 @@ configurable {
 storage {}
 
 // error codes
-const NO_ERROR = 0u64;
 const INVALID_SENDER = 101u64;
+const INVALID_MATCH = 102u64;
 
 impl OrderRouter for Contract {
     #[storage(write, read), payable]
@@ -76,19 +75,24 @@ impl OrderRouter for Contract {
         taker_fill_amount: u64,
         taker_receiver: Identity,
         data: Option<Bytes>,
-    ) -> (u64, u64) {
-        abi(OneDeltaOrders, ONE_DELTA_ORDERS_CONTRACT_ID.bits()).fill(
+    ) {
+        let orders = abi(OneDeltaOrders, ONE_DELTA_ORDERS_CONTRACT_ID.into());
+        orders.fill(
             order,
             order_signature,
             taker_fill_amount,
             taker_receiver,
             data,
-        )
+        );
+        let asset_id = AssetId::from(order.taker_asset);
+        let profit = this_balance(asset_id);
+        if profit != 0 {
+            transfer(msg_sender().unwrap(), asset_id, this_balance(asset_id));
+        }
     }
 
     #[storage(read, write)]
     fn flash(
-        sender: Identity,
         maker_asset: b256,
         taker_asset: b256,
         maker_amount: u64,
@@ -104,12 +108,27 @@ impl OrderRouter for Contract {
         );
 
         let (order, signature) = to_order_and_sig(data);
-        abi(OneDeltaOrders, ONE_DELTA_ORDERS_CONTRACT_ID.bits()).fill(
+        require(
+            msg_sender()
+                .unwrap()
+                .bits() == ONE_DELTA_ORDERS_CONTRACT_ID
+                .bits(),
+            INVALID_MATCH,
+        );
+
+        let orders = abi(OneDeltaOrders, ONE_DELTA_ORDERS_CONTRACT_ID.into());
+        let (taker_filled, maker_filled) = orders.fill(
             order,
             signature,
             maker_amount,
-            Identity::ContractId(ONE_DELTA_ORDERS_CONTRACT_ID),
+            Identity::ContractId(ContractId::this()),
             None,
+        );
+
+        transfer(
+            Identity::ContractId(ContractId::from(ONE_DELTA_ORDERS_CONTRACT_ID)),
+            AssetId::from(taker_asset),
+            taker_amount,
         );
     }
 }

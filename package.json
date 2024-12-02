@@ -4,9 +4,9 @@
   "description": "Interact with 1delta using TypeScript",
   "scripts": {
     "test:ts": "vitest",
-    "build": "tsc",
+    "build": "forc build",
     "abis": "./tools/fetch_abis.sh",
-    "test:rust": "cargo test",
+    "test:rs": "cargo test",
     "types": "fuels typegen -i scripts/*/out/*/*-abi.json -o ./ts-scripts/typegen --script & fuels typegen -i fixtures/*/*-abi.json -o ./ts-scripts/typegen --contract & fuels typegen -i one_delta_orders/*/*/*-abi.json -o ./ts-scripts/typegen --contract & fuels typegen -i order_router/*/*/*-abi.json -o ./ts-scripts/typegen --contract"
   },
   "keywords": [],

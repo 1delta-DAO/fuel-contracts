@@ -2,6 +2,7 @@ out
 target
 node_modules
 dist
+fixtures
 ts-scripts/typegen
 ts-scripts/sway_abis
 .env

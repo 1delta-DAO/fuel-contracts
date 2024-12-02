@@ -198,7 +198,6 @@ describe('Order Rotuer', async () => {
       [taker_asset]
     )
 
-
     const profit = touter_balance_after.sub(touter_balance_before).toNumber()
     expect(profit).to.equal(expected_profit)
   });

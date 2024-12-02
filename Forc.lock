@@ -1,4 +1,14 @@
 [[package]]
+name = "add_liquidity_script"
+source = "member"
+dependencies = [
+    "interfaces",
+    "math",
+    "std",
+    "utils",
+]
+
+[[package]]
 name = "batch_swap_exact_in_script"
 source = "member"
 dependencies = [
@@ -24,6 +34,15 @@ dependencies = [
 [[package]]
 name = "core"
 source = "path+from-root-7053AAA90CC5E690"
+
+[[package]]
+name = "create_pool_and_add_liquidity_script"
+source = "member"
+dependencies = [
+    "interfaces",
+    "std",
+    "utils",
+]
 
 [[package]]
 name = "executor"
@@ -57,6 +76,15 @@ dependencies = [
     "math",
     "std",
     "utils",
+]
+
+[[package]]
+name = "mock_token"
+source = "member"
+dependencies = [
+    "standards git+https://github.com/FuelLabs/sway-standards?tag=v0.6.1#792639cdf391565e6e6a02482ea8a46d9604a6f5",
+    "std",
+    "sway_libs",
 ]
 
 [[package]]

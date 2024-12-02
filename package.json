@@ -3,8 +3,10 @@
   "version": "0.0.1",
   "description": "Interact with 1delta using TypeScript",
   "scripts": {
-    "test": "vitest",
+    "test:ts": "vitest",
     "build": "tsc",
+    "abis": "./tools/fetch_abis.sh",
+    "test:rust": "cargo test",
     "types": "fuels typegen -i scripts/*/out/*/*-abi.json -o ./ts-scripts/typegen --script & fuels typegen -i fixtures/*/*-abi.json -o ./ts-scripts/typegen --contract & fuels typegen -i one_delta_orders/*/*/*-abi.json -o ./ts-scripts/typegen --contract & fuels typegen -i order_router/*/*/*-abi.json -o ./ts-scripts/typegen --contract"
   },
   "keywords": [],

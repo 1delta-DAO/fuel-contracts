@@ -1,18 +1,26 @@
 # DEX aggregation scripts & contracts
 
-## Setup:
+## Setup
 
 Use `forc v66.2` or higher.
 
-Fetch the fixtures from Mira:
+Build everything fromn scratch and run tests
+
+```bash
+pnpm i
+pnpm abis # fetch external abis
+pnpm build # build contract
+pnpm test:rs # Rust tests
+pnpm types # generate types
+pnpm test:ts # TypeScript tests
 ```
+
+Sometimes one needs to enable permissions for the sh file:
+```bash
 chmod +x ./tools/fetch_abis.sh
 ./tools/fetch_abis.sh
 ```
 
-Build contracts: `forc build`
-
-Run tests: `cargo test` and `cargo test -- --nocapture` for tests with logs.
 
 ## Contents
 

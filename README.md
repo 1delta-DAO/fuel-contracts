@@ -9,13 +9,14 @@ Build everything fromn scratch and run tests
 ```bash
 pnpm i
 pnpm abis # fetch external abis
-pnpm build # build contract
+pnpm build # build contracts
 pnpm test:rs # Rust tests
 pnpm types # generate types
 pnpm test:ts # TypeScript tests
 ```
 
 Sometimes one needs to enable permissions for the sh file:
+
 ```bash
 chmod +x ./tools/fetch_abis.sh
 ./tools/fetch_abis.sh

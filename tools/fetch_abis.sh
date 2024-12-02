@@ -18,9 +18,7 @@ cd ../..
 rm -rf fixtures
 
 mkdir -p fixtures/mira-amm
-mkdir -p fixtures/mock-token
 
 mv -f tmp_abis/mira-v1-core/contracts/mira_amm_contract/out/release/* fixtures/mira-amm
-mv -f tmp_abis/mira-v1-core/contracts/mocks/mock_token/out/release/* fixtures/mock-token
 
 rm -rf tmp_abis

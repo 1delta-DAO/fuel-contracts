@@ -307,11 +307,9 @@ describe('Order fill via `fill_funded` through BatchSwapExactOutScript', async (
 
     const taker_fill_amount = OrderTestUtils.computeTakerFillAmount(intermediate_fill_amount, order0.maker_amount, order0.taker_amount)
 
-
     const re_computed_intermediate_fill_amount = OrderTestUtils.computeMakerFillAmount(taker_fill_amount, order0.maker_amount, order0.taker_amount)
 
     const re_computed_maker_fill_amount = OrderTestUtils.computeMakerFillAmount(re_computed_intermediate_fill_amount, order1.maker_amount, order1.taker_amount)
-
 
     expect(re_computed_maker_fill_amount.toNumber()).to.be.greaterThanOrEqual(maker_fill_amount.toNumber())
 

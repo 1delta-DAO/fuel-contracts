@@ -3,7 +3,7 @@ import { describe, test, expect } from 'vitest';
 import { OrderTestUtils } from './utils';
 import { OrderInput } from '../ts-scripts/typegen/OneDeltaOrders';
 import { addressInput } from '../ts-scripts/utils';
-import { Provider, ZeroBytes32 } from 'fuels';
+import { ZeroBytes32 } from 'fuels';
 
 describe('Maker Actions', async () => {
   test('Maker can deposit', async () => {

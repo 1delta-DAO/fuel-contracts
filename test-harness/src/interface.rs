@@ -11,7 +11,7 @@ use crate::types::PoolId;
 abigen!(
     Contract(
         name = "MockToken",
-        abi = "./fixtures/mock-token/mock_token-abi.json"
+        abi = "./contracts/mocks/mock_token/out/debug/mock_token-abi.json"
     ),
     Contract(
         name = "MiraAMM",

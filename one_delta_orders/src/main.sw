@@ -44,8 +44,6 @@ storage {
     balances: StorageMap<b256, u64> = StorageMap {},
     // signer -> signer on behalf
     order_signer_registry: StorageMap<b256, StorageMap<b256, bool>> = StorageMap {},
-    // taker_asset_lock
-    taker_asset_locked: StorageMap<b256, bool> = StorageMap {},
 }
 
 // constants
@@ -75,7 +73,7 @@ impl OneDeltaOrders for Contract {
      *   - attaches msg_amount=taker_fill_amount with msg_asset_id=taker_asset; or
      *   - pre-funded the order by sending the taker amount to this
      *     contract and then calls this function; or
-     *   - has no funds and intents to use the callback to originate them
+     *   - has no funds and intends to use the callback to originate them
      */
     #[storage(write, read), payable]
     fn fill(
@@ -85,13 +83,7 @@ impl OneDeltaOrders for Contract {
         taker_receiver: Identity,
         data: Option<Bytes>,
     ) -> (u64, u64) {
-        // reentrancy check for taker_asset
-        if storage.taker_asset_locked.get(order.taker_asset).try_read().unwrap_or(false)
-        {
-            revert(REENTER_TAKER_ASSET);
-        }
-        // lock taker_asset
-        storage.taker_asset_locked.insert(order.taker_asset, true);
+        reentrancy_guard();
 
         // validate order
         let (order_hash, error, taker_asset_already_filled_amount) = validate_order_internal(order, order_signature);
@@ -215,9 +207,6 @@ impl OneDeltaOrders for Contract {
             taker_filled_amount,
             maker_filled_amount,
         });
-
-        // unlock taker_asset
-        storage.taker_asset_locked.insert(order.taker_asset, false);
 
         // return filled amounts
         (taker_filled_amount, maker_filled_amount)

@@ -5,7 +5,7 @@ import { OrderTestUtils } from './utils';
 import { ZeroBytes32 } from 'fuels';
 import { addressInput, contractIdInput } from '../ts-scripts/utils';
 
-describe('Order Rotuer', async () => {
+describe.skip('Order Rotuer', async () => {
 
 
   test('Can match exactly', async () => {

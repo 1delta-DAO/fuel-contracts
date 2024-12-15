@@ -70,13 +70,16 @@ const REENTER_TAKER_ASSET = 14u64;
 const SIGNER_NOT_RECOVERED = 15u64;
 
 impl OneDeltaOrders for Contract {
-    /* Fills an order
-     * The filler either
-     *   - attaches msg_amount=taker_fill_amount with msg_asset_id=taker_asset; or
-     *   - pre-funded the order by sending the taker amount to this
-     *     contract and then calls this function; or
-     *   - has no funds and intents to use the callback to originate them
-     */
+    /*
+    * Executes the process to fill an order.
+    * This function allows the filler to complete the order in one of three ways:
+    *   1. By attaching `msg_amount` equal to `taker_fill_amount` 
+    *      with `msg_asset_id` set to `taker_asset`.
+    *   2. By pre-funding the order, sending the required taker amount 
+    *      to this contract before invoking this function.
+    *   3. By having no initial funds and relying on the callback mechanism 
+    *      to acquire the necessary funds during execution.
+    */
     #[storage(write, read), payable]
     fn fill(
         order: Order,

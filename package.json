@@ -13,7 +13,7 @@
   "author": "1delta",
   "license": "MIT",
   "peerDependencies": {
-    "fuels": "^0.97.0"
+    "fuels": "^0.97.2"
   },
   "devDependencies": {
     "@types/jest": "^29.5.13",

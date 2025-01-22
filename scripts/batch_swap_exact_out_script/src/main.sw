@@ -3,6 +3,7 @@ script;
 use executor::{BatchSwapStep, calculate_amounts_exact_out_and_fund, forward_swap_exact_out};
 use utils::blockchain_utils::check_deadline;
 use std::asset::transfer;
+use logger_abi::Logger;
 
 ////////////////////////////////////////////////////
 // Error codes
@@ -15,6 +16,7 @@ const EMPTY_PATH_ENTRY: u64 = 100;
 configurable {
     MIRA_AMM_CONTRACT_ID: ContractId = ContractId::from(0x2e40f2b244b98ed6b8204b3de0156c6961f98525c8162f80162fcf53eebd90e7),
     ONE_DELTA_ORDERS_CONTRACT_ID: ContractId = ContractId::from(0xf6caa75386fe9ba4da15b82723ecffb0d56b28ae7ece396b15c5650b605359ac),
+    LOGGER_CONTRACT_ID: ContractId = ContractId::from(0x60caa3fe777329cd32a66a4c7ac5840e4eb10441a1f8331cd00d45fb0341a7a6),
 }
 
 fn main(
@@ -46,4 +48,8 @@ fn main(
         );
         i += 1;
     }
+
+    // call dead_call on logger to make this TX traceable
+    let logger = abi(Logger, LOGGER_CONTRACT_ID.into());
+    logger.dead_call();
 }

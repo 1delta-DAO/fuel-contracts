@@ -1,14 +1,4 @@
 [[package]]
-name = "add_liquidity_script"
-source = "member"
-dependencies = [
-    "interfaces",
-    "math",
-    "std",
-    "utils",
-]
-
-[[package]]
 name = "batch_swap_exact_in_script"
 source = "member"
 dependencies = [
@@ -36,15 +26,6 @@ name = "core"
 source = "path+from-root-7053AAA90CC5E690"
 
 [[package]]
-name = "create_pool_and_add_liquidity_script"
-source = "member"
-dependencies = [
-    "interfaces",
-    "std",
-    "utils",
-]
-
-[[package]]
 name = "executor"
 source = "member"
 dependencies = [
@@ -56,12 +37,12 @@ dependencies = [
 
 [[package]]
 name = "interfaces"
-source = "member"
+source = "path+from-root-DC0586470AFEDD49"
 dependencies = ["std"]
 
 [[package]]
 name = "math"
-source = "member"
+source = "path+from-root-DC0586470AFEDD49"
 dependencies = [
     "interfaces",
     "std",
@@ -79,40 +60,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "mock_token"
-source = "member"
-dependencies = [
-    "standards git+https://github.com/FuelLabs/sway-standards?tag=v0.6.1#792639cdf391565e6e6a02482ea8a46d9604a6f5",
-    "std",
-    "sway_libs",
-]
-
-[[package]]
-name = "one_delta_orders"
-source = "member"
-dependencies = [
-    "order_utils",
-    "std",
-    "sway_libs",
-]
-
-[[package]]
-name = "order_router"
-source = "member"
-dependencies = [
-    "order_utils",
-    "std",
-    "sway_libs",
-]
-
-[[package]]
 name = "order_utils"
-source = "member"
-dependencies = ["std"]
-
-[[package]]
-name = "standards"
-source = "git+https://github.com/FuelLabs/sway-standards?tag=v0.6.0#65e09f95ea8b9476b171a66c8a47108f352fa32c"
+source = "path+from-root-DC0586470AFEDD49"
 dependencies = ["std"]
 
 [[package]]
@@ -126,18 +75,10 @@ source = "git+https://github.com/fuellabs/sway?tag=v0.66.2#31486c0b47669612acb7c
 dependencies = ["core"]
 
 [[package]]
-name = "sway_libs"
-source = "git+https://github.com/FuelLabs/sway-libs?tag=v0.24.0#e19f96f85ae12426d20adc176b70aa38fd9a2a5b"
-dependencies = [
-    "standards git+https://github.com/FuelLabs/sway-standards?tag=v0.6.0#65e09f95ea8b9476b171a66c8a47108f352fa32c",
-    "std",
-]
-
-[[package]]
 name = "utils"
-source = "member"
+source = "path+from-root-DC0586470AFEDD49"
 dependencies = [
     "interfaces",
-    "standards git+https://github.com/FuelLabs/sway-standards?tag=v0.6.1#792639cdf391565e6e6a02482ea8a46d9604a6f5",
+    "standards",
     "std",
 ]

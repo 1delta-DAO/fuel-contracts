@@ -301,7 +301,7 @@ fn k(
         let _y: u256 = y * ONE_E_18 / pow_decimals_y;
         let _a: u256 = (_x * _y) / ONE_E_18;
         let _b: u256 = ((_x * _x) / ONE_E_18 + (_y * _y) / ONE_E_18);
-        return _a * _b / ONE_E_18; // x3y+y3x >= k
+        return _a * _b; // x3y+y3x >= k
     } else {
         return x * y; // xy >= k
     }
@@ -309,7 +309,7 @@ fn k(
 
 // TODO: combine with `k` above?
 fn f(x_0: u256, y: u256) -> u256 {
-    x_0 * (y * y / ONE_E_18 * y / ONE_E_18) / ONE_E_18 + (x_0 * x_0 / ONE_E_18 * x_0 / ONE_E_18) * y / ONE_E_18
+    x_0 * (y * y / ONE_E_18 * y / ONE_E_18) + (x_0 * x_0 / ONE_E_18 * x_0 / ONE_E_18) * y
 }
 
 fn d(x_0: u256, y: u256) -> u256 {
@@ -323,10 +323,10 @@ fn get_y(x_0: u256, xy: u256, y: u256) -> u256 {
         let y_prev = y;
         let k = f(x_0, y);
         if k < xy {
-            let dy = (xy - k) * ONE_E_18 / d(x_0, y);
+            let dy = (xy - k) / d(x_0, y);
             y = y + dy;
         } else {
-            let dy = (k - xy) * ONE_E_18 / d(x_0, y);
+            let dy = (k - xy) / d(x_0, y);
             y = y - dy;
         }
         if y > y_prev {

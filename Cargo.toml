@@ -13,5 +13,5 @@ members = [
 ]
 
 [workspace.dependencies]
-fuels = { version = "0.66.9", features = ["fuel-core-lib"] }
+fuels = { version = "0.66.10", features = ["fuel-core-lib"] }
 tokio = { version = "1.41.0", features = ["rt", "macros"] }

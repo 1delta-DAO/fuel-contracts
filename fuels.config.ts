@@ -2,6 +2,9 @@ import { createConfig } from 'fuels';
 import { PRIVATE_KEY, RPC } from "./env"
 
 export default createConfig({
+  contracts: [
+    "./contracts/logger"
+  ],
   scripts: [
     "./scripts/batch_swap_exact_in_script",
     "./scripts/batch_swap_exact_out_script"

@@ -4,6 +4,7 @@ source = "member"
 dependencies = [
     "executor",
     "interfaces",
+    "logger_abi",
     "mira_v1_swap",
     "std",
     "utils",
@@ -15,6 +16,7 @@ source = "member"
 dependencies = [
     "executor",
     "interfaces",
+    "logger_abi",
     "math",
     "mira_v1_swap",
     "std",
@@ -38,6 +40,21 @@ dependencies = [
 [[package]]
 name = "interfaces"
 source = "path+from-root-DC0586470AFEDD49"
+dependencies = ["std"]
+
+[[package]]
+name = "logger"
+source = "member"
+dependencies = [
+    "logger_abi",
+    "standards git+https://github.com/FuelLabs/sway-standards?tag=v0.6.1#792639cdf391565e6e6a02482ea8a46d9604a6f5",
+    "std",
+    "sway_libs",
+]
+
+[[package]]
+name = "logger_abi"
+source = "member"
 dependencies = ["std"]
 
 [[package]]

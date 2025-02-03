@@ -108,10 +108,10 @@ pub fn calculate_amounts_exact_out_and_fund(
     while true {
         match swap_step.dex_id {
             MIRA_V1_ID => {
-                let (fee, is_stable) = get_mira_params(swap_step.data);
+                let (fee, is_stable, amm_contract_id) = get_mira_like_params(swap_step.data, MIRA_AMM_CONTRACT_ID);
                 // calculate input amount
                 let amount_in = get_mira_amount_in(
-                    MIRA_AMM_CONTRACT_ID,
+                    amm_contract_id,
                     swap_step
                         .asset_in,
                     swap_step
@@ -147,6 +147,8 @@ pub fn calculate_amounts_exact_out_and_fund(
         get_dex_input_receiver(
             swap_step
                 .dex_id,
+            swap_step
+                .data,
             MIRA_AMM_CONTRACT_ID,
             ONE_DELTA_ORDERS_CONTRACT_ID,
         ),
@@ -171,7 +173,7 @@ pub fn forward_swap_exact_out(
         let current_amount = computed_amounts.get(i).unwrap();
         match swap_step.dex_id {
             MIRA_V1_ID => {
-                let is_stable = get_mira_is_stable(swap_step.data);
+                let (is_stable, amm_contract) = get_mira_is_stable_and_pool(swap_step.data, MIRA_AMM_CONTRACT_ID);
                 let (amount0, amount1, pool_id) = if swap_step.asset_in.bits() < swap_step.asset_out.bits() {
                     (0u64, current_amount, (swap_step.asset_in, swap_step.asset_out, is_stable))
                 } else {
@@ -184,7 +186,7 @@ pub fn forward_swap_exact_out(
                         .receiver,
                     amount0,
                     amount1,
-                    MIRA_AMM_CONTRACT_ID,
+                    amm_contract,
                 );
             },
             ONE_DELTA_ORDERS_ID => {
@@ -275,11 +277,12 @@ pub fn forward_swap_exact_out(
 ////////////////////////////////////////////////////
 pub fn get_dex_input_receiver(
     dex_id: u64,
+    params: Bytes,
     MIRA_AMM_CONTRACT_ID: ContractId,
     ONE_DELTA_ORDERS_CONTRACT_ID: ContractId,
 ) -> Identity {
     match dex_id {
-        MIRA_V1_ID => Identity::ContractId(MIRA_AMM_CONTRACT_ID),
+        MIRA_V1_ID => Identity::ContractId(get_mira_like_pool(params, MIRA_AMM_CONTRACT_ID)),
         ONE_DELTA_ORDERS_ID => Identity::ContractId(ONE_DELTA_ORDERS_CONTRACT_ID),
         _ => revert(INVALID_DEX),
     }
@@ -298,11 +301,11 @@ pub fn execute_mira_v1_exact_in(
     MIRA_AMM_CONTRACT_ID: ContractId,
 ) -> u64 {
     // get parameters
-    let (fee, is_stable) = get_mira_params(data);
+    let (fee, is_stable, amm_contract) = get_mira_like_params(data, MIRA_AMM_CONTRACT_ID);
 
     // execute swap
     swap_mira_exact_in(
-        MIRA_AMM_CONTRACT_ID,
+        amm_contract,
         asset_in,
         asset_out,
         receiver,
@@ -339,6 +342,43 @@ pub fn execute_one_delta_orders_exact_in(
 // expect the data of 3 bytes be laid out as follows
 // 2 bytes  - for the fee as u16
 // 1 byte   - for a flag as u8
+pub fn get_mira_like_params(
+    data: Bytes,
+    MIRA_AMM_CONTRACT_ID: ContractId,
+) -> (u64, bool, ContractId) {
+    match data.len() {
+        3 => {
+            let (fee, is_stable) = get_mira_params(data);
+            (fee, is_stable, MIRA_AMM_CONTRACT_ID)
+        },
+        35 => {
+            let (fee, is_stable, forked_pool) = get_mira_and_fork_params(data);
+            (fee, is_stable, ContractId::from(forked_pool))
+        },
+        _ => revert(INVALID_DEX),
+    }
+}
+
+// expect the data of 3 bytes be laid out as follows
+// 2 bytes  - for the fee as u16
+// 1 byte   - for a flag as u8
+pub fn get_mira_like_pool(data: Bytes, MIRA_AMM_CONTRACT_ID: ContractId) -> ContractId {
+    match data.len() {
+        3 => {
+            MIRA_AMM_CONTRACT_ID
+        },
+        35 => {
+            let (_, pool_id) = data.split_at(3);
+            // return parsed fees as u64 and flag
+           ContractId::from(b256::from_be_bytes(pool_id))
+        },
+        _ => revert(INVALID_DEX),
+    }
+}
+
+// expect the data of 3 bytes be laid out as follows
+// 2 bytes  - for the fee as u16
+// 1 byte   - for a flag as u8
 pub fn get_mira_params(data: Bytes) -> (u64, bool) {
     // let fee_bytes = Bytes::with_capacity(8);
     // // write to fee_bytes
@@ -353,6 +393,21 @@ pub fn get_mira_params(data: Bytes) -> (u64, bool) {
 // expect the data of 3 bytes be laid out as follows
 // 2 bytes  - for the fee as u16
 // 1 byte   - for a flag as u8
+pub fn get_mira_and_fork_params(data: Bytes) -> (u64, bool, b256) {
+    // let fee_bytes = Bytes::with_capacity(8);
+    // // write to fee_bytes
+    // abi_decode_in_place::<u64>(data.ptr(), 8, fee_bytes.ptr());
+    // read 3rd byte - default to `false` if not provided
+    let (fee_data, pool_id) = data.split_at(3);
+    let is_stable = get_mira_is_stable(fee_data);
+    let fee = u64::from(first_be_bytes_to_u16(fee_data));
+    // return parsed fees as u64 and flag
+    (fee, is_stable, b256::from_be_bytes(pool_id))
+}
+
+// expect the data of 3 bytes be laid out as follows
+// 2 bytes  - for the fee as u16
+// 1 byte   - for a flag as u8
 pub fn get_mira_is_stable(data: Bytes) -> bool {
     // read 3rd byte - default to `false` if not provided
     match data.get(2) {
@@ -360,6 +415,29 @@ pub fn get_mira_is_stable(data: Bytes) -> bool {
         Option::None => false,
     }
 }
+
+// expect the data of 3 bytes be laid out as follows
+// 2 bytes  - for the fee as u16
+// 1 byte   - for a flag as u8
+pub fn get_mira_is_stable_and_pool(data: Bytes, MIRA_AMM_CONTRACT_ID: ContractId) -> (bool, ContractId) {
+    // read 3rd byte - default to `false` if not provided
+   let is_stable = match data.get(2) {
+        Option::Some(v) => v != 0, // check if value is nonzero
+        Option::None => false,
+    };
+        match data.len() {
+        3 => {
+            (is_stable, MIRA_AMM_CONTRACT_ID)
+        },
+        35 => {
+            let (_, pool_id) = data.split_at(3);
+            // return parsed fees as u64 and flag
+           (is_stable, ContractId::from(b256::from_be_bytes(pool_id)))
+        },
+        _ => revert(INVALID_DEX),
+    }
+}
+
 
 ////////////////////////////////////////////////////
 // encoding functions (mainly for tests)
@@ -378,6 +456,24 @@ pub fn encode_mira_params(fee: u16, is_stable: bool) -> Bytes {
     } else {
         bytes.push(0u8)
     }
+
+    bytes
+}
+
+pub fn encode_mira_and_fork_params(fee: u16, is_stable: bool, forked_pool: b256) -> Bytes {
+    let mut bytes = Bytes::with_capacity(49);
+
+    // add fee parameter
+    bytes.append(fee.to_be_bytes());
+
+    // add boolean parameter
+    if is_stable {
+        bytes.push(1u8)
+    } else {
+        bytes.push(0u8)
+    }
+
+    bytes.append(forked_pool.to_be_bytes());
 
     bytes
 }
@@ -491,6 +587,37 @@ fn test_get_mira_params() {
     let (fee2_decoded, is_stable2_decoded) = get_mira_params(data2);
     assert_eq(fee2_decoded, u64::from(fee2));
     assert_eq(is_stable2, is_stable2_decoded);
+}
+
+#[test]
+fn test_get_mira_fork_params() {
+    let fee0: u16 = 30;
+    let is_stable0 = true;
+    let pool0: b256 = 0x7c293b054938bedca41354203be4c08aec2c3466412cac803f4ad62abf22e476;
+    let data0 = encode_mira_and_fork_params(fee0, is_stable0, pool0);
+    let (fee0_decoded, is_stable0_decoded, pool0_decodod) = get_mira_and_fork_params(data0);
+    assert_eq(fee0_decoded, u64::from(fee0));
+    assert_eq(is_stable0, is_stable0_decoded);
+    assert_eq(pool0_decodod, pool0);
+
+    let fee1: u16 = 65533;
+    let is_stable1 = false;
+
+    let data1 = encode_mira_and_fork_params(fee1, is_stable1, pool0);
+    let (fee1_decoded, is_stable1_decoded, pool1_decodod) = get_mira_and_fork_params(data1);
+    assert_eq(fee1_decoded, u64::from(fee1));
+    assert_eq(is_stable1, is_stable1_decoded);
+    assert_eq(pool1_decodod, pool0);
+
+    // fee as zero
+    let fee2: u16 = 0;
+    let is_stable2 = true;
+
+    let data2 = encode_mira_and_fork_params(fee2, is_stable2, pool0);
+    let (fee2_decoded, is_stable2_decoded, pool2_decodod) = get_mira_and_fork_params(data2);
+    assert_eq(fee2_decoded, u64::from(fee2));
+    assert_eq(is_stable2, is_stable2_decoded);
+    assert_eq(pool2_decodod, pool0);
 }
 
 #[test]

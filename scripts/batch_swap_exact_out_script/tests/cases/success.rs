@@ -12,6 +12,7 @@ async fn exact_out_swap_between_two_volatile_tokens() {
         _,
         swap_exact_output_script,
         amm,
+        logger,
         (pool_id_0_1, _, _, _, _),
         wallet,
         deadline,
@@ -47,7 +48,7 @@ async fn exact_out_swap_between_two_volatile_tokens() {
     )];
     swap_exact_output_script
         .main(path, deadline)
-        .with_contracts(&[&amm.instance])
+        .with_contracts(&[&amm.instance, &logger])
         .with_inputs(inputs)
         .with_outputs(outputs)
         .with_variable_output_policy(VariableOutputPolicy::Exactly(1))
@@ -85,6 +86,7 @@ async fn exact_out_swap_between_three_volatile_tokens() {
         _,
         swap_exact_output_script,
         amm,
+        logger,
         (pool_id_0_1, pool_id_1_2, _, _, _),
         wallet,
         deadline,
@@ -134,7 +136,7 @@ async fn exact_out_swap_between_three_volatile_tokens() {
 
     swap_exact_output_script
         .main(path, deadline)
-        .with_contracts(&[&amm.instance])
+        .with_contracts(&[&amm.instance, &logger])
         .with_inputs(inputs)
         .with_outputs(outputs)
         .with_variable_output_policy(VariableOutputPolicy::Exactly(1))
@@ -190,6 +192,7 @@ async fn exact_out_swap_split_routes() {
         _,
         swap_exact_output_script,
         amm,
+        logger,
         (pool_id_0_1, _, _, _, _),
         wallet,
         deadline,
@@ -250,7 +253,7 @@ async fn exact_out_swap_split_routes() {
 
     swap_exact_output_script
         .main(path, deadline)
-        .with_contracts(&[&amm.instance])
+        .with_contracts(&[&amm.instance, &logger])
         .with_inputs(inputs)
         .with_outputs(outputs)
         .with_variable_output_policy(VariableOutputPolicy::Exactly(2))

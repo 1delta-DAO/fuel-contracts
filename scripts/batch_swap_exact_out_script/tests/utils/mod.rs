@@ -4,17 +4,19 @@ use fuels::accounts::wallet::WalletUnlocked;
 use fuels::prelude::VariableOutputPolicy;
 use fuels::types::{AssetId, ContractId, Identity};
 use test_harness::data_structures::{MiraAMMContract, WalletAssetConfiguration};
-use test_harness::interface::amm::{create_pool, initialize_ownership, fees};
-use test_harness::interface::MiraAMM;
+use test_harness::interface::amm::{create_pool, fees, initialize_ownership};
 use test_harness::interface::mock::{
-    add_token, deploy_mock_token_contract, get_sub_id, mint_tokens,
+    add_token, deploy_logger_contract, deploy_mock_token_contract, get_sub_id, mint_tokens,
 };
 use test_harness::interface::scripts::get_transaction_inputs_outputs;
 use test_harness::interface::{
     AddLiquidityScript, AddLiquidityScriptConfigurables, BatchSwapExactOutScript,
     BatchSwapExactOutScriptConfigurables,
 };
-use test_harness::paths::{ADD_LIQUIDITY_SCRIPT_BINARY_PATH, BATCH_SWAP_EXACT_OUTPUT_SCRIPT_BINARY_PATH};
+use test_harness::interface::{Logger, MiraAMM};
+use test_harness::paths::{
+    ADD_LIQUIDITY_SCRIPT_BINARY_PATH, BATCH_SWAP_EXACT_OUTPUT_SCRIPT_BINARY_PATH,
+};
 use test_harness::setup::common::{deploy_amm, setup_wallet_and_provider};
 use test_harness::types::PoolId;
 use test_harness::utils::common::order_sub_ids;
@@ -24,6 +26,7 @@ pub async fn setup() -> (
     AddLiquidityScript<WalletUnlocked>,
     BatchSwapExactOutScript<WalletUnlocked>,
     MiraAMMContract,
+    Logger<WalletUnlocked>,
     (PoolId, PoolId, PoolId, PoolId, PoolId),
     WalletUnlocked,
     u32,
@@ -45,6 +48,7 @@ pub async fn setup() -> (
     ////////////////////////////////////////////////////
 
     let (token_contract_id, token_contract) = deploy_mock_token_contract(&wallet).await;
+    let (logger_contract_id, logger_contract) = deploy_logger_contract(&wallet).await;
 
     let token_0_id = add_token(&token_contract, "TOKEN_A".to_string(), "TKA".to_string(), 9)
         .await
@@ -170,6 +174,8 @@ pub async fn setup() -> (
 
     let swap_exact_output_script_configurables = BatchSwapExactOutScriptConfigurables::default()
         .with_MIRA_AMM_CONTRACT_ID(ContractId::from_str(&amm.id.to_string()).unwrap())
+        .unwrap()
+        .with_LOGGER_CONTRACT_ID(ContractId::from_str(&logger_contract_id.to_string()).unwrap())
         .unwrap();
     let mut swap_exact_output_script_instance =
         BatchSwapExactOutScript::new(wallet.clone(), BATCH_SWAP_EXACT_OUTPUT_SCRIPT_BINARY_PATH)
@@ -202,6 +208,7 @@ pub async fn setup() -> (
         add_liquidity_script_instance,
         swap_exact_output_script_instance,
         amm,
+        logger_contract,
         (
             pool_id_0_1,
             pool_id_1_2,

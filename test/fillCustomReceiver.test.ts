@@ -177,7 +177,7 @@ describe('Order fill with custom maker_receiver', async () => {
       wallets: [maker0, deployer, taker, maker1]
     } = launched;
 
-    const { Orders, tokens } = await OrderTestUtils.fixture(deployer)
+    const { Orders, tokens, loggerId } = await OrderTestUtils.fixture(deployer)
 
     const [maker_asset, taker_asset, intermediate_asset] = await OrderTestUtils.createTokens(deployer, OrderTestUtils.contractIdBits(tokens), OrderTestUtils.EXTENDED_NAMES)
 
@@ -285,7 +285,7 @@ describe('Order fill with custom maker_receiver', async () => {
 
     const deadline = OrderTestUtils.MAX_EXPIRY
 
-    const request = await (await OrderTestUtils.callExactInScriptScope(path, deadline, taker, Orders.id.toB256()))
+    const request = await (await OrderTestUtils.callExactInScriptScope(path, deadline, taker, Orders.id.toB256(), loggerId))
       .addContracts([Orders])
       .txParams(txParams)
       .getTransactionRequest()

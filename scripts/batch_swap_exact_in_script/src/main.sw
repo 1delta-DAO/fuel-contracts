@@ -68,6 +68,8 @@ fn main(
                 get_dex_input_receiver(
                     swap_step
                         .dex_id,
+                    swap_step
+                        .data,
                     MIRA_AMM_CONTRACT_ID,
                     ONE_DELTA_ORDERS_CONTRACT_ID,
                 ),

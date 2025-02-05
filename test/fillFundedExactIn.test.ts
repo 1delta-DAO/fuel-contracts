@@ -17,7 +17,7 @@ describe('Order fill via `fill_funded` through BatchSwapExactInScript', async ()
       wallets: [maker, deployer, taker]
     } = launched;
 
-    const { Orders, tokens } = await OrderTestUtils.fixture(deployer)
+    const { Orders, tokens, loggerId } = await OrderTestUtils.fixture(deployer)
 
     const [maker_asset, taker_asset] = await OrderTestUtils.createTokens(deployer, OrderTestUtils.contractIdBits(tokens))
 
@@ -60,7 +60,7 @@ describe('Order fill via `fill_funded` through BatchSwapExactInScript', async ()
     const deadline = OrderTestUtils.MAX_EXPIRY
     let reason: string | undefined = undefined
     try {
-      const request = await (await OrderTestUtils.callExactInScriptScope(path, deadline, taker, Orders.id.toB256()))
+      const request = await (await OrderTestUtils.callExactInScriptScope(path, deadline, taker, Orders.id.toB256(), loggerId))
         .addContracts([Orders])
         .txParams(txParams)
         .getTransactionRequest()
@@ -97,7 +97,7 @@ describe('Order fill via `fill_funded` through BatchSwapExactInScript', async ()
       wallets: [maker, deployer, taker]
     } = launched;
 
-    const { Orders, tokens } = await OrderTestUtils.fixture(deployer)
+    const { Orders, tokens, loggerId } = await OrderTestUtils.fixture(deployer)
 
     const [maker_asset, taker_asset] = await OrderTestUtils.createTokens(deployer, OrderTestUtils.contractIdBits(tokens))
 
@@ -172,7 +172,7 @@ describe('Order fill via `fill_funded` through BatchSwapExactInScript', async ()
 
     const deadline = OrderTestUtils.MAX_EXPIRY
 
-    const request = await (await OrderTestUtils.callExactInScriptScope(path, deadline, taker, Orders.id.toB256()))
+    const request = await (await OrderTestUtils.callExactInScriptScope(path, deadline, taker, Orders.id.toB256(), loggerId))
       .addContracts([Orders])
       .txParams(txParams)
       .getTransactionRequest()
@@ -263,7 +263,7 @@ describe('Order fill via `fill_funded` through BatchSwapExactInScript', async ()
       wallets: [maker, deployer, taker]
     } = launched;
 
-    const { Orders, tokens } = await OrderTestUtils.fixture(deployer)
+    const { Orders, tokens, loggerId } = await OrderTestUtils.fixture(deployer)
 
 
 
@@ -343,7 +343,7 @@ describe('Order fill via `fill_funded` through BatchSwapExactInScript', async ()
 
     const deadline = OrderTestUtils.MAX_EXPIRY
 
-    const request = await (await OrderTestUtils.callExactInScriptScope(path, deadline, taker, Orders.id.toB256()))
+    const request = await (await OrderTestUtils.callExactInScriptScope(path, deadline, taker, Orders.id.toB256(), loggerId))
       .addContracts([Orders])
       .txParams(txParams)
       .getTransactionRequest()
@@ -438,7 +438,7 @@ describe('Order fill via `fill_funded` through BatchSwapExactInScript', async ()
       wallets: [maker, deployer, taker]
     } = launched;
 
-    const { Orders, tokens } = await OrderTestUtils.fixture(deployer)
+    const { Orders, tokens, loggerId } = await OrderTestUtils.fixture(deployer)
 
     const [maker_asset, taker_asset, intermediate_asset] = await OrderTestUtils.createTokens(deployer, OrderTestUtils.contractIdBits(tokens), OrderTestUtils.EXTENDED_NAMES)
 
@@ -534,7 +534,7 @@ describe('Order fill via `fill_funded` through BatchSwapExactInScript', async ()
 
     const deadline = OrderTestUtils.MAX_EXPIRY
 
-    const request = await (await OrderTestUtils.callExactInScriptScope(path, deadline, taker, Orders.id.toB256()))
+    const request = await (await OrderTestUtils.callExactInScriptScope(path, deadline, taker, Orders.id.toB256(), loggerId))
       .addContracts([Orders])
       .txParams(txParams)
       .getTransactionRequest()

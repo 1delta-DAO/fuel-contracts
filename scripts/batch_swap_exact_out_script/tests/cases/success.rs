@@ -1,9 +1,10 @@
 use crate::utils::setup;
 use fuels::prelude::VariableOutputPolicy;
+use fuels::types::Bits256;
 use test_harness::interface::amm::pool_metadata;
 use test_harness::interface::scripts::get_transaction_inputs_outputs;
 use test_harness::interface::BatchSwapStep;
-use test_harness::types::encode_mira_params;
+use test_harness::types::{encode_mira_params, encode_mira_params_with_dex_address};
 use test_harness::utils::common::{asset_balance, pool_assets_balance};
 
 #[tokio::test]
@@ -12,6 +13,7 @@ async fn exact_out_swap_between_two_volatile_tokens() {
         _,
         swap_exact_output_script,
         amm,
+        logger,
         (pool_id_0_1, _, _, _, _),
         wallet,
         deadline,
@@ -47,7 +49,7 @@ async fn exact_out_swap_between_two_volatile_tokens() {
     )];
     swap_exact_output_script
         .main(path, deadline)
-        .with_contracts(&[&amm.instance])
+        .with_contracts(&[&amm.instance, &logger])
         .with_inputs(inputs)
         .with_outputs(outputs)
         .with_variable_output_policy(VariableOutputPolicy::Exactly(1))
@@ -85,6 +87,7 @@ async fn exact_out_swap_between_three_volatile_tokens() {
         _,
         swap_exact_output_script,
         amm,
+        logger,
         (pool_id_0_1, pool_id_1_2, _, _, _),
         wallet,
         deadline,
@@ -120,7 +123,7 @@ async fn exact_out_swap_between_three_volatile_tokens() {
                 asset_in: token_1_id,
                 asset_out: token_2_id,
                 receiver: wallet.address().into(),
-                data: encode_mira_params(swap_fees.0, false),
+                data: encode_mira_params_with_dex_address(swap_fees.0, false, Bits256(*amm.id)),
             },
             BatchSwapStep {
                 dex_id: 0,
@@ -134,7 +137,7 @@ async fn exact_out_swap_between_three_volatile_tokens() {
 
     swap_exact_output_script
         .main(path, deadline)
-        .with_contracts(&[&amm.instance])
+        .with_contracts(&[&amm.instance, &logger])
         .with_inputs(inputs)
         .with_outputs(outputs)
         .with_variable_output_policy(VariableOutputPolicy::Exactly(1))
@@ -190,6 +193,7 @@ async fn exact_out_swap_split_routes() {
         _,
         swap_exact_output_script,
         amm,
+        logger,
         (pool_id_0_1, _, _, _, _),
         wallet,
         deadline,
@@ -250,7 +254,7 @@ async fn exact_out_swap_split_routes() {
 
     swap_exact_output_script
         .main(path, deadline)
-        .with_contracts(&[&amm.instance])
+        .with_contracts(&[&amm.instance, &logger])
         .with_inputs(inputs)
         .with_outputs(outputs)
         .with_variable_output_policy(VariableOutputPolicy::Exactly(2))

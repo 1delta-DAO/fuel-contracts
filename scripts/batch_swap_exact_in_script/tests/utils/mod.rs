@@ -5,14 +5,14 @@ use std::str::FromStr;
 use test_harness::data_structures::{MiraAMMContract, WalletAssetConfiguration};
 use test_harness::interface::amm::{create_pool, fees, initialize_ownership};
 use test_harness::interface::mock::{
-    add_token, deploy_mock_token_contract, get_sub_id, mint_tokens,
+    add_token, deploy_logger_contract, deploy_mock_token_contract, get_sub_id, mint_tokens,
 };
 use test_harness::interface::scripts::get_transaction_inputs_outputs;
-use test_harness::interface::MiraAMM;
 use test_harness::interface::{
     AddLiquidityScript, AddLiquidityScriptConfigurables, BatchSwapExactInScript,
     BatchSwapExactInScriptConfigurables,
 };
+use test_harness::interface::{Logger, MiraAMM};
 use test_harness::paths::{
     ADD_LIQUIDITY_SCRIPT_BINARY_PATH, BATCH_SWAP_EXACT_IN_SCRIPT_BINARY_PATH,
 };
@@ -37,6 +37,7 @@ pub async fn setup() -> (
     AddLiquidityScript<WalletUnlocked>,
     BatchSwapExactInScript<WalletUnlocked>,
     MiraAMMContract,
+    Logger<WalletUnlocked>,
     (PoolId, PoolId, PoolId, PoolId, PoolId),
     WalletUnlocked,
     u32,
@@ -58,6 +59,7 @@ pub async fn setup() -> (
     ////////////////////////////////////////////////////
 
     let (token_contract_id, token_contract) = deploy_mock_token_contract(&wallet).await;
+    let (logger_contract_id, logger_contract) = deploy_logger_contract(&wallet).await;
 
     let token_0_id = add_token(&token_contract, "TOKEN_A".to_string(), "TKA".to_string(), 9)
         .await
@@ -183,6 +185,8 @@ pub async fn setup() -> (
 
     let swap_exact_input_script_configurables = BatchSwapExactInScriptConfigurables::default()
         .with_MIRA_AMM_CONTRACT_ID(ContractId::from_str(&amm.id.to_string()).unwrap())
+        .unwrap()
+        .with_LOGGER_CONTRACT_ID(ContractId::from_str(&logger_contract_id.to_string()).unwrap())
         .unwrap();
     let mut swap_exact_input_script_instance =
         BatchSwapExactInScript::new(wallet.clone(), BATCH_SWAP_EXACT_IN_SCRIPT_BINARY_PATH)
@@ -216,6 +220,7 @@ pub async fn setup() -> (
         add_liquidity_script_instance,
         swap_exact_input_script_instance,
         amm,
+        logger_contract,
         (
             pool_id_0_1,
             pool_id_1_2,

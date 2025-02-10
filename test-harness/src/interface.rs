@@ -4,7 +4,7 @@ use fuels::{
     types::{input::Input, output::Output, Bits256},
 };
 
-use crate::paths::MOCK_TOKEN_CONTRACT_BINARY_PATH;
+use crate::paths::{LOGGER_CONTRACT_BINARY_PATH, MOCK_TOKEN_CONTRACT_BINARY_PATH};
 
 use crate::types::PoolId;
 
@@ -12,6 +12,10 @@ abigen!(
     Contract(
         name = "MockToken",
         abi = "./contracts/mocks/mock_token/out/debug/mock_token-abi.json"
+    ),
+    Contract(
+        name = "Logger",
+        abi = "./contracts/logger/out/debug/logger-abi.json"
     ),
     Contract(
         name = "MiraAMM",
@@ -28,7 +32,8 @@ abigen!(
     ),
     Script(
         name = "BatchSwapExactOutScript",
-        abi = "./scripts/batch_swap_exact_out_script/out/debug/batch_swap_exact_out_script-abi.json"
+        abi =
+            "./scripts/batch_swap_exact_out_script/out/debug/batch_swap_exact_out_script-abi.json"
     ),
 );
 
@@ -84,15 +89,8 @@ pub mod amm {
             .unwrap()
     }
 
-    pub async fn fees(
-        contract: &MiraAMM<WalletUnlocked>
-    ) -> CallResponse<(u64, u64, u64, u64)> {
-        contract
-            .methods()
-            .fees()
-            .call()
-            .await
-            .unwrap()
+    pub async fn fees(contract: &MiraAMM<WalletUnlocked>) -> CallResponse<(u64, u64, u64, u64)> {
+        contract.methods().fees().call().await.unwrap()
     }
 }
 
@@ -113,6 +111,24 @@ pub mod mock {
 
         let id = ContractId::from(contract_id.clone());
         let instance = MockToken::new(contract_id, wallet.clone());
+
+        (id, instance)
+    }
+
+    pub async fn deploy_logger_contract(
+        wallet: &WalletUnlocked,
+    ) -> (ContractId, Logger<WalletUnlocked>) {
+        let contract_id = Contract::load_from(
+            LOGGER_CONTRACT_BINARY_PATH,
+            LoadConfiguration::default(),
+        )
+        .unwrap()
+        .deploy(wallet, TxPolicies::default())
+        .await
+        .unwrap();
+
+        let id = ContractId::from(contract_id.clone());
+        let instance = Logger::new(contract_id, wallet.clone());
 
         (id, instance)
     }

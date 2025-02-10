@@ -10,6 +10,7 @@ import { BatchSwapExactOutScript } from '../../ts-scripts/typegen/BatchSwapExact
 import { expect } from 'vitest';
 import { OrderRouterFactory } from '../../ts-scripts/typegen/OrderRouterFactory';
 import { OrderRouter } from '../../ts-scripts/typegen/OrderRouter';
+import { LoggerFactory } from '../../ts-scripts/sway_abis';
 
 
 export namespace OrderTestUtils {
@@ -52,9 +53,12 @@ export namespace OrderTestUtils {
 
     const { contract: Orders } = await deployRfqTx.waitForResult()
 
+    const logger = await LoggerFactory.deploy(deployer)
+
     return {
       tokens,
-      Orders
+      Orders,
+      loggerId: logger.contractId
     }
   }
 
@@ -127,12 +131,16 @@ export namespace OrderTestUtils {
   export async function callExactInScriptScope(
     path: any,
     deadline: number,
-    user: WalletUnlocked, Order: string) {
+    user: WalletUnlocked,
+    Order: string,
+    loggerId: any
+  ) {
 
     return await new BatchSwapExactInScript(user).setConfigurableConstants(
       {
         MIRA_AMM_CONTRACT_ID: contractIdInput(Order).ContractId,
         ONE_DELTA_ORDERS_CONTRACT_ID: contractIdInput(Order).ContractId,
+        LOGGER_CONTRACT_ID: { bits: loggerId },
       }
     ).functions.main(
       path,
@@ -143,12 +151,16 @@ export namespace OrderTestUtils {
   export async function callExactOutScriptScope(
     path: any,
     deadline: number,
-    user: WalletUnlocked, Order: string) {
+    user: WalletUnlocked,
+    Order: string,
+    loggerId: any
+  ) {
 
     return await new BatchSwapExactOutScript(user).setConfigurableConstants(
       {
         MIRA_AMM_CONTRACT_ID: contractIdInput(Order).ContractId,
         ONE_DELTA_ORDERS_CONTRACT_ID: contractIdInput(Order).ContractId,
+        LOGGER_CONTRACT_ID: { bits: loggerId },
       }
     ).functions.main(
       path,

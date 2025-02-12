@@ -8,6 +8,10 @@ export namespace TestnetData {
 
     export const one_delta_orders = "0x194c188af8d357171fb4ff8c113d2a260b7d0edf0b2034523e05dbfe8a66e91f"
 
+    export const SWAYLEND_PYTH_ORACLE = "0xe31e04946c67fb41923f93d50ee7fc1c6c99d6e07c02860c6bea5f4a13919277"
+
+    export const SWAYLEND_ETH_MARKET = "0xf8f8b6283d7fa5b672b530cbb84fcccb4ff8dc40f8176ef4544ddb1f1952ad07"
+
     export const RPC = "https://testnet.fuel.network/v1/graphql"
 
     export const MOCK_TOKEN = "0x3d8917742cf72d5b3309792f73ecb4f3a7f831c44249b88a56599e6a63a94a94"
@@ -46,6 +50,10 @@ export namespace MainnetData {
     export const MIRA_AMM_ID = "0x2e40f2b244b98ed6b8204b3de0156c6961f98525c8162f80162fcf53eebd90e7"
 
     export const one_delta_orders = "0xf6caa75386fe9ba4da15b82723ecffb0d56b28ae7ece396b15c5650b605359ac"
+
+    export const SWAYLEND_PYTH_ORACLE = "0xe31e04946c67fb41923f93d50ee7fc1c6c99d6e07c02860c6bea5f4a13919277"
+
+    export const SWAYLEND_USDC_MARKET_PROXY = "0x657ab45a6eb98a4893a99fd104347179151e8b3828fd8f2a108cc09770d1ebae"
 
     export const TOKEN_GATEWAY = "0x4ea6ccef1215d9479f1024dff70fc055ca538215d2c8c348beddffd54583d0e8"
 

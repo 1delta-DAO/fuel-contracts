@@ -18,6 +18,10 @@ abigen!(
         abi = "./contracts/logger/out/debug/logger-abi.json"
     ),
     Contract(
+        name = "SwaylendMarket",
+        abi = "./fixtures/swaylend/market-abi.json"
+    ),
+    Contract(
         name = "MiraAMM",
         abi = "./fixtures/mira-amm/mira_amm_contract-abi.json"
     ),

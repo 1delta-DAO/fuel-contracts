@@ -5,7 +5,7 @@
   "scripts": {
     "test:ts": "vitest",
     "build": "forc build",
-    "abis": "./tools/fetch_abis.sh",
+    "abis": "./tools/fetch_abis.sh && ./tools/fetch_swaylend_abis.sh",
     "test:rs": "cargo test",
     "types": "fuels typegen -i scripts/*/out/*/*-abi.json -o ./ts-scripts/typegen --script & fuels typegen -i fixtures/*/*-abi.json -o ./ts-scripts/typegen --contract & fuels typegen -i one_delta_orders/*/*/*-abi.json -o ./ts-scripts/typegen --contract & fuels typegen -i order_router/*/*/*-abi.json -o ./ts-scripts/typegen --contract & fuels typegen -i contracts/mocks/mock_token/*/*/*-abi.json -o ./ts-scripts/typegen --contract & fuels typegen -i contracts/logger/*/*/*-abi.json -o ./ts-scripts/typegen --contract",
     "deploy:logger": "tsx ts-scripts/mainnet/logger/deploy.ts"

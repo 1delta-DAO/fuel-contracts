@@ -1,0 +1,13 @@
+[project]
+authors = ["1delta"]
+entry = "main.sw"
+license = "Apache-2.0"
+name = "composer_script"
+
+[dependencies]
+executor = { path = "../../dex_lib/executor" }
+interfaces = { path = "../../dex_lib/mira_v1/interfaces" }
+mira_v1_swap = { path = "../../dex_lib/mira_v1/swap" }
+utils = { path = "../../dex_lib/mira_v1/utils" }
+logger_abi = { path = "../../dex_lib/logger_abi" }
+swaylend = { path = "../../dex_lib/swaylend" }

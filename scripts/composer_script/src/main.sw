@@ -3,7 +3,7 @@ script;
 use interfaces::mira_amm::MiraAMM;
 use utils::blockchain_utils::check_deadline;
 use executor::{BatchSwapStep, execute_exact_in, get_dex_input_receiver};
-use std::asset::transfer;
+use std::{asset::transfer, bytes::Bytes, bytes_conversions::u64::*, revert::revert};
 use logger_abi::Logger;
 
 ////////////////////////////////////////////////////
@@ -24,39 +24,81 @@ configurable {
 ////////////////////////////////////////////////////
 // Types
 ////////////////////////////////////////////////////
-struct SwapPath {
-    amount_in: u64,
-    min_amount_out: u64,
-    transfer_in: bool,
-    steps: Vec<BatchSwapStep>,
+pub struct SwapPath {
+    pub amount_in: u64,
+    pub min_amount_out: u64,
+    pub transfer_in: bool,
+    pub steps: Vec<BatchSwapStep>,
 }
 
-#[repr(u64)]
-enum LenderId {
-    SwaylendUSDC = 1,
+pub enum LenderId {
+    SwaylendUSDC: (),
 }
 
-#[repr(u16)]
-enum LenderActionType {
-    Deposit = 0,
-    Borrow = 1,
-    Withdraw = 2,
-    Repay = 3,
-    DepositBase = 4,
-    WithdrawBase = 5,
+impl LenderId {
+    pub fn from_u16(value: u16) -> Option<LenderId> {
+        match value {
+            0 => Some(LenderId::SwaylendUSDC),
+            _ => None,
+        }
+    }
+
+    pub fn to_u16(self) -> u16 {
+        match self {
+            LenderId::SwaylendUSDC => 0,
+        }
+    }
 }
 
-struct LenderAction {
-    id: LenderId,
-    action: LenderActionType,
-    asset: AssetId,
-    receiver: Identity,
-    data: Bytes,
+pub enum LenderActionType {
+    Deposit: (),
+    Borrow: (),
+    Withdraw: (),
+    Repay: (),
+    DepositBase: (),
+    WithdrawBase: (),
 }
 
-enum Action {
-    Swap(Vec<SwapPath>),
-    Lending(LenderAction),
+impl LenderActionType {
+    pub fn from_u16(value: u16) -> Option<LenderActionType> {
+        match value {
+            0 => Some(LenderActionType::Deposit),
+            1 => Some(LenderActionType::Borrow),
+            2 => Some(LenderActionType::Withdraw),
+            3 => Some(LenderActionType::Repay),
+            4 => Some(LenderActionType::DepositBase),
+            5 => Some(LenderActionType::WithdrawBase),
+            _ => None,
+        }
+    }
+
+    pub fn to_u16(self) -> u16 {
+        match self {
+            LenderActionType::Deposit => 0,
+            LenderActionType::Borrow => 1,
+            LenderActionType::Withdraw => 2,
+            LenderActionType::Repay => 3,
+            LenderActionType::DepositBase => 4,
+            LenderActionType::WithdrawBase => 5,
+        }
+    }
+}
+
+pub struct LenderAction {
+    pub id: u16,
+    pub action: u16,
+    pub asset: AssetId,
+    pub receiver: Identity,
+    pub data: Bytes,
+}
+
+pub struct SwapPathList {
+    pub paths: Vec<SwapPath>,
+}
+
+pub enum Action {
+    Swap: (SwapPathList),
+    Lending: (LenderAction),
 }
 
 // Swap split paths exact in
@@ -69,14 +111,16 @@ fn main(
     // use cached amount for split swaps
     let mut amount_cached = 0u64;
 
-    while i < actions.len() {
-        match actions.get(i) {
-            Action::Swap(swap_paths) => {
+    // start to go through actions
+    let mut j = 0;
+    while j < actions.len() {
+        match actions.get(j) {
+             Some(Action::Swap(swap_path_list)) => {
                 // start to swap through paths
                 let mut i = 0;
-                while i < swap_paths.len() {
+                while i < swap_path_list.paths.len() {
                     // get current path, input amount, slippage_check, transfer_in flag and path
-                    let (current_amount_in, minimum_out, transfer_in, current_path) = match swap_paths.get(i) {
+                    let (current_amount_in, minimum_out, transfer_in, current_path) = match swap_path_list.paths.get(i) {
                         Option::Some(SwapPath { amount_in, min_amount_out, transfer_in, steps }) => (amount_in, min_amount_out, transfer_in, steps),
                         Option::None => revert(EMPTY_PATH_ENTRY),
                     };
@@ -161,9 +205,12 @@ fn main(
                     i += 1;
                 }
             },
-            Action::Lending(lender_action) => {
-                revert("Lending not implemented");
+            Some(Action::Lending(lender_action)) => {
+                revert(0);
             },
+            None => {
+                revert(1);
+            }
         };
     }
 

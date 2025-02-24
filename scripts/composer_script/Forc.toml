@@ -10,4 +10,4 @@ interfaces = { path = "../../dex_lib/mira_v1/interfaces" }
 mira_v1_swap = { path = "../../dex_lib/mira_v1/swap" }
 utils = { path = "../../dex_lib/mira_v1/utils" }
 logger_abi = { path = "../../dex_lib/logger_abi" }
-swaylend = { path = "../../dex_lib/swaylend" }
+market_abi = { path = "../../dex_lib/swaylend" }

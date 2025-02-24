@@ -7,7 +7,8 @@ export default createConfig({
   ],
   scripts: [
     "./scripts/batch_swap_exact_in_script",
-    "./scripts/batch_swap_exact_out_script"
+    "./scripts/batch_swap_exact_out_script",
+    "./scripts/composer_script"
   ],
   output: './ts-scripts/sway_abis',
   forcBuildFlags: ['--release'],

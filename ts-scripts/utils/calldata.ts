@@ -2,7 +2,7 @@ import { Interface, Wallet } from "fuels";
 import { MockProvider } from "./provider";
 import { BatchSwapExactInScriptLoader } from "../sway_abis";
 import SCRIPT_ABI from "../../scripts/batch_swap_exact_in_script/out/batch_swap_exact_in_script-loader-abi.json"
-import {  MockToken } from "../typegen";
+import { MockToken } from "../typegen";
 import { TestnetData } from "../contexts";
 import { txParams } from "./constants";
 import { assetIdInput } from "../utils";

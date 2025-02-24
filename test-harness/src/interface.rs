@@ -4,7 +4,7 @@ use fuels::{
     types::{input::Input, output::Output, Bits256},
 };
 
-use crate::paths::{LOGGER_CONTRACT_BINARY_PATH, MOCK_TOKEN_CONTRACT_BINARY_PATH};
+use crate::paths::{LOGGER_CONTRACT_BINARY_PATH, MOCK_TOKEN_CONTRACT_BINARY_PATH, SWAYLEND_CONTRACT_BINARY_PATH};
 
 use crate::types::PoolId;
 
@@ -12,6 +12,10 @@ abigen!(
     Contract(
         name = "MockToken",
         abi = "./contracts/mocks/mock_token/out/debug/mock_token-abi.json"
+    ),
+    Contract(
+        name = "MockSwaylend",
+        abi = "./contracts/mocks/mock_swaylend/out/debug/mock_swaylend-abi.json"
     ),
     Contract(
         name = "Logger",
@@ -38,6 +42,11 @@ abigen!(
         name = "BatchSwapExactOutScript",
         abi =
             "./scripts/batch_swap_exact_out_script/out/debug/batch_swap_exact_out_script-abi.json"
+    ),
+    Script(
+        name = "ComposerScript",
+        abi =
+            "./scripts/composer_script/out/debug/composer_script-abi.json"
     ),
 );
 
@@ -115,6 +124,24 @@ pub mod mock {
 
         let id = ContractId::from(contract_id.clone());
         let instance = MockToken::new(contract_id, wallet.clone());
+
+        (id, instance)
+    }
+
+    pub async fn deploy_mock_swaylend_contract(
+        wallet: &WalletUnlocked,
+    ) -> (ContractId, MockSwaylend<WalletUnlocked>) {
+        let contract_id = Contract::load_from(
+            SWAYLEND_CONTRACT_BINARY_PATH,
+            LoadConfiguration::default(),
+        )
+        .unwrap()
+        .deploy(wallet, TxPolicies::default())
+        .await
+        .unwrap();
+
+        let id = ContractId::from(contract_id.clone());
+        let instance = MockSwaylend::new(contract_id, wallet.clone());
 
         (id, instance)
     }

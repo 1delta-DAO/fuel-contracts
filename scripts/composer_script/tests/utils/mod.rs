@@ -5,16 +5,16 @@ use std::str::FromStr;
 use test_harness::data_structures::{MiraAMMContract, WalletAssetConfiguration};
 use test_harness::interface::amm::{create_pool, fees, initialize_ownership};
 use test_harness::interface::mock::{
-    add_token, deploy_logger_contract, deploy_mock_token_contract, get_sub_id, mint_tokens,
+    add_token, deploy_logger_contract, deploy_mock_token_contract, get_sub_id, mint_tokens, deploy_mock_swaylend_contract,
 };
 use test_harness::interface::scripts::get_transaction_inputs_outputs;
 use test_harness::interface::{
-    AddLiquidityScript, AddLiquidityScriptConfigurables, BatchSwapExactInScript,
-    BatchSwapExactInScriptConfigurables,
+    AddLiquidityScript, AddLiquidityScriptConfigurables, BatchSwapExactInScript, 
+    BatchSwapExactInScriptConfigurables, ComposerScript, ComposerScriptConfigurables
 };
 use test_harness::interface::{Logger, MiraAMM};
 use test_harness::paths::{
-    ADD_LIQUIDITY_SCRIPT_BINARY_PATH, BATCH_SWAP_EXACT_IN_SCRIPT_BINARY_PATH,
+    ADD_LIQUIDITY_SCRIPT_BINARY_PATH, BATCH_SWAP_EXACT_IN_SCRIPT_BINARY_PATH, COMPOSER_SCRIPT_BINARY_PATH
 };
 use test_harness::setup::common::{deploy_amm, setup_wallet_and_provider};
 use test_harness::types::PoolId;
@@ -35,7 +35,7 @@ use test_harness::utils::common::MINIMUM_LIQUIDITY;
 ////////////////////////////////////////////////////
 pub async fn setup() -> (
     AddLiquidityScript<WalletUnlocked>,
-    BatchSwapExactInScript<WalletUnlocked>,
+    ComposerScript<WalletUnlocked>,
     MiraAMMContract,
     Logger<WalletUnlocked>,
     (PoolId, PoolId, PoolId, PoolId, PoolId),
@@ -53,6 +53,12 @@ pub async fn setup() -> (
 
     let amm: MiraAMMContract = deploy_amm(&wallet).await;
     initialize_ownership(&amm.instance, Identity::Address(wallet.address().into())).await;
+
+
+    ////////////////////////////////////////////////////
+    // deploy tokens and mint
+
+    let (swaylend_contract_id, swaylend_contract) = deploy_mock_swaylend_contract(&wallet).await;
 
     ////////////////////////////////////////////////////
     // deploy tokens and mint
@@ -183,16 +189,19 @@ pub async fn setup() -> (
         .await
         .unwrap();
 
-    let swap_exact_input_script_configurables = BatchSwapExactInScriptConfigurables::default()
+    let composer_script_configurables = ComposerScriptConfigurables::default()
         .with_MIRA_AMM_CONTRACT_ID(ContractId::from_str(&amm.id.to_string()).unwrap())
         .unwrap()
         .with_LOGGER_CONTRACT_ID(ContractId::from_str(&logger_contract_id.to_string()).unwrap())
+        .unwrap()
+        .with_SWAYLEND_USDC_MARKET_CONTRACT_ID(ContractId::from_str(&swaylend_contract_id.to_string()).unwrap())
         .unwrap();
-    let mut swap_exact_input_script_instance =
-        BatchSwapExactInScript::new(wallet.clone(), BATCH_SWAP_EXACT_IN_SCRIPT_BINARY_PATH)
-            .with_configurables(swap_exact_input_script_configurables);
+        
+    let mut composer_script_instance =
+        ComposerScript::new(wallet.clone(), COMPOSER_SCRIPT_BINARY_PATH)
+            .with_configurables(composer_script_configurables);
 
-    swap_exact_input_script_instance
+    composer_script_instance
         .convert_into_loader()
         .await
         .unwrap();
@@ -218,7 +227,7 @@ pub async fn setup() -> (
 
     (
         add_liquidity_script_instance,
-        swap_exact_input_script_instance,
+        composer_script_instance,
         amm,
         logger_contract,
         (

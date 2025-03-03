@@ -205,8 +205,32 @@ fn main(
                     i += 1;
                 }
             },
-            Some(Action::Lending(lender_action)) => {
-                revert(0);
+            Some(Action::Lending(LenderAction { lender_id, action, asset, receiver, data })) => {
+                let lender = match LenderId::from_u64(lender_id) {
+                    Some(lender) => lender,
+                    None => revert(INVALID_LENDER_ID),
+                };
+                let action = match LenderActionType::from_u16(action) {
+                    Some(action) => action,
+                    None => revert(INVALID_ACTION_TYPE),
+                };
+                let amm = abi(MiraAMM, MIRA_AMM_CONTRACT_ID.into());
+
+                match lender {
+                    LenderId::SwaylendUSDC => {
+                        match action {
+                            LenderActionType::Deposit => {
+                                revert(EMPTY_ACTION_ENTRY);
+                            },
+                            _ => {
+                                revert(EMPTY_ACTION_ENTRY);
+                            }
+                        }
+                    },
+                    _ => {
+                        revert(EMPTY_ACTION_ENTRY);
+                    }
+                }
             },
             None => {
                 revert(1);

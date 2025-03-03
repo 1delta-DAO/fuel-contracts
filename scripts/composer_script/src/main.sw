@@ -39,14 +39,14 @@ pub enum LenderId {
 }
 
 impl LenderId {
-    pub fn from_u16(value: u16) -> Option<LenderId> {
+    pub fn from_u64(value: u64) -> Option<LenderId> {
         match value {
             0 => Some(LenderId::SwaylendUSDC),
             _ => None,
         }
     }
 
-    pub fn to_u16(self) -> u16 {
+    pub fn to_u64(self) -> u64 {
         match self {
             LenderId::SwaylendUSDC => 0,
         }
@@ -88,7 +88,7 @@ impl LenderActionType {
 }
 
 pub struct LenderAction {
-    pub id: u16,
+    pub lender_id: u64,
     pub action: u16,
     pub asset: AssetId,
     pub receiver: Identity,

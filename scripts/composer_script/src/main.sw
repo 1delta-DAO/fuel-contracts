@@ -10,6 +10,9 @@ use logger_abi::Logger;
 // Error codes
 ////////////////////////////////////////////////////
 const EMPTY_PATH_ENTRY: u64 = 100;
+const EMPTY_ACTION_ENTRY: u64 = 101;
+const INVALID_LENDER_ID: u64 = 102;
+const INVALID_ACTION_TYPE: u64 = 103;
 
 ////////////////////////////////////////////////////
 // DEX references
@@ -233,7 +236,7 @@ fn main(
                 }
             },
             None => {
-                revert(1);
+                revert(EMPTY_ACTION_ENTRY);
             }
         };
     }

@@ -3,15 +3,15 @@ use fuels::prelude::VariableOutputPolicy;
 use fuels::types::Bits256;
 use test_harness::interface::amm::pool_metadata;
 use test_harness::interface::scripts::get_transaction_inputs_outputs;
-use test_harness::interface::BatchSwapStep;
+use test_harness::interface::{Action, SwapPathList, LenderAction, SwapPath, BatchSwapStep};
 use test_harness::types::{encode_mira_params, encode_mira_params_with_dex_address};
 use test_harness::utils::common::{asset_balance, pool_assets_balance};
 
 #[tokio::test]
-async fn exact_in_swap_between_two_volatile_tokens() {
+async fn composer_exact_in_swap_between_two_volatile_tokens() {
     let (
         _,
-        swap_exact_input_script,
+        composer_script,
         amm,
         logger,
         (pool_id_0_1, _, _, _, _),
@@ -33,20 +33,23 @@ async fn exact_in_swap_between_two_volatile_tokens() {
         .unwrap();
 
     // execute swap
-    let path = vec![(
-        token_0_to_swap,
-        0u64,
-        true,
-        vec![BatchSwapStep {
+    let paths = vec![SwapPath {
+        amount_in: token_0_to_swap,
+        min_amount_out: 0u64,
+        transfer_in: true,
+        steps: vec![BatchSwapStep {
             dex_id: 0,
             asset_in: token_0_id,
             asset_out: token_1_id,
             receiver: wallet.address().into(),
             data: encode_mira_params(swap_fees.0, false),
         }],
-    )];
-    swap_exact_input_script
-        .main(path, deadline)
+    }];
+
+    let actions = vec![Action::Swap(SwapPathList { paths })];
+
+    composer_script
+        .main(actions, deadline)
         .with_contracts(&[&amm.instance, &logger])
         .with_inputs(inputs)
         .with_outputs(outputs)

@@ -141,14 +141,11 @@ fn main(
                         amount_cached = 0;
                         am
                     };
-
-                    // initialize the swap path
-                    let mut j = 0;
-
+                
                     // get path length for iteration
                     let path_length = current_path.len();
 
-                    // initialize first swap step
+                    // initialize first swap step (from action j)
                     let mut swap_step = current_path.get(0).unwrap();
 
                     // transfer to first DEX if needed
@@ -167,7 +164,8 @@ fn main(
                             amount_in_used,
                         );
                     }
-                    // start swapping the path
+                    // start swapping the path via index k
+                    let mut k = 0;
                     while true {
                         //=============================================
                         //      DEX swap execution  
@@ -187,12 +185,12 @@ fn main(
                         //=============================================
 
                         // increment swap step index within path
-                        j += 1;
+                        k += 1;
 
                         // check if we need to continue
-                        if j < path_length {
+                        if k < path_length {
                             // get next swap_step
-                            swap_step = current_path.get(j).unwrap();
+                            swap_step = current_path.get(k).unwrap();
                         } else {
                             // in this block, we completed a path
                             // we record / increment the cached amount and check for slippage
@@ -207,6 +205,8 @@ fn main(
                     // increment path index
                     i += 1;
                 }
+                // increment action index
+                j += 1;
             },
             Some(Action::Lending(LenderAction { lender_id, action, asset, receiver, data })) => {
                 let lender = match LenderId::from_u64(lender_id) {
@@ -218,6 +218,8 @@ fn main(
                     None => revert(INVALID_ACTION_TYPE),
                 };
                 let amm = abi(MiraAMM, MIRA_AMM_CONTRACT_ID.into());
+                // increment operation index
+                j += 1;
 
                 match lender {
                     LenderId::SwaylendUSDC => {

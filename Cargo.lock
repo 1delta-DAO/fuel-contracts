@@ -920,6 +920,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "composer-script"
+version = "0.1.0"
+dependencies = [
+ "fuels",
+ "test-harness",
+ "tokio",
+]
+
+[[package]]
 name = "concurrent-queue"
 version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

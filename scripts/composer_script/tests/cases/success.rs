@@ -43,6 +43,7 @@ async fn composer_exact_in_swap_between_two_volatile_tokens() {
             asset_out: token_1_id,
             receiver: wallet.address().into(),
             data: encode_mira_params(swap_fees.0, false),
+            // data: encode_mira_params_with_dex_address(swap_fees.0, false, Bits256(*amm.id)),
         }],
     }];
 

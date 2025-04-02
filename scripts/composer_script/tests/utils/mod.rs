@@ -12,7 +12,7 @@ use test_harness::interface::{
     AddLiquidityScript, AddLiquidityScriptConfigurables, BatchSwapExactInScript, 
     BatchSwapExactInScriptConfigurables, ComposerScript, ComposerScriptConfigurables
 };
-use test_harness::interface::{Logger, MiraAMM};
+use test_harness::interface::{Logger, MiraAMM, MockSwaylend, MarketConfiguration};
 use test_harness::paths::{
     ADD_LIQUIDITY_SCRIPT_BINARY_PATH, BATCH_SWAP_EXACT_IN_SCRIPT_BINARY_PATH, COMPOSER_SCRIPT_BINARY_PATH
 };
@@ -37,6 +37,7 @@ pub async fn setup() -> (
     AddLiquidityScript<WalletUnlocked>,
     ComposerScript<WalletUnlocked>,
     MiraAMMContract,
+    MockSwaylend<WalletUnlocked>,
     Logger<WalletUnlocked>,
     (PoolId, PoolId, PoolId, PoolId, PoolId),
     WalletUnlocked,
@@ -53,12 +54,6 @@ pub async fn setup() -> (
 
     let amm: MiraAMMContract = deploy_amm(&wallet).await;
     initialize_ownership(&amm.instance, Identity::Address(wallet.address().into())).await;
-
-
-    ////////////////////////////////////////////////////
-    // deploy tokens and mint
-
-    let (swaylend_contract_id, swaylend_contract) = deploy_mock_swaylend_contract(&wallet).await;
 
     ////////////////////////////////////////////////////
     // deploy tokens and mint
@@ -95,6 +90,18 @@ pub async fn setup() -> (
     mint_tokens(&token_contract, token_1_id, 1_000_000_000).await;
     mint_tokens(&token_contract, token_2_id, 1_000_000_000).await;
     mint_tokens(&token_contract, token_3_id, 1_000_000_000).await;
+
+
+    ////////////////////////////////////////////////////
+    // deploy lender and init
+
+    let (swaylend_contract_id, swaylend_contract) = deploy_mock_swaylend_contract(&wallet).await;
+
+    mint_tokens(&token_contract, token_0_id, 1_000_000_000).await;
+
+    // let marketConfig = MarketConfiguration::default();
+    
+    // swaylend_contract.activate_contract(marketConfig, Identity::Address(wallet.address().into())).await;
 
     ////////////////////////////////////////////////////
     // create dex pools
@@ -229,6 +236,7 @@ pub async fn setup() -> (
         add_liquidity_script_instance,
         composer_script_instance,
         amm,
+        swaylend_contract,
         logger_contract,
         (
             pool_id_0_1,

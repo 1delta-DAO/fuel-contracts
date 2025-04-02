@@ -2,8 +2,24 @@ contract;
 
 use market_abi::{Market, structs::*};
 use pyth_interface::{data_structures::price::{Price, PriceFeedId}};
-use std::bytes::Bytes;
+use std::{
+    auth::msg_sender,
+    call_frames::msg_asset_id,
+    context::{
+        msg_amount,
+        this_balance,
+    },
+    asset::transfer,
+    hash::Hash,
+    bytes::Bytes,
+};
 use sway_libs::signed_integers::i256::I256;
+
+storage {
+    user_collateral: StorageMap<(Identity, AssetId), u64> = StorageMap {},
+    user_base: StorageMap<Identity, u64> = StorageMap {},
+    base_asset_id: Option<AssetId> = Option::None,
+}
 
 impl Market for Contract {
     fn get_version() -> u8 {
@@ -12,6 +28,7 @@ impl Market for Contract {
 
     #[storage(write)]
     fn activate_contract(market_configuration: MarketConfiguration, owner: Identity) {
+        storage.base_asset_id.write(Some(market_configuration.base_token));
     }
 
     #[storage(write)]
@@ -41,10 +58,23 @@ impl Market for Contract {
 
     #[payable, storage(write)]
     fn supply_collateral() {
+        let asset_id = msg_asset_id();
+        let amount = msg_amount();
+        let sender = msg_sender().unwrap();
+
+        storage.user_collateral.insert((sender, asset_id), amount);
     }
 
     #[payable, storage(write)]
     fn withdraw_collateral(asset_id: AssetId, amount: u64, price_data_update: PriceDataUpdate) {
+        let sender = msg_sender().unwrap();
+        
+        let current_balance = storage.user_collateral.get((sender, asset_id)).try_read().unwrap();
+        require(current_balance >= amount, "Insufficient collateral balance");
+        
+        storage.user_collateral.insert((sender, asset_id), current_balance - amount);
+        
+        transfer(sender, asset_id, amount);
     }
 
     #[storage(read)]
@@ -69,10 +99,30 @@ impl Market for Contract {
 
     #[payable, storage(write)]
     fn supply_base() {
+        let asset_id = msg_asset_id();
+        let amount = msg_amount();
+        let sender = msg_sender().unwrap();
+        let base_asset = storage.base_asset_id.try_read().unwrap();
+
+        require(base_asset.is_some(), "base_asset not initialized");
+
+        require(asset_id == base_asset.unwrap(), "Invalid asset");
+
+        let current_balance = storage.user_base.get(sender).try_read().unwrap();
+        storage.user_base.insert(sender, current_balance + amount);
     }
 
     #[payable, storage(write)]
     fn withdraw_base(amount: u64, price_data_update: PriceDataUpdate) {
+        let sender = msg_sender().unwrap();
+        let base_asset = storage.base_asset_id.try_read().unwrap();
+        
+        require(base_asset.is_some(), "base_asset not initialized");
+
+        let current_balance = storage.user_base.get(sender).try_read().unwrap();        
+        storage.user_base.insert(sender, current_balance - amount);
+        
+        transfer(sender, base_asset.unwrap(), amount);
     }
 
     #[storage(read)]

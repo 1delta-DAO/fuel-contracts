@@ -5,6 +5,7 @@ use utils::blockchain_utils::check_deadline;
 use executor::{BatchSwapStep, execute_exact_in, get_dex_input_receiver};
 use std::{asset::transfer, bytes::Bytes, bytes_conversions::u64::*, revert::revert};
 use logger_abi::Logger;
+use market_abi::{Market, structs::PriceDataUpdate};
 
 ////////////////////////////////////////////////////
 // Error codes
@@ -13,6 +14,7 @@ const EMPTY_PATH_ENTRY: u64 = 100;
 const EMPTY_ACTION_ENTRY: u64 = 101;
 const INVALID_LENDER_ID: u64 = 102;
 const INVALID_ACTION_TYPE: u64 = 103;
+const INVALID_AMOUNT_TYPE: u64 = 104;
 
 ////////////////////////////////////////////////////
 // DEX references
@@ -87,12 +89,36 @@ impl LenderActionType {
     }
 }
 
+pub enum AmountType {
+    Received: (),
+    Defined: (),
+}
+
+impl AmountType {
+    pub fn from_u8(value: u8) -> Option<AmountType> {
+        match value {
+            0 => Some(AmountType::Received),
+            1 => Some(AmountType::Defined),
+            _ => None,
+        }
+    }
+
+    pub fn to_u8(self) -> u8 {
+        match self {
+            AmountType::Received => 0,
+            AmountType::Defined => 1,
+        }
+    }
+}
+
 pub struct LenderAction {
     pub lender_id: u64,
-    pub action: u16,
+    pub action_id: u16,
     pub asset: AssetId,
+    pub amount_in: u64,
+    pub amount_type_id: u8,
     pub receiver: Identity,
-    pub data: Bytes,
+    pub data: Option<PriceDataUpdate>,
 }
 
 pub struct SwapPathList {
@@ -118,7 +144,7 @@ fn main(
     let mut j = 0;
     while j < actions.len() {
         match actions.get(j) {
-             Some(Action::Swap(swap_path_list)) => {
+            Some(Action::Swap(swap_path_list)) => {
                 // start to swap through paths
                 let mut i = 0;
                 while i < swap_path_list.paths.len() {
@@ -208,24 +234,59 @@ fn main(
                 // increment action index
                 j += 1;
             },
-            Some(Action::Lending(LenderAction { lender_id, action, asset, receiver, data })) => {
+            Some(Action::Lending(LenderAction { lender_id, action_id, asset, amount_in, amount_type_id, receiver, data })) => {
                 let lender = match LenderId::from_u64(lender_id) {
                     Some(lender) => lender,
                     None => revert(INVALID_LENDER_ID),
                 };
-                let action = match LenderActionType::from_u16(action) {
+                let action = match LenderActionType::from_u16(action_id) {
                     Some(action) => action,
                     None => revert(INVALID_ACTION_TYPE),
                 };
-                let amm = abi(MiraAMM, MIRA_AMM_CONTRACT_ID.into());
+                let amount_type = match AmountType::from_u8(amount_type_id) {
+                    Some(amount_type) => amount_type,
+                    None => revert(INVALID_AMOUNT_TYPE),
+                };
+                let amount = match amount_type {
+                    AmountType::Received => amount_cached,
+                    AmountType::Defined => amount_in,
+                };
+
                 // increment operation index
                 j += 1;
 
                 match lender {
                     LenderId::SwaylendUSDC => {
+                        let swaylend_market = abi(Market, SWAYLEND_USDC_MARKET_CONTRACT_ID.into());
+
                         match action {
                             LenderActionType::Deposit => {
-                                revert(EMPTY_ACTION_ENTRY);
+                                transfer(
+                                    Identity::ContractId(SWAYLEND_USDC_MARKET_CONTRACT_ID),
+                                    asset,
+                                    amount,
+                                );
+                                
+                                swaylend_market.supply_collateral();
+                            },
+                            LenderActionType::Borrow => {
+                                require(data.is_some(), "price data not defined");
+                                
+                                swaylend_market.withdraw_base(amount, data.unwrap());
+                            },
+                            LenderActionType::Withdraw => {
+                                require(data.is_some(), "price data not defined");
+
+                                swaylend_market.withdraw_collateral(asset, amount, data.unwrap());
+                            },
+                            LenderActionType::Repay => {
+                                transfer(
+                                    Identity::ContractId(SWAYLEND_USDC_MARKET_CONTRACT_ID),
+                                    asset,
+                                    amount,
+                                );
+
+                                swaylend_market.supply_base();
                             },
                             _ => {
                                 revert(EMPTY_ACTION_ENTRY);

@@ -13,6 +13,7 @@ async fn composer_exact_in_swap_between_two_volatile_tokens() {
         _,
         composer_script,
         amm,
+        _,
         logger,
         (pool_id_0_1, _, _, _, _),
         wallet,
@@ -80,4 +81,74 @@ async fn composer_exact_in_swap_between_two_volatile_tokens() {
         pool_metadata_after.reserve_1,
         pool_metadata_before.reserve_1 - token_1_expected
     );
+}
+
+#[tokio::test]
+async fn composer_deposit() {
+    let (
+        _,
+        composer_script,
+        amm,
+        swaylend,
+        logger,
+        (pool_id_0_1, _, _, _, _),
+        wallet,
+        deadline,
+        (base_token_id, token_1_id, _, _),
+        swap_fees,
+    ) = setup().await;
+
+    let token_1_to_deposit = 2_000;
+    let base_token_to_borrow = 1_000;
+
+    let (inputs, outputs) =
+        get_transaction_inputs_outputs(&wallet, &vec![(token_1_id, token_1_to_deposit), (base_token_id, token_1_to_deposit)]).await;
+    let wallet_balances_before = pool_assets_balance(&wallet, &pool_id_0_1, amm.id).await;
+
+    // execute lending operation
+    let deposit = LenderAction {
+        lender_id: 0,
+        action_id: 0,
+        asset: token_1_id,
+        amount_in: token_1_to_deposit,
+        amount_type_id: 1,
+        receiver: wallet.address().into(),
+        data: None,
+    };
+
+    // let borrow = LenderAction {
+    //     lender_id: 0,
+    //     action_id: 1,
+    //     asset: base_token_id,
+    //     amount_in: base_token_to_borrow,
+    //     amount_type_id: 1,
+    //     receiver: wallet.address().into(),
+    //     data: None,
+    // };
+
+    let actions = vec![Action::Lending(deposit)];
+
+    composer_script
+        .main(actions, deadline)
+        .with_contracts(&[&amm.instance, &logger, &swaylend])
+        .with_inputs(inputs)
+        .with_outputs(outputs)
+        .with_variable_output_policy(VariableOutputPolicy::Exactly(1))
+        .call()
+        .await
+        .unwrap();
+
+    let wallet_balances_after = pool_assets_balance(&wallet, &pool_id_0_1, amm.id).await;
+    let pool_metadata_after = pool_metadata(&amm.instance, pool_id_0_1)
+        .await
+        .value
+        .unwrap();
+    assert_eq!(
+        wallet_balances_after.asset_b,
+        wallet_balances_before.asset_b - token_1_to_deposit
+    );
+    // assert_eq!(
+    //     wallet_balances_after.asset_a,
+    //     wallet_balances_before.asset_a - base_token_to_borrow
+    // );
 }

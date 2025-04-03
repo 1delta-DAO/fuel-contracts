@@ -10,8 +10,9 @@
     "types": "fuels typegen -i scripts/*/out/*/*-abi.json -o ./ts-scripts/typegen --script & fuels typegen -i fixtures/*/*-abi.json -o ./ts-scripts/typegen --contract & fuels typegen -i one_delta_orders/*/*/*-abi.json -o ./ts-scripts/typegen --contract & fuels typegen -i order_router/*/*/*-abi.json -o ./ts-scripts/typegen --contract & fuels typegen -i contracts/mocks/mock_token/*/*/*-abi.json -o ./ts-scripts/typegen --contract & fuels typegen -i contracts/logger/*/*/*-abi.json -o ./ts-scripts/typegen --contract",
     "sway:abis": "fuels build",
     "deploy:logger": "tsx ts-scripts/mainnet/logger/deploy.ts",
-    "deposit:swaylend": "tsx ts-scripts/mainnet/swaylend/deposit.ts",
-    "openPos:composer": "tsx ts-scripts/mainnet/openPosition.ts"
+    "swaylend:deposit": "tsx ts-scripts/mainnet/swaylend/deposit.ts",
+    "swaylend:fetch": "tsx ts-scripts/mainnet/swaylend/fetchMarketData.ts",
+    "composer:openPos": "tsx ts-scripts/mainnet/composer/openPosition.ts"
   },
   "keywords": [],
   "author": "1delta",

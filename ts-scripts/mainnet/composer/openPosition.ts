@@ -1,10 +1,12 @@
-import { CoinQuantityLike, Provider, Wallet } from "fuels";
+import { CoinQuantityLike, Contract, Provider, Wallet } from "fuels";
 import { MainnetData } from "../../contexts";
 import { PRIVATE_KEY } from "../../../env";
 import { prepareRequest } from "../../utils";
 import { getComposerRequest } from "../calldata";
 import { Vec } from "../../typegen/common";
 import { ActionInput } from "../../typegen/ComposerScript";
+import SWAYLEND_ABI from "../../../fixtures/swaylend/market-abi.json";
+import { getPrice } from "./price";
 
 enum LenderAction {
     Deposit = 0,
@@ -24,29 +26,47 @@ async function main() {
     const wallet = Wallet.fromPrivateKey(PRIVATE_KEY!, provider);
     console.log(await wallet.getBalances());
 
-    const amountIn0 = 300_000n; // 0.3 USDT
+    const amountToDeposit = 14_000_000n; // 14 USDT
+    const amountToBorrow = 10_000_000n; // 10 USDC
 
     const deadline = 99999999
     const collateral_asset = MainnetData.USDT
+    const borrow_asset = MainnetData.USDC
 
-    const paths: Vec<ActionInput> = [{
-        Lending: {
-            lender_id: 0, 
-            action_id: LenderAction.Deposit, 
-            asset: { bits: collateral_asset.address }, 
-            amount_in: amountIn0.toString(), 
-            amount_type_id: AmountType.Defined, 
-            receiver: { Address: { bits: wallet.address.toAddress() } }, 
-            data: undefined
-        }
-    }]
+    const swaylend = new Contract(MainnetData.SWAYLEND_USDC_MARKET_PROXY, SWAYLEND_ABI, provider)
+    const priceData = await getPrice(swaylend)
+
+    const paths: Vec<ActionInput> = [
+        {
+            Lending: {
+                lender_id: 0, 
+                action_id: LenderAction.Deposit, 
+                asset: { bits: collateral_asset.address }, 
+                amount_in: amountToDeposit.toString(), 
+                amount_type_id: AmountType.Defined, 
+                receiver: { Address: { bits: wallet.address.toAddress() } }, 
+                data: undefined
+            },
+        },
+        {
+            Lending: {
+                lender_id: 0, 
+                action_id: LenderAction.Borrow, 
+                asset: { bits: borrow_asset.address }, 
+                amount_in: amountToBorrow.toString(), 
+                amount_type_id: AmountType.Defined, 
+                receiver: { Address: { bits: wallet.address.toAddress() } }, 
+                data: priceData?.priceUpdateData
+            },
+        },
+    ]
 
     const request = await getComposerRequest(paths, deadline)
 
     const variableOutputs: number = 0
     const inputAssets: CoinQuantityLike[] = [{
         assetId: collateral_asset.address,
-        amount: amountIn0 as any,
+        amount: amountToDeposit as any,
     }]
 
     try {

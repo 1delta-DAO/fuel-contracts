@@ -262,24 +262,30 @@ fn main(
                         match action {
                             LenderActionType::Deposit => {
                                 swaylend_market.supply_collateral{
-                                    coins: amount,
                                     asset_id: asset.into(),
+                                    coins: amount,
                                 }();
                             },
                             LenderActionType::Borrow => {
                                 require(data.is_some(), "price data not defined");
                                 
-                                swaylend_market.withdraw_base(amount, data.unwrap());
+                                swaylend_market.withdraw_base{
+                                    asset_id: AssetId::base().bits(),
+                                    coins: data.unwrap().update_fee,     
+                                }(amount, data.unwrap());
                             },
                             LenderActionType::Withdraw => {
                                 require(data.is_some(), "price data not defined");
 
-                                swaylend_market.withdraw_collateral(asset, amount, data.unwrap());
+                                swaylend_market.withdraw_collateral{
+                                    asset_id: AssetId::base().bits(),
+                                    coins: data.unwrap().update_fee,     
+                                }(asset, amount, data.unwrap());
                             },
                             LenderActionType::Repay => {
                                 swaylend_market.supply_base{
-                                    coins: amount,
                                     asset_id: asset.into(),
+                                    coins: amount,
                                 }();
                             },
                             _ => {

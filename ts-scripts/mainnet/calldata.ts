@@ -1,4 +1,4 @@
-import { Contract, Wallet } from "fuels";
+import { BigNumberish, Contract, Interface, Wallet } from "fuels";
 import { MockProvider } from "../utils/provider";
 import { txParams } from "../utils/constants";
 import { MainnetData } from "../contexts";
@@ -44,7 +44,7 @@ export async function getComposerRequest(path: Vec<ActionInput>, deadline: BigNu
 export async function getSwapExactInScope(path: any[] = [], deadline = 0) {
     const wallet0 = Wallet.fromPrivateKey("0x001", MockProvider as any)
 
-    const SwapExactInScript = new BatchSwapExactInScriptLoader(wallet0)
+    const SwapExactInScript = new BatchSwapExactInScript(wallet0)
     SwapExactInScript.setConfigurableConstants({
         MIRA_AMM_CONTRACT_ID: { bits: MainnetData.MIRA_AMM_ID },
         ONE_DELTA_ORDERS_CONTRACT_ID: { bits: MainnetData.one_delta_orders },
@@ -65,7 +65,7 @@ export async function getSwapExactInScope(path: any[] = [], deadline = 0) {
 export async function getSwapExactOutScope() {
     const wallet0 = Wallet.fromPrivateKey("0x001", MockProvider as any)
 
-    const SwapExactInScript = new BatchSwapExactOutScriptLoader(wallet0)
+    const SwapExactInScript = new BatchSwapExactOutScript(wallet0)
     SwapExactInScript.setConfigurableConstants({
         MIRA_AMM_CONTRACT_ID: { bits: MainnetData.MIRA_AMM_ID },
         ONE_DELTA_ORDERS_CONTRACT_ID: { bits: MainnetData.one_delta_orders },

@@ -1,6 +1,6 @@
 import { BigNumberish, Contract, Interface, Wallet } from "fuels";
 import { MockProvider } from "../utils/provider";
-import { txParams } from "../utils/constants";
+import { txParams, composerTxParams } from "../utils/constants";
 import { MainnetData } from "../contexts";
 import MIRA_ABI from "../../fixtures/mira-amm/mira_amm_contract-abi.json";
 import RFQ_ABI from "../../one_delta_orders/out/release/one_delta_orders-abi.json";
@@ -32,7 +32,7 @@ export async function getComposerRequest(path: Vec<ActionInput>, deadline: BigNu
     // Create the transaction request, this can be picked off the invocation
     // scope so the script bytecode is preset on the transaction
     const request = await invocationScope
-        .txParams(txParams)
+        .txParams(composerTxParams)
         .addContracts([miraAmm, rfqmm, swaylend])
         .getTransactionRequest();
 

@@ -6,6 +6,10 @@ export const txParams = {
   maxFee: 5000,
 };
 
+export const composerTxParams = {
+  gasLimit: 999_999,
+  maxFee: 99_999,
+};
 
 export enum DexId {
   MiraV1 = 0,

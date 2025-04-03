@@ -261,13 +261,10 @@ fn main(
 
                         match action {
                             LenderActionType::Deposit => {
-                                transfer(
-                                    Identity::ContractId(SWAYLEND_USDC_MARKET_CONTRACT_ID),
-                                    asset,
-                                    amount,
-                                );
-                                
-                                swaylend_market.supply_collateral();
+                                swaylend_market.supply_collateral{
+                                    coins: amount,
+                                    asset_id: asset.into(),
+                                }();
                             },
                             LenderActionType::Borrow => {
                                 require(data.is_some(), "price data not defined");
@@ -280,13 +277,10 @@ fn main(
                                 swaylend_market.withdraw_collateral(asset, amount, data.unwrap());
                             },
                             LenderActionType::Repay => {
-                                transfer(
-                                    Identity::ContractId(SWAYLEND_USDC_MARKET_CONTRACT_ID),
-                                    asset,
-                                    amount,
-                                );
-
-                                swaylend_market.supply_base();
+                                swaylend_market.supply_base{
+                                    coins: amount,
+                                    asset_id: asset.into(),
+                                }();
                             },
                             _ => {
                                 revert(EMPTY_ACTION_ENTRY);

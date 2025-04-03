@@ -1,10 +1,10 @@
-import { CoinQuantity, CoinQuantityLike, Provider, Wallet } from "fuels";
-import { MainnetData } from "../contexts";
-import { PRIVATE_KEY } from "../../env";
-import { prepareRequest } from "../utils";
-import { getComposerRequest } from "./calldata";
-import { Vec } from "../typegen/common";
-import { ActionInput } from "../typegen/ComposerScript";
+import { CoinQuantityLike, Provider, Wallet } from "fuels";
+import { MainnetData } from "../../contexts";
+import { PRIVATE_KEY } from "../../../env";
+import { prepareRequest } from "../../utils";
+import { getComposerRequest } from "../calldata";
+import { Vec } from "../../typegen/common";
+import { ActionInput } from "../../typegen/ComposerScript";
 
 enum LenderAction {
     Deposit = 0,
@@ -24,11 +24,7 @@ async function main() {
     const wallet = Wallet.fromPrivateKey(PRIVATE_KEY!, provider);
     console.log(await wallet.getBalances());
 
-    const amountIn0 = 100_000n; // 0.0001 ETH
-    const amountIn1 = 100_000n;
-
-    const minimumOut0 = 300_000n; // 0.3 USDT
-    const minimumOut1 = 300_000n;
+    const amountIn0 = 300_000n; // 0.3 USDT
 
     const deadline = 99999999
     const collateral_asset = MainnetData.USDT
@@ -38,7 +34,7 @@ async function main() {
             lender_id: 0, 
             action_id: LenderAction.Deposit, 
             asset: { bits: collateral_asset.address }, 
-            amount_in: minimumOut0.toString(), 
+            amount_in: amountIn0.toString(), 
             amount_type_id: AmountType.Defined, 
             receiver: { Address: { bits: wallet.address.toAddress() } }, 
             data: undefined
@@ -47,10 +43,10 @@ async function main() {
 
     const request = await getComposerRequest(paths, deadline)
 
-    const variableOutputs: number = 1
-    const inputAssets: CoinQuantity[] = [{
+    const variableOutputs: number = 0
+    const inputAssets: CoinQuantityLike[] = [{
         assetId: collateral_asset.address,
-        amount: minimumOut0 as any,
+        amount: amountIn0 as any,
     }]
 
     try {
@@ -61,9 +57,9 @@ async function main() {
             variableOutputs,
             inputAssets,
         )
-        console.log("lender request", finalRequest)
+        console.log("request", finalRequest)
         const tx = await wallet.simulateTransaction(finalRequest, { estimateTxDependencies: true })
-        // await tx.waitForResult()
+
         console.log("completed")
     } catch (e: any) {
         console.log(e?.metadata?.receipts)

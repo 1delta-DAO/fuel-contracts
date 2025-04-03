@@ -114,6 +114,62 @@ export namespace MainnetData {
         "subId": ""
     }
 
+    export const ezETH = {
+        "chainId": 9889,
+        "name": "WEezETHTH",
+        "address": "0x91b3559edb2619cde8ffb2aa7b3c3be97efd794ea46700db7092abeee62281b0",
+        "symbol": "ezETH",
+        "decimals": 9,
+        "logoURI": "https://verified-assets.fuel.network/images/weth.svg",
+        "contractId": "0x4ea6ccef1215d9479f1024dff70fc055ca538215d2c8c348beddffd54583d0e8",
+        "subId": "0x30d7a65ea7c8f934b8635cff93e9c4510ed9717fa526237ba935e7411830c153"
+    }
+
+    export const sDAI = {
+        "chainId": 9889,
+        "name": "sDAI",
+        "address": "0x9e46f919fbf978f3cad7cd34cca982d5613af63ff8aab6c379e4faa179552958",
+        "symbol": "sDAI",
+        "decimals": 9,
+        "logoURI": "https://verified-assets.fuel.network/images/weth.svg",
+        "contractId": "0x4ea6ccef1215d9479f1024dff70fc055ca538215d2c8c348beddffd54583d0e8",
+        "subId": "0x3edc5f1ca0ef5712b655998630ae3d24382ade45735dabce3fc6a215a9dc8ab2"
+    }
+
+    export const weETH = {
+        "chainId": 9889,
+        "name": "weETH",
+        "address": "0x239ed6e12b7ce4089ee245244e3bf906999a6429c2a9a445a1e1faf56914a4ab",
+        "symbol": "weETH",
+        "decimals": 9,
+        "logoURI": "https://verified-assets.fuel.network/images/weth.svg",
+        "contractId": "0x4ea6ccef1215d9479f1024dff70fc055ca538215d2c8c348beddffd54583d0e8",
+        "subId": "0x94cd19fd8aa593b2a2d25d6f3c9a32a958ad8cdd477d25c367de20f22207f679"
+    }
+
+    export const wstETH = {
+        "chainId": 9889,
+        "name": "wstETH",
+        "address": "0x1a7815cc9f75db5c24a5b0814bfb706bb9fe485333e98254015de8f48f84c67b",
+        "symbol": "wstETH",
+        "decimals": 9,
+        "logoURI": "https://verified-assets.fuel.network/images/weth.svg",
+        "contractId": "0x4ea6ccef1215d9479f1024dff70fc055ca538215d2c8c348beddffd54583d0e8",
+        "subId": "0xa232a843105ef81cd9996efc121cd3c8455c5edd9fb9c5a0b097982e1e68d5d6"
+    }
+
+    export const FUEL = {
+        "chainId": 9889,
+        "name": "Fuel",
+        "address": "0x1d5d97005e41cae2187a895fd8eab0506111e0e2f3331cd3912c15c24e3c1d82",
+        "symbol": "FUEL",
+        "decimals": 9,
+        "logoURI": "https://verified-assets.fuel.network/images/weth.svg",
+        "contractId": "0x4ea6ccef1215d9479f1024dff70fc055ca538215d2c8c348beddffd54583d0e8",
+        "subId": "0xe81c89b8cf795c7c25e79f6c4f2f1cd233290b58e217ed4e9b6b18538badddaf"
+    }
+
+    export const SWAYLEND_ASSETS = [ETH, ezETH, USDT, sDAI, weETH, wstETH, FUEL]
 }
 
 // TOKEN_GATEWAY = 0x4ea6ccef1215d9479f1024dff70fc055ca538215d2c8c348beddffd54583d0e8

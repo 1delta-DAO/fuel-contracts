@@ -2,6 +2,7 @@ import { AssetId, Contract, Provider, Wallet } from "fuels";
 import { MainnetData } from "../../contexts";
 import SWAYLEND_ABI from "../../../fixtures/swaylend/market-abi.json";
 import { IdentityInput } from "../../typegen/BatchSwapExactInScript";
+import { writeFileSync } from "fs";
 
 async function main() {
     const provider = new Provider(MainnetData.RPC);
@@ -31,6 +32,20 @@ async function main() {
     console.log("balanceOf ETH:", balanceOf)
     console.log("userBasic:", userBasic)
     console.log("userBasicWithInterest:", userBasicWithInterest)
+
+    const result = {
+        collateralConfigurations,
+        marketConfiguration,
+        marketConfigurationWithInterest,
+        reserves,
+        collateralReserves,
+        balanceOf,
+        userBasic,
+        userBasicWithInterest,
+    }
+
+    writeFileSync("swaylend_data.json", JSON.stringify(result, null, 2))
+    console.log("Data written to swaylend_data.json")
 }
 
 main()

@@ -1,25 +1,29 @@
 use fuels::accounts::wallet::WalletUnlocked;
+use fuels::accounts::ViewOnlyAccount;
 use fuels::prelude::VariableOutputPolicy;
-use fuels::types::{AssetId, ContractId, Identity};
+use fuels::programs::calls::CallParameters;
+use fuels::types::{AssetId, ContractId, Identity, U256};
 use std::str::FromStr;
 use test_harness::data_structures::{MiraAMMContract, WalletAssetConfiguration};
 use test_harness::interface::amm::{create_pool, fees, initialize_ownership};
 use test_harness::interface::mock::{
-    add_token, deploy_logger_contract, deploy_mock_token_contract, get_sub_id, mint_tokens, deploy_mock_swaylend_contract,
+    add_token, deploy_logger_contract, deploy_mock_swaylend_contract, deploy_mock_token_contract,
+    get_sub_id, mint_tokens,
 };
 use test_harness::interface::scripts::get_transaction_inputs_outputs;
 use test_harness::interface::{
-    AddLiquidityScript, AddLiquidityScriptConfigurables, BatchSwapExactInScript, 
-    BatchSwapExactInScriptConfigurables, ComposerScript, ComposerScriptConfigurables
+    AddLiquidityScript, AddLiquidityScriptConfigurables, BatchSwapExactInScript,
+    BatchSwapExactInScriptConfigurables, ComposerScript, ComposerScriptConfigurables,
 };
-use test_harness::interface::{Logger, MiraAMM, MockSwaylend, MarketConfiguration};
+use test_harness::interface::{Logger, MarketConfiguration, MiraAMM, MockSwaylend};
 use test_harness::paths::{
-    ADD_LIQUIDITY_SCRIPT_BINARY_PATH, BATCH_SWAP_EXACT_IN_SCRIPT_BINARY_PATH, COMPOSER_SCRIPT_BINARY_PATH
+    ADD_LIQUIDITY_SCRIPT_BINARY_PATH, BATCH_SWAP_EXACT_IN_SCRIPT_BINARY_PATH,
+    COMPOSER_SCRIPT_BINARY_PATH,
 };
 use test_harness::setup::common::{deploy_amm, setup_wallet_and_provider};
 use test_harness::types::PoolId;
-use test_harness::utils::common::order_sub_ids;
 use test_harness::utils::common::MINIMUM_LIQUIDITY;
+use test_harness::utils::common::{asset_balance, order_sub_ids};
 ////////////////////////////////////////////////////
 // Create 5 tokens (indexed from 0 to 4) and pools:
 // 0-1 [0]
@@ -91,17 +95,63 @@ pub async fn setup() -> (
     mint_tokens(&token_contract, token_2_id, 1_000_000_000).await;
     mint_tokens(&token_contract, token_3_id, 1_000_000_000).await;
 
-
     ////////////////////////////////////////////////////
     // deploy lender and init
 
     let (swaylend_contract_id, swaylend_contract) = deploy_mock_swaylend_contract(&wallet).await;
 
-    mint_tokens(&token_contract, token_0_id, 1_000_000_000).await;
+    mint_tokens(&token_contract, token_0_id, 1_000_000_000_000).await;
 
-    // let marketConfig = MarketConfiguration::default();
-    
-    // swaylend_contract.activate_contract(marketConfig, Identity::Address(wallet.address().into())).await;
+    // let xc = wallet.get_balances().await;
+
+    // match xc {
+    //     Ok(map) => {
+    //         for (key, value) in &map {
+    //             println!("{:?}: {}", key, value);
+    //         }
+    //     }
+    //     Err(e) => {
+    //         eprintln!("Error: {:?}", e);
+    //     }
+    // }
+
+    let _ = swaylend_contract
+        .methods()
+        .mock_define_base(token_0_id)
+        .call()
+        .await;
+    let call_params =    CallParameters::default()
+    .with_amount(1_000_000)
+    .with_asset_id(token_0_id);
+    let cc = swaylend_contract
+        .methods()
+        .supply_base()
+        .call_params(call_params)
+        .unwrap()
+        .call()
+        .await;
+
+    // match cc {
+    //     Ok(map) => {
+    //             println!("{:?}: {}", map.receipts, 0u64);
+            
+    //     }
+    //     Err(e) => {
+    //         eprintln!("Error: {:?}", e);
+    //     }
+    // }
+    // let x: Result<std::collections::HashMap<AssetId, u64>, fuels::types::errors::Error> = swaylend_contract.get_balances().await;
+
+    // match x {
+    //     Ok(map) => {
+    //         for (key, value) in &map {
+    //             println!("{:?}: {}", key, value);
+    //         }
+    //     }
+    //     Err(e) => {
+    //         eprintln!("Error: {:?}", e);
+    //     }
+    // }
 
     ////////////////////////////////////////////////////
     // create dex pools
@@ -201,9 +251,11 @@ pub async fn setup() -> (
         .unwrap()
         .with_LOGGER_CONTRACT_ID(ContractId::from_str(&logger_contract_id.to_string()).unwrap())
         .unwrap()
-        .with_SWAYLEND_USDC_MARKET_CONTRACT_ID(ContractId::from_str(&swaylend_contract_id.to_string()).unwrap())
+        .with_SWAYLEND_USDC_MARKET_CONTRACT_ID(
+            ContractId::from_str(&swaylend_contract_id.to_string()).unwrap(),
+        )
         .unwrap();
-        
+
     let mut composer_script_instance =
         ComposerScript::new(wallet.clone(), COMPOSER_SCRIPT_BINARY_PATH)
             .with_configurables(composer_script_configurables);

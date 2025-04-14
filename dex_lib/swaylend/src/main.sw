@@ -15,6 +15,10 @@ abi Market {
     #[storage(write)]
     fn activate_contract(market_configuration: MarketConfiguration, owner: Identity);
 
+    // # 0. Activate contract (un-pause)
+    #[storage(write)]
+    fn mock_define_base(base: AssetId);
+
     // # 1. Debug functionality (for testing purposes)
     // This functionality is exclusively utilized in local tests to evaluate interest accrual. 
     // It works by advancing the timestamp within the contract at specific intervals defined as `DEBUG_STEP`.

@@ -4,7 +4,7 @@ use fuels::{
     types::{input::Input, output::Output, Bits256},
 };
 
-use crate::paths::{LOGGER_CONTRACT_BINARY_PATH, MOCK_TOKEN_CONTRACT_BINARY_PATH, SWAYLEND_CONTRACT_BINARY_PATH};
+use crate::paths::{LOGGER_CONTRACT_BINARY_PATH, MOCK_TOKEN_CONTRACT_BINARY_PATH, MOCK_SWAYLEND_CONTRACT_BINARY_PATH};
 
 use crate::types::PoolId;
 
@@ -132,7 +132,7 @@ pub mod mock {
         wallet: &WalletUnlocked,
     ) -> (ContractId, MockSwaylend<WalletUnlocked>) {
         let contract_id = Contract::load_from(
-            SWAYLEND_CONTRACT_BINARY_PATH,
+            MOCK_SWAYLEND_CONTRACT_BINARY_PATH,
             LoadConfiguration::default(),
         )
         .unwrap()

@@ -1,9 +1,11 @@
 use crate::utils::setup;
 use fuels::prelude::VariableOutputPolicy;
-use fuels::types::Bits256;
+use fuels::types::{Bits256, ContractId};
 use test_harness::interface::amm::pool_metadata;
 use test_harness::interface::scripts::get_transaction_inputs_outputs;
-use test_harness::interface::{Action, SwapPathList, LenderAction, SwapPath, BatchSwapStep};
+use test_harness::interface::{
+    Action, BatchSwapStep, LenderAction, PriceDataUpdate, SwapPath, SwapPathList,
+};
 use test_harness::types::{encode_mira_params, encode_mira_params_with_dex_address};
 use test_harness::utils::common::{asset_balance, pool_assets_balance};
 
@@ -101,8 +103,14 @@ async fn composer_deposit() {
     let token_1_to_deposit = 2_000;
     let base_token_to_borrow = 1_000;
 
-    let (inputs, outputs) =
-        get_transaction_inputs_outputs(&wallet, &vec![(token_1_id, token_1_to_deposit), (base_token_id, token_1_to_deposit)]).await;
+    let (inputs, outputs) = get_transaction_inputs_outputs(
+        &wallet,
+        &vec![
+            (token_1_id, token_1_to_deposit),
+            (base_token_id, base_token_to_borrow),
+        ],
+    )
+    .await;
     let wallet_balances_before = pool_assets_balance(&wallet, &pool_id_0_1, amm.id).await;
 
     // execute lending operation
@@ -114,19 +122,21 @@ async fn composer_deposit() {
         amount_type_id: 1,
         receiver: wallet.address().into(),
         data: None,
+        market: swaylend.contract_id().into(),
     };
 
-    // let borrow = LenderAction {
-    //     lender_id: 0,
-    //     action_id: 1,
-    //     asset: base_token_id,
-    //     amount_in: base_token_to_borrow,
-    //     amount_type_id: 1,
-    //     receiver: wallet.address().into(),
-    //     data: None,
-    // };
+    let borrow = LenderAction {
+        lender_id: 0,
+        action_id: 1,
+        asset: base_token_id,
+        amount_in: base_token_to_borrow,
+        amount_type_id: 1,
+        receiver: wallet.address().into(),
+        data: Some(PriceDataUpdate { update_fee: 0u64, publish_times: vec![], price_feed_ids: vec![], update_data: vec![] }),
+        market: swaylend.contract_id().into(),
+    };
 
-    let actions = vec![Action::Lending(deposit)];
+    let actions = vec![Action::Lending(deposit), Action::Lending(borrow)];
 
     composer_script
         .main(actions, deadline)

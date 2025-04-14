@@ -118,6 +118,7 @@ pub struct LenderAction {
     pub amount_in: u64,
     pub amount_type_id: u8,
     pub receiver: Identity,
+    pub market: ContractId,
     pub data: Option<PriceDataUpdate>,
 }
 
@@ -234,7 +235,7 @@ fn main(
                 // increment action index
                 j += 1;
             },
-            Some(Action::Lending(LenderAction { lender_id, action_id, asset, amount_in, amount_type_id, receiver, data })) => {
+            Some(Action::Lending(LenderAction { lender_id, action_id, asset, amount_in, amount_type_id, receiver, data, market })) => {
                 let lender = match LenderId::from_u64(lender_id) {
                     Some(lender) => lender,
                     None => revert(INVALID_LENDER_ID),
@@ -257,7 +258,8 @@ fn main(
 
                 match lender {
                     LenderId::SwaylendUSDC => {
-                        let swaylend_market = abi(Market, SWAYLEND_USDC_MARKET_CONTRACT_ID.into());
+                        // get lending market contract
+                        let swaylend_market = abi(Market, market.into());
 
                         match action {
                             LenderActionType::Deposit => {
@@ -268,7 +270,6 @@ fn main(
                             },
                             LenderActionType::Borrow => {
                                 require(data.is_some(), "price data not defined");
-                                
                                 swaylend_market.withdraw_base{
                                     asset_id: AssetId::base().bits(),
                                     coins: data.unwrap().update_fee,     

@@ -31,6 +31,11 @@ impl Market for Contract {
         storage.base_asset_id.write(Some(market_configuration.base_token));
     }
 
+   #[storage(write)]
+    fn  mock_define_base(base: AssetId) {
+        storage.base_asset_id.write(Some(base));
+    }
+
     #[storage(write)]
     fn debug_increment_timestamp() {
     }
@@ -108,7 +113,7 @@ impl Market for Contract {
 
         require(asset_id == base_asset.unwrap(), "Invalid asset");
 
-        let current_balance = storage.user_base.get(sender).try_read().unwrap();
+        let current_balance = storage.user_base.get(sender).try_read().unwrap_or(0);
         storage.user_base.insert(sender, current_balance + amount);
     }
 

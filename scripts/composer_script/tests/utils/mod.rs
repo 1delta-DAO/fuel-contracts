@@ -250,10 +250,6 @@ pub async fn setup() -> (
         .with_MIRA_AMM_CONTRACT_ID(ContractId::from_str(&amm.id.to_string()).unwrap())
         .unwrap()
         .with_LOGGER_CONTRACT_ID(ContractId::from_str(&logger_contract_id.to_string()).unwrap())
-        .unwrap()
-        .with_SWAYLEND_USDC_MARKET_CONTRACT_ID(
-            ContractId::from_str(&swaylend_contract_id.to_string()).unwrap(),
-        )
         .unwrap();
 
     let mut composer_script_instance =

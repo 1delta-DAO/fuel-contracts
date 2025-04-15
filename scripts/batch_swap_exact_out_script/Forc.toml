@@ -7,7 +7,7 @@ name = "batch_swap_exact_out_script"
 [dependencies]
 executor = { path = "../../dex_lib/executor" }
 interfaces = { path = "../../dex_lib/mira_v1/interfaces" }
-mira_v1_swap = { path = "../../dex_lib/mira_v1/swap" }
-math = { path = "../../dex_lib/mira_v1/math" }
-utils = { path = "../../dex_lib/mira_v1/utils" }
 logger_abi = { path = "../../dex_lib/logger_abi" }
+math = { path = "../../dex_lib/mira_v1/math" }
+mira_v1_swap = { path = "../../dex_lib/mira_v1/swap" }
+utils = { path = "../../dex_lib/mira_v1/utils" }

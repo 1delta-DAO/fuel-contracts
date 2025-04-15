@@ -18,6 +18,7 @@ use sway_libs::signed_integers::i256::I256;
 storage {
     user_collateral: StorageMap<(Identity, AssetId), u64> = StorageMap {},
     user_base: StorageMap<Identity, u64> = StorageMap {},
+    user_base_borrow: StorageMap<Identity, u64> = StorageMap {},
     base_asset_id: Option<AssetId> = Option::None,
 }
 
@@ -74,12 +75,14 @@ impl Market for Contract {
     fn withdraw_collateral(asset_id: AssetId, amount: u64, price_data_update: PriceDataUpdate) {
         let sender = msg_sender().unwrap();
         
-        let current_balance = storage.user_collateral.get((sender, asset_id)).try_read().unwrap();
+        let current_balance = storage.user_collateral.get((sender, asset_id)).try_read().unwrap_or(0);
         require(current_balance >= amount, "Insufficient collateral balance");
         
         storage.user_collateral.insert((sender, asset_id), current_balance - amount);
         
         transfer(sender, asset_id, amount);
+
+        log((sender, asset_id));
     }
 
     #[storage(read)]
@@ -114,7 +117,21 @@ impl Market for Contract {
         require(asset_id == base_asset.unwrap(), "Invalid asset");
 
         let current_balance = storage.user_base.get(sender).try_read().unwrap_or(0);
-        storage.user_base.insert(sender, current_balance + amount);
+        let current_borrow_balance = storage.user_base_borrow.get(sender).try_read().unwrap_or(0);
+        
+        // no debt - plain deposit
+        if current_borrow_balance == 0 {
+                storage.user_base.insert(sender, current_balance + amount);
+        } else {
+            // debt larger thatn amount - repay
+            if current_borrow_balance > amount {
+                storage.user_base_borrow.insert(sender, current_borrow_balance - amount);
+            } else {
+                // smaller than amount - repay all and deposit excess
+                storage.user_base.insert(sender, amount - current_borrow_balance);
+                storage.user_base_borrow.insert(sender, 0);
+            }   
+        }
     }
 
     #[payable, storage(write)]
@@ -124,15 +141,38 @@ impl Market for Contract {
         
         require(base_asset.is_some(), "base_asset not initialized");
 
-        let current_balance = storage.user_base.get(sender).try_read().unwrap();        
-        storage.user_base.insert(sender, current_balance - amount);
+        let current_balance = storage.user_base.get(sender).try_read().unwrap_or(0);
+        let current_borrow_balance = storage.user_base_borrow.get(sender).try_read().unwrap_or(0);
+        
+        // no balance - plain borrow
+        if current_balance == 0 {
+            // borrow
+            if current_borrow_balance > amount {
+                // increase borrow
+                storage.user_base_borrow.insert(sender, current_borrow_balance + amount);
+            } else {
+                revert(0);
+            }   
+
+        } else {
+            // withdraw
+            if current_balance > amount {
+                storage.user_base.insert(sender, current_balance - amount);
+            } else {
+                // withdraw all and borrow rest
+                storage.user_base.insert(sender, 0);
+                storage.user_base_borrow.insert(sender, amount - current_balance);
+            }
+        }
         
         transfer(sender, base_asset.unwrap(), amount);
     }
 
     #[storage(read)]
     fn get_user_supply_borrow(account: Identity) -> (u256, u256) {
-        (0, 0)
+        let current_balance = storage.user_base.get(account).try_read().unwrap_or(0);
+        let current_borrow_balance = storage.user_base_borrow.get(account).try_read().unwrap_or(0);
+        return (current_balance.into(), current_borrow_balance.into());
     }
 
     #[storage(read)]

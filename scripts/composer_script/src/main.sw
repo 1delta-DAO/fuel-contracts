@@ -124,7 +124,6 @@ pub struct LenderAction {
     pub asset: AssetId,
     pub amount_in: u64,
     pub amount_type_id: u8,
-    pub receiver: Identity,
     pub market: ContractId,
     pub data: Option<PriceDataUpdate>,
 }
@@ -250,7 +249,6 @@ fn main(actions: Vec<Action>, deadline: u32) {
                 asset,
                 amount_in,
                 amount_type_id,
-                receiver,
                 data,
                 market,
             })) => {

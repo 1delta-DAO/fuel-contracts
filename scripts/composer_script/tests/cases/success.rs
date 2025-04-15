@@ -125,7 +125,6 @@ async fn composer_open() {
         asset: token_1_id,
         amount_in: token_1_to_deposit,
         amount_type_id: 1,
-        receiver: wallet.address().into(),
         data: None,
         market: swaylend.contract_id().into(),
     };
@@ -136,7 +135,6 @@ async fn composer_open() {
         asset: base_token_id,
         amount_in: base_token_to_borrow,
         amount_type_id: 1,
-        receiver: wallet.address().into(),
         data: Some(PriceDataUpdate {
             update_fee: 0u64,
             publish_times: vec![],
@@ -201,7 +199,6 @@ async fn composer_close() {
         asset: token_1_id,
         amount_in: token_1_to_deposit,
         amount_type_id: 1,
-        receiver: wallet.address().into(),
         data: None,
         market: swaylend.contract_id().into(),
     };
@@ -212,7 +209,6 @@ async fn composer_close() {
         asset: base_token_id,
         amount_in: base_token_to_borrow,
         amount_type_id: 1,
-        receiver: wallet.address().into(),
         data: Some(PriceDataUpdate {
             update_fee: 0u64,
             publish_times: vec![],
@@ -259,7 +255,6 @@ async fn composer_close() {
         asset: token_1_id,
         amount_in: withdraw_amount,
         amount_type_id: 1,
-        receiver: wallet.address().into(),
         data: Some(PriceDataUpdate {
             update_fee: 0u64,
             publish_times: vec![],
@@ -275,7 +270,6 @@ async fn composer_close() {
         asset: base_token_id,
         amount_in: 0,
         amount_type_id: 0,
-        receiver: wallet.address().into(),
         data: None,
         market: swaylend.contract_id().into(),
     };

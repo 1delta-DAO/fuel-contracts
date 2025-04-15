@@ -1,4 +1,5 @@
 use crate::utils::setup;
+use fuels::accounts::ViewOnlyAccount;
 use fuels::prelude::VariableOutputPolicy;
 use fuels::types::{Bits256, ContractId};
 use test_harness::interface::amm::pool_metadata;
@@ -111,7 +112,8 @@ async fn composer_deposit() {
         ],
     )
     .await;
-    let wallet_balances_before = pool_assets_balance(&wallet, &pool_id_0_1, amm.id).await;
+    let token_1_balance_before = wallet.get_asset_balance(&token_1_id).await.unwrap();
+    let base_balance_before = wallet.get_asset_balance(&base_token_id).await.unwrap();
 
     // execute lending operation
     let deposit = LenderAction {
@@ -132,7 +134,12 @@ async fn composer_deposit() {
         amount_in: base_token_to_borrow,
         amount_type_id: 1,
         receiver: wallet.address().into(),
-        data: Some(PriceDataUpdate { update_fee: 0u64, publish_times: vec![], price_feed_ids: vec![], update_data: vec![] }),
+        data: Some(PriceDataUpdate {
+            update_fee: 0u64,
+            publish_times: vec![],
+            price_feed_ids: vec![],
+            update_data: vec![],
+        }),
         market: swaylend.contract_id().into(),
     };
 
@@ -148,17 +155,9 @@ async fn composer_deposit() {
         .await
         .unwrap();
 
-    let wallet_balances_after = pool_assets_balance(&wallet, &pool_id_0_1, amm.id).await;
-    let pool_metadata_after = pool_metadata(&amm.instance, pool_id_0_1)
-        .await
-        .value
-        .unwrap();
-    assert_eq!(
-        wallet_balances_after.asset_b,
-        wallet_balances_before.asset_b - token_1_to_deposit
-    );
-    // assert_eq!(
-    //     wallet_balances_after.asset_a,
-    //     wallet_balances_before.asset_a - base_token_to_borrow
-    // );
+    let token_1_balance = wallet.get_asset_balance(&token_1_id).await.unwrap();
+    let base_balance = wallet.get_asset_balance(&base_token_id).await.unwrap();
+
+    assert_eq!(token_1_balance, token_1_balance_before - token_1_to_deposit);
+    assert_eq!(base_token_to_borrow, base_balance - base_balance_before);
 }

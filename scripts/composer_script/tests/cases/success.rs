@@ -1,18 +1,22 @@
 use std::str::FromStr;
 
 use crate::utils::setup;
+use fuels::accounts::wallet::WalletUnlocked;
 use fuels::accounts::ViewOnlyAccount;
 use fuels::prelude::VariableOutputPolicy;
 use fuels::programs::calls::Execution;
-use fuels::types::Identity;
+use fuels::types::{AssetId, Identity};
+use test_harness::data_structures::MiraAMMContract;
 use test_harness::interface::amm::pool_metadata;
 use test_harness::interface::scripts::get_transaction_inputs_outputs;
 use test_harness::interface::{
-    Action, BatchSwapStep, LenderAction, PriceDataUpdate, SwapPath, SwapPathList,
+    Action, BatchSwapStep, ComposerScript, LenderAction, Logger, MockSwaylend, PriceDataUpdate,
+    SwapPath, SwapPathList,
 };
-use test_harness::types::{encode_mira_params, encode_mira_params_with_dex_address};
-use test_harness::utils::common::{asset_balance, pool_assets_balance};
+use test_harness::types::encode_mira_params;
+use test_harness::utils::common::pool_assets_balance;
 
+/** Simple swap test to ensure that it still works */
 #[tokio::test]
 async fn composer_exact_in_swap_between_two_volatile_tokens() {
     let (
@@ -89,152 +93,26 @@ async fn composer_exact_in_swap_between_two_volatile_tokens() {
     );
 }
 
+/** Open test */
 #[tokio::test]
 async fn composer_open() {
-    let (
-        _,
-        composer_script,
-        amm,
-        swaylend,
-        logger,
-        (pool_id_0_1, _, _, _, _),
-        wallet,
-        deadline,
-        (base_token_id, token_1_id, _, _),
-        swap_fees,
-    ) = setup().await;
-
-    let token_1_to_deposit = 2_000;
-    let base_token_to_borrow = 1_000;
-
-    let (inputs, outputs) = get_transaction_inputs_outputs(
-        &wallet,
-        &vec![
-            (token_1_id, token_1_to_deposit),
-            (base_token_id, base_token_to_borrow),
-        ],
-    )
-    .await;
-    let token_1_balance_before = wallet.get_asset_balance(&token_1_id).await.unwrap();
-    let base_balance_before = wallet.get_asset_balance(&base_token_id).await.unwrap();
-
-    // execute lending operation
-    let deposit = LenderAction {
-        lender_id: 0,
-        action_id: 0,
-        asset: token_1_id,
-        amount_in: token_1_to_deposit,
-        amount_type_id: 1,
-        data: None,
-        market: swaylend.contract_id().into(),
-    };
-
-    let borrow = LenderAction {
-        lender_id: 0,
-        action_id: 1,
-        asset: base_token_id,
-        amount_in: base_token_to_borrow,
-        amount_type_id: 1,
-        data: Some(PriceDataUpdate {
-            update_fee: 0u64,
-            publish_times: vec![],
-            price_feed_ids: vec![],
-            update_data: vec![],
-        }),
-        market: swaylend.contract_id().into(),
-    };
-
-    let actions = vec![Action::Lending(deposit), Action::Lending(borrow)];
-
-    composer_script
-        .main(actions, deadline)
-        .with_contracts(&[&amm.instance, &logger, &swaylend])
-        .with_inputs(inputs)
-        .with_outputs(outputs)
-        .with_variable_output_policy(VariableOutputPolicy::Exactly(1))
-        .call()
-        .await
-        .unwrap();
-
-    let token_1_balance = wallet.get_asset_balance(&token_1_id).await.unwrap();
-    let base_balance = wallet.get_asset_balance(&base_token_id).await.unwrap();
-
-    assert_eq!(token_1_balance, token_1_balance_before - token_1_to_deposit);
-    assert_eq!(base_token_to_borrow, base_balance - base_balance_before);
+    setup_and_composer_open().await;
 }
 
+/** Close test */
 #[tokio::test]
 async fn composer_close() {
     let (
-        _,
         composer_script,
         amm,
         swaylend,
         logger,
-        (pool_id_0_1, _, _, _, _),
+        _,
         wallet,
         deadline,
-        (base_token_id, token_1_id, _, _),
+        (base_token_id, token_1_id),
         swap_fees,
-    ) = setup().await;
-
-    let token_1_to_deposit = 2_000;
-    let base_token_to_borrow = 1_000;
-
-    let (inputs, outputs) = get_transaction_inputs_outputs(
-        &wallet,
-        &vec![
-            (token_1_id, token_1_to_deposit),
-            (base_token_id, base_token_to_borrow),
-        ],
-    )
-    .await;
-    let token_1_balance_before = wallet.get_asset_balance(&token_1_id).await.unwrap();
-    let base_balance_before = wallet.get_asset_balance(&base_token_id).await.unwrap();
-
-    // execute lending operation
-    let deposit = LenderAction {
-        lender_id: 0,
-        action_id: 0,
-        asset: token_1_id,
-        amount_in: token_1_to_deposit,
-        amount_type_id: 1,
-        data: None,
-        market: swaylend.contract_id().into(),
-    };
-
-    let borrow = LenderAction {
-        lender_id: 0,
-        action_id: 1,
-        asset: base_token_id,
-        amount_in: base_token_to_borrow,
-        amount_type_id: 1,
-        data: Some(PriceDataUpdate {
-            update_fee: 0u64,
-            publish_times: vec![],
-            price_feed_ids: vec![],
-            update_data: vec![],
-        }),
-        market: swaylend.contract_id().into(),
-    };
-
-    let actions = vec![Action::Lending(deposit), Action::Lending(borrow)];
-
-    composer_script
-        .main(actions, deadline)
-        .with_contracts(&[&amm.instance, &logger, &swaylend])
-        .with_inputs(inputs)
-        .with_outputs(outputs)
-        .with_variable_output_policy(VariableOutputPolicy::Exactly(1))
-        .call()
-        .await
-        .unwrap();
-
-    let token_1_balance = wallet.get_asset_balance(&token_1_id).await.unwrap();
-    let base_balance = wallet.get_asset_balance(&base_token_id).await.unwrap();
-
-    assert_eq!(token_1_balance, token_1_balance_before - token_1_to_deposit);
-    assert_eq!(base_token_to_borrow, base_balance - base_balance_before);
+    ) = setup_and_composer_open().await;
 
     let (a0, b0) = swaylend
         .methods()
@@ -246,7 +124,7 @@ async fn composer_close() {
 
     println!("deposits: {:} debt: {:}", a0, b0);
 
-    let withdraw_amount = token_1_to_deposit / 2;
+    let withdraw_amount = 1_000;
 
     // execute lending operation
     let withdraw = LenderAction {
@@ -335,5 +213,103 @@ async fn composer_close() {
     assert_eq!(
         expected_diff,
         u64::from_str(&a.to_string()).unwrap() - u64::from_str(&a0.to_string()).unwrap()
+    );
+}
+
+/**
+ * Sets up the fixture and opens a basic position (compatible with the pool provided)
+ */
+async fn setup_and_composer_open() -> (
+    ComposerScript<WalletUnlocked>,
+    MiraAMMContract,
+    MockSwaylend<WalletUnlocked>,
+    Logger<WalletUnlocked>,
+    (AssetId, AssetId, bool),
+    WalletUnlocked,
+    u32,
+    (AssetId, AssetId),
+    (u64, u64, u64, u64),
+) {
+    let (
+        _,
+        composer_script,
+        amm,
+        swaylend,
+        logger,
+        (pool_id_0_1, _, _, _, _),
+        wallet,
+        deadline,
+        (base_token_id, token_1_id, _, _),
+        swap_fees,
+    ) = setup().await;
+
+    let token_1_to_deposit = 2_000;
+    let base_token_to_borrow = 1_000;
+
+    let (inputs, outputs) = get_transaction_inputs_outputs(
+        &wallet,
+        &vec![
+            (token_1_id, token_1_to_deposit),
+            (base_token_id, base_token_to_borrow),
+        ],
+    )
+    .await;
+    let token_1_balance_before = wallet.get_asset_balance(&token_1_id).await.unwrap();
+    let base_balance_before = wallet.get_asset_balance(&base_token_id).await.unwrap();
+
+    // execute lending operation
+    let deposit = LenderAction {
+        lender_id: 0,
+        action_id: 0,
+        asset: token_1_id,
+        amount_in: token_1_to_deposit,
+        amount_type_id: 1,
+        data: None,
+        market: swaylend.contract_id().into(),
+    };
+
+    let borrow = LenderAction {
+        lender_id: 0,
+        action_id: 1,
+        asset: base_token_id,
+        amount_in: base_token_to_borrow,
+        amount_type_id: 1,
+        data: Some(PriceDataUpdate {
+            update_fee: 0u64,
+            publish_times: vec![],
+            price_feed_ids: vec![],
+            update_data: vec![],
+        }),
+        market: swaylend.contract_id().into(),
+    };
+
+    let actions = vec![Action::Lending(deposit), Action::Lending(borrow)];
+
+    composer_script
+        .main(actions, deadline)
+        .with_contracts(&[&amm.instance, &logger, &swaylend])
+        .with_inputs(inputs)
+        .with_outputs(outputs)
+        .with_variable_output_policy(VariableOutputPolicy::Exactly(1))
+        .call()
+        .await
+        .unwrap();
+
+    let token_1_balance = wallet.get_asset_balance(&token_1_id).await.unwrap();
+    let base_balance = wallet.get_asset_balance(&base_token_id).await.unwrap();
+
+    assert_eq!(token_1_balance, token_1_balance_before - token_1_to_deposit);
+    assert_eq!(base_token_to_borrow, base_balance - base_balance_before);
+
+    return (
+        composer_script,
+        amm,
+        swaylend,
+        logger,
+        pool_id_0_1,
+        wallet,
+        deadline,
+        (base_token_id, token_1_id),
+        swap_fees,
     );
 }

@@ -99,6 +99,127 @@ async fn composer_open() {
     setup_and_composer_open().await;
 }
 
+/** Open loop test */
+#[tokio::test]
+async fn composer_open_loop() {
+    let (
+        _,
+        composer_script,
+        amm,
+        swaylend,
+        logger,
+        (_, _, _, _, _),
+        wallet,
+        deadline,
+        (base_token_id, token_1_id, _, _),
+        swap_fees,
+    ) = setup().await;
+
+    let token_1_to_deposit = 1_000;
+    let base_token_to_borrow = 1_000;
+
+    let (inputs, outputs) = get_transaction_inputs_outputs(
+        &wallet,
+        &vec![
+            (base_token_id, base_token_to_borrow),
+            (token_1_id, token_1_to_deposit),
+        ],
+    )
+    .await;
+
+    let (base_deposits_before, debt_before) = get_swaylend_base_balances(&swaylend, &wallet).await;
+
+    let collateral_before = get_swaylend_collateral(token_1_id, &swaylend, &wallet).await;
+
+    let borrow = LenderAction {
+        lender_id: 0,
+        action_id: 1,
+        asset: base_token_id,
+        amount_in: base_token_to_borrow / 2,
+        amount_type_id: 1,
+        data: Some(PriceDataUpdate {
+            update_fee: 0u64,
+            publish_times: vec![],
+            price_feed_ids: vec![],
+            update_data: vec![],
+        }),
+        market: swaylend.contract_id().into(),
+    };
+    // execute swap
+    let paths0 = vec![SwapPath {
+        amount_in: base_token_to_borrow / 2,
+        min_amount_out: 490u64,
+        transfer_in: true,
+        steps: vec![BatchSwapStep {
+            dex_id: 0,
+            asset_in: base_token_id,
+            asset_out: token_1_id,
+            receiver: wallet.address().into(),
+            data: encode_mira_params(swap_fees.0, false),
+        }],
+    }];
+
+    // execute swap
+    let paths1 = vec![SwapPath {
+        amount_in: base_token_to_borrow / 2,
+        min_amount_out: 490u64,
+        transfer_in: true,
+        steps: vec![BatchSwapStep {
+            dex_id: 0,
+            asset_in: base_token_id,
+            asset_out: token_1_id,
+            receiver: wallet.address().into(),
+            data: encode_mira_params(swap_fees.0, false),
+        }],
+    }];
+
+    // execute lending operation
+    let deposit = LenderAction {
+        lender_id: 0,
+        action_id: 0,
+        asset: token_1_id,
+        amount_in: 0,
+        amount_type_id: 0,
+        data: None,
+        market: swaylend.contract_id().into(),
+    };
+
+    let actions = vec![
+        Action::Lending(borrow.clone()),
+        Action::Swap(SwapPathList { paths: paths0 }),
+        Action::Lending(deposit.clone()),
+        Action::Lending(borrow),
+        Action::Swap(SwapPathList { paths: paths1 }),
+        Action::Lending(deposit),
+    ];
+
+    composer_script
+        .main(actions, deadline)
+        .with_contracts(&[&amm.instance, &logger, &swaylend])
+        .with_inputs(inputs)
+        .with_outputs(outputs)
+        .with_variable_output_policy(VariableOutputPolicy::Exactly(4))
+        .call()
+        .await
+        .unwrap();
+
+    let (base_deposits_after, debt_after) = get_swaylend_base_balances(&swaylend, &wallet).await;
+    let collateral_after = get_swaylend_collateral(token_1_id, &swaylend, &wallet).await;
+
+    println!("deposits: {:} debt: {:}", collateral_after, debt_after);
+    let amount_expected = 994u64;
+    // assert_eq!(token_1_balance, token_1_balance_before - token_1_to_deposit);
+    if debt_before == 0 {
+        assert_eq!(
+            base_deposits_before - base_deposits_after,
+            base_token_to_borrow
+        );
+    } else {
+        assert_eq!(debt_after - debt_before, base_token_to_borrow);
+    }
+    assert_eq!(collateral_after - collateral_before, amount_expected);
+}
+
 /** Close test */
 #[tokio::test]
 async fn composer_close() {
@@ -114,13 +235,7 @@ async fn composer_close() {
         swap_fees,
     ) = setup_and_composer_open().await;
 
-    let (a0, b0) = swaylend
-        .methods()
-        .get_user_supply_borrow(Identity::Address(wallet.address().into()))
-        .simulate(Execution::StateReadOnly)
-        .await
-        .unwrap()
-        .value;
+    let (a0, b0) = get_swaylend_base_balances(&swaylend, &wallet).await;
 
     println!("deposits: {:} debt: {:}", a0, b0);
 
@@ -200,6 +315,17 @@ async fn composer_close() {
 
     let expected_diff = 996;
 
+    let (a, b) = get_swaylend_base_balances(&swaylend, &wallet).await;
+
+    println!("deposits: {:} debt: {:}", a, b);
+
+    assert_eq!(expected_diff, a - a0);
+}
+
+async fn get_swaylend_base_balances(
+    swaylend: &MockSwaylend<WalletUnlocked>,
+    wallet: &WalletUnlocked,
+) -> (u64, u64) {
     let (a, b) = swaylend
         .methods()
         .get_user_supply_borrow(Identity::Address(wallet.address().into()))
@@ -208,14 +334,25 @@ async fn composer_close() {
         .unwrap()
         .value;
 
-    println!("deposits: {:} debt: {:}", a, b);
-
-    assert_eq!(
-        expected_diff,
-        u64::from_str(&a.to_string()).unwrap() - u64::from_str(&a0.to_string()).unwrap()
+    return (
+        u64::from_str(&a.to_string()).unwrap(),
+        u64::from_str(&b.to_string()).unwrap(),
     );
 }
 
+async fn get_swaylend_collateral(
+    asset_id: AssetId,
+    swaylend: &MockSwaylend<WalletUnlocked>,
+    wallet: &WalletUnlocked,
+) -> u64 {
+    return swaylend
+        .methods()
+        .get_user_collateral(Identity::Address(wallet.address().into()), asset_id)
+        .simulate(Execution::StateReadOnly)
+        .await
+        .unwrap()
+        .value;
+}
 /**
  * Sets up the fixture and opens a basic position (compatible with the pool provided)
  */

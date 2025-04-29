@@ -265,7 +265,13 @@ fn main(actions: Vec<Action>, deadline: u32) {
                     None => revert(INVALID_AMOUNT_TYPE),
                 };
                 let mut amount = match amount_type {
-                    AmountType::Received => amount_cached,
+                    AmountType::Received => {
+                        // TEMP: make sure that assignment is via values
+                        let am = amount_cached + 0;
+                        // reset amount cached after it was used
+                        amount_cached = 0;
+                        am
+                    },
                     AmountType::Defined => amount_in,
                 };
 

@@ -67,8 +67,8 @@ impl Market for Contract {
         let asset_id = msg_asset_id();
         let amount = msg_amount();
         let sender = msg_sender().unwrap();
-
-        storage.user_collateral.insert((sender, asset_id), amount);
+        let current_balance = storage.user_collateral.get((sender, asset_id)).try_read().unwrap_or(0);
+        storage.user_collateral.insert((sender, asset_id), current_balance + amount);
     }
 
     #[payable, storage(write)]
@@ -87,7 +87,7 @@ impl Market for Contract {
 
     #[storage(read)]
     fn get_user_collateral(account: Identity, asset_id: AssetId) -> u64 {
-        0
+        storage.user_collateral.get((account, asset_id)).try_read().unwrap_or(0)
     }
 
     #[storage(read)]

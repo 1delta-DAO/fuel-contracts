@@ -18,7 +18,7 @@ export async function getComposerRequest(path: Vec<ActionInput>, deadline: BigNu
     composerScript.setConfigurableConstants({
         MIRA_AMM_CONTRACT_ID: { bits: MainnetData.MIRA_AMM_ID },
         ONE_DELTA_ORDERS_CONTRACT_ID: { bits: MainnetData.one_delta_orders },
-        SWAYLEND_USDC_MARKET_CONTRACT_ID: { bits: MainnetData.SWAYLEND_USDC_MARKET_PROXY }
+        // SWAYLEND_USDC_MARKET_CONTRACT_ID: { bits: MainnetData.SWAYLEND_USDC_MARKET_PROXY }
     })
     const invocationScope = composerScript.functions.main(path, deadline);
     const miraAmm = new Contract(MainnetData.MIRA_AMM_ID, MIRA_ABI, MockProvider as any)

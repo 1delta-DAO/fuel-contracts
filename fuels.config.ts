@@ -3,7 +3,7 @@ import { PRIVATE_KEY, RPC } from "./env"
 
 export default createConfig({
   contracts: [
-    "./contracts/logger"
+    // "./contracts/logger"
   ],
   scripts: [
     // "./scripts/batch_swap_exact_in_script",
@@ -14,4 +14,5 @@ export default createConfig({
   forcBuildFlags: ['--release'],
   privateKey: PRIVATE_KEY ?? "0x001",
   providerUrl: RPC ?? "https://testnet.fuel.network/v1/graphql"
+  // providerUrl: "https://devnet.fuel.network/v1/graphql"
 });

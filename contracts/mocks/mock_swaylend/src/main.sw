@@ -1,7 +1,6 @@
 contract;
 
-use market_abi::{Market, structs::*};
-use pyth_interface::{data_structures::price::{Price, PriceFeedId}};
+use market_abi::{Market, structs::*,};
 use std::{
     auth::msg_sender,
     call_frames::msg_asset_id,
@@ -14,6 +13,8 @@ use std::{
     bytes::Bytes,
 };
 use sway_libs::signed_integers::i256::I256;
+
+
 
 storage {
     user_collateral: StorageMap<(Identity, AssetId), u64> = StorageMap {},

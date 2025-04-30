@@ -24,17 +24,15 @@ async function main() {
     const provider = new Provider(MainnetData.RPC);
 
     const wallet = Wallet.fromPrivateKey(PRIVATE_KEY!, provider);
-    console.log(await wallet.getBalances());
+    console.log(wallet.address, await wallet.getBalances());
 
-    const amountToDeposit = 14_000_000n; // 14 USDT
-    const amountToBorrow = 10_000_000n; // 10 USDC
+    const amountToDeposit = 100_000n; // 0.0001 ETH
 
     const deadline = 99999999
-    const collateral_asset = MainnetData.USDT
-    const borrow_asset = MainnetData.USDC
+    const collateral_asset = MainnetData.ETH
 
     const swaylend = new Contract(MainnetData.SWAYLEND_USDC_MARKET_PROXY, SWAYLEND_ABI, provider)
-    const priceData = await getPrice(swaylend)
+    // const priceData = await getPrice(swaylend)
 
     const paths: Vec<ActionInput> = [
         {
@@ -44,17 +42,8 @@ async function main() {
                 asset: { bits: collateral_asset.address }, 
                 amount_in: amountToDeposit.toString(), 
                 amount_type_id: AmountType.Defined, 
+                market: {bits: MainnetData.SWAYLEND_USDC_MARKET_PROXY},
                 data: undefined
-            },
-        },
-        {
-            Lending: {
-                lender_id: 0, 
-                action_id: LenderAction.Borrow, 
-                asset: { bits: borrow_asset.address }, 
-                amount_in: amountToBorrow.toString(), 
-                amount_type_id: AmountType.Defined, 
-                data: priceData?.priceUpdateData
             },
         },
     ]
@@ -74,11 +63,13 @@ async function main() {
             request,
             variableOutputs,
             inputAssets,
+            [MainnetData.SWAYLEND_USDC_MARKET_PROXY]
         )
+        // finalRequest.maxFee = "185646"
         console.log("request", finalRequest)
-        const tx = await wallet.simulateTransaction(finalRequest, { estimateTxDependencies: true })
+        const tx = await wallet.simulateTransaction(finalRequest, { estimateTxDependencies: true, })
 
-        console.log("completed")
+        console.log("completed", tx)
     } catch (e: any) {
         console.log(e?.metadata?.receipts)
         console.log(e?.metadata?.logs)

@@ -2,7 +2,6 @@ library;
 
 pub mod structs;
 
-use pyth_interface::{data_structures::price::{Price, PriceFeedId}};
 use structs::*;
 use std::bytes::Bytes;
 use sway_libs::signed_integers::i256::I256;

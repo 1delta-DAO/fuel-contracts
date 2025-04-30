@@ -5,7 +5,5 @@ license = "Apache-2.0"
 name = "mock_swaylend"
 
 [dependencies]
-standards = { git = "https://github.com/FuelLabs/sway-standards", tag = "v0.6.1" }
-sway_libs = { git = "https://github.com/FuelLabs/sway-libs", tag = "v0.24.0" }
+sway_libs = { git = "https://github.com/FuelLabs/sway-libs", tag = "v0.25.2" }
 market_abi = { path = "../../../dex_lib/swaylend" }
-pyth_interface = { git = "https://github.com/pyth-network/pyth-crosschain", rev = "7de4ce3ec8defd97641c1d25302abe117bf5092b" }

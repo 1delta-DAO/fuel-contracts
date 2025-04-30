@@ -7,8 +7,8 @@ export const txParams = {
 };
 
 export const composerTxParams = {
-  gasLimit: 999_999,
-  maxFee: 99_999,
+  gasLimit: 2_000_000,
+  maxFee: 350_000,
 };
 
 export enum DexId {

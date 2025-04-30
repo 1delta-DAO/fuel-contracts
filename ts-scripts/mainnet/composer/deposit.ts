@@ -5,8 +5,8 @@ import { prepareRequest } from "../../utils";
 import { getComposerRequest } from "../calldata";
 import { Vec } from "../../typegen/common";
 import { ActionInput } from "../../typegen/ComposerScript";
-import SWAYLEND_ABI from "../../../fixtures/swaylend/market-abi.json";
-import { getPrice } from "./price";
+// import SWAYLEND_ABI from "../../../fixtures/swaylend/market-abi.json";
+// import { getPrice } from "./price";
 
 enum LenderAction {
     Deposit = 0,
@@ -24,25 +24,33 @@ async function main() {
     const provider = new Provider(MainnetData.RPC);
 
     const wallet = Wallet.fromPrivateKey(PRIVATE_KEY!, provider);
-    console.log(wallet.address, await wallet.getBalances());
+    const bals = await wallet.getBalances()
+    
+    // console.log(wallet.address, bals);
 
     const amountToDeposit = 100_000n; // 0.0001 ETH
 
-    const deadline = 99999999
+    const deadline = 4_294_967_295 // max
     const collateral_asset = MainnetData.ETH
 
-    const swaylend = new Contract(MainnetData.SWAYLEND_USDC_MARKET_PROXY, SWAYLEND_ABI, provider)
+    const refBal = bals.balances.find(a => a.assetId === collateral_asset.address)?.amount.toString()
+
+    console.log("balance in collateral", refBal)
+
+    if (amountToDeposit > BigInt(refBal ?? 0)) throw new Error(`attempting to deposit ${amountToDeposit} but only has ${refBal}`)
+
+    // const swaylend = new Contract(MainnetData.SWAYLEND_USDC_MARKET_PROXY, SWAYLEND_ABI, provider)
     // const priceData = await getPrice(swaylend)
 
     const paths: Vec<ActionInput> = [
         {
             Lending: {
-                lender_id: 0, 
-                action_id: LenderAction.Deposit, 
-                asset: { bits: collateral_asset.address }, 
-                amount_in: amountToDeposit.toString(), 
-                amount_type_id: AmountType.Defined, 
-                market: {bits: MainnetData.SWAYLEND_USDC_MARKET_PROXY},
+                lender_id: 0,
+                action_id: LenderAction.Deposit,
+                asset: { bits: collateral_asset.address },
+                amount_in: amountToDeposit.toString(),
+                amount_type_id: AmountType.Defined,
+                market: { bits: MainnetData.SWAYLEND_USDC_MARKET_PROXY },
                 data: undefined
             },
         },
@@ -50,12 +58,13 @@ async function main() {
 
     const request = await getComposerRequest(paths, deadline)
 
+
     const variableOutputs: number = 0
     const inputAssets: CoinQuantityLike[] = [{
         assetId: collateral_asset.address,
         amount: amountToDeposit as any,
     }]
-
+    // console.log("inputAssets", inputAssets)
     try {
         console.log("prepare request")
         const finalRequest = await prepareRequest(
@@ -65,10 +74,14 @@ async function main() {
             inputAssets,
             [MainnetData.SWAYLEND_USDC_MARKET_PROXY]
         )
-        // finalRequest.maxFee = "185646"
-        console.log("request", finalRequest)
-        const tx = await wallet.simulateTransaction(finalRequest, { estimateTxDependencies: true, })
+        // console.log("request", finalRequest)
 
+        // estimate gas cost
+        const gasCost = await wallet.getTransactionCost(finalRequest)
+        console.log("gasCost", gasCost.gasUsed.toString())
+
+        // simulate txn
+        const tx = await wallet.simulateTransaction(finalRequest, { estimateTxDependencies: true, })
         console.log("completed", tx)
     } catch (e: any) {
         console.log(e?.metadata?.receipts)
@@ -76,7 +89,7 @@ async function main() {
         throw e;
     }
 
-    console.log("opened position")
+    console.log("deposited")
 }
 
 main()

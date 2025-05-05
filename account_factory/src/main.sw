@@ -57,7 +57,7 @@ impl SRC12 for Contract {
         let returned_root = bytecode_root(child_contract);
         if returned_root != TEMPLATE_BYTECODE_ROOT {
             return Result::Err(
-                "The deployed contract's bytecode root and template contract bytecode root do not match",
+                "The deployed contract's bytecode root and template coTEMPLATE_BYTECODE_ROOTntract bytecode root do not match",
             );
         }
  

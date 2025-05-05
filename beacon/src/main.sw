@@ -8,7 +8,8 @@ use beacon_utils::Beacon;
 /// The owner of this contract at deployment.
 #[allow(dead_code)]
 const INITIAL_OWNER: Identity = Identity::Address(Address::zero());
- 
+
+/// Follows somewhat the patter for 
 storage {
     /// The [ContractId] of the target contract.
     ///

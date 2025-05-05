@@ -5,6 +5,12 @@ members = [
     "scripts/batch_swap_exact_out_script",
     "scripts/composer_script",
     "dex_lib/executor",
+    # margin
+    "margin_account",
+    "account_proxy",
+    "account_factory",
+    "beacon",
+    "beacon_utils",
     # libs
     "dex_lib/mira_v1/interfaces",
     "dex_lib/mira_v1/math",

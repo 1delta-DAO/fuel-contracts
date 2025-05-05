@@ -24,7 +24,7 @@ use order_utils::{
 };
 
 // The interface for interacting with Rfq orders 
-abi OrderRouter {
+abi MarginAccount {
     #[storage(write, read), payable]
     fn fill_order(
         order: Order,
@@ -54,7 +54,7 @@ storage {}
 const INVALID_SENDER = 101u64;
 const INVALID_MATCH = 102u64;
 
-impl OrderRouter for Contract {
+impl MarginAccount for Contract {
     #[storage(write, read), payable]
     fn fill_order(
         order: Order,

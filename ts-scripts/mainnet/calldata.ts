@@ -10,11 +10,12 @@ import { BatchSwapExactOutScript } from "../sway_abis/scripts/BatchSwapExactOutS
 import { ComposerScript } from "../sway_abis/scripts/ComposerScript";
 import { Vec } from "../typegen/common";
 import { ActionInput } from "../typegen/ComposerScript";
+import { ComposerScriptLoader } from "../sway_abis";
 
 export async function getComposerRequest(path: Vec<ActionInput>, deadline: BigNumberish) {
     const wallet0 = Wallet.fromPrivateKey("0x001", MockProvider as any)
 
-    const composerScript = new ComposerScript(wallet0)
+    const composerScript = new ComposerScriptLoader(wallet0)
     composerScript.setConfigurableConstants({
         MIRA_AMM_CONTRACT_ID: { bits: MainnetData.MIRA_AMM_ID },
         ONE_DELTA_ORDERS_CONTRACT_ID: { bits: MainnetData.one_delta_orders },

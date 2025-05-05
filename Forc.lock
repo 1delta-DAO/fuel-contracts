@@ -1,4 +1,23 @@
 [[package]]
+name = "account_factory"
+source = "member"
+dependencies = [
+    "standards",
+    "std",
+    "sway_libs",
+]
+
+[[package]]
+name = "account_proxy"
+source = "member"
+dependencies = [
+    "beacon_utils",
+    "standards",
+    "std",
+    "sway_libs",
+]
+
+[[package]]
 name = "add_liquidity_script"
 source = "member"
 dependencies = [
@@ -31,6 +50,24 @@ dependencies = [
     "mira_v1_swap",
     "std",
     "utils",
+]
+
+[[package]]
+name = "beacon"
+source = "member"
+dependencies = [
+    "beacon_utils",
+    "standards",
+    "std",
+    "sway_libs",
+]
+
+[[package]]
+name = "beacon_utils"
+source = "member"
+dependencies = [
+    "standards",
+    "std",
 ]
 
 [[package]]
@@ -82,6 +119,15 @@ dependencies = [
 name = "logger_abi"
 source = "member"
 dependencies = ["std"]
+
+[[package]]
+name = "margin_account"
+source = "member"
+dependencies = [
+    "order_utils",
+    "std",
+    "sway_libs",
+]
 
 [[package]]
 name = "market_abi"

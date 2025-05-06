@@ -10,20 +10,15 @@ abi AccountProxy {
     fn proxy_target() -> Option<ContractId>;
 }
 
-storage {
-        /// The [ContractId] of the beacon contract.
-        /// Provides the target implementation contract via the `proxy_target` selector
-        ///
-        /// # Additional Information
-        ///
-        /// `target` is stored at sha256("storage_SRC14_0")
-        target in 0x7bb458adc1d118713319a5baa00a2d049dd64d2916477d2688d76970c898cd55: ContractId = ContractId::zero(),
+/// the beacon is a configuravble
+configurable {
+    beacon:b256 = b256::zero(),
 }
  
 impl AccountProxy for Contract {
     #[storage(read)]
     fn proxy_target() -> Option<ContractId> {
-        Some(abi(Beacon, storage.target.read().into()).proxy_target().unwrap())
+        Some(abi(Beacon, beacon).proxy_target().unwrap())
     }
 }
 
@@ -31,5 +26,5 @@ impl AccountProxy for Contract {
 #[storage(read)]
 fn fallback() {
     // pass through any other method call to the target
-    run_external(abi(Beacon, storage.target.read().into()).proxy_target().unwrap())
+    run_external(abi(Beacon, beacon).proxy_target().unwrap())
 }

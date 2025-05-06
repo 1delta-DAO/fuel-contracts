@@ -1,15 +1,43 @@
 contract;
  
+mod utils;
+ 
+use utils::{_compute_bytecode_root, _swap_configurables};
 use standards::src12::*;
-use std::{external::bytecode_root, hash::Hash};
+use std::{external::bytecode_root, hash::{Hash, sha256}, storage::storage_vec::*};
  
 configurable {
+    // the bytecode root of the beacon proxy
     TEMPLATE_BYTECODE_ROOT: b256 = b256::zero(),
+    // the expected configurable beacon address for a proxy
+    BEACON_ADDRESS: b256 = b256::zero(),
 }
  
 storage {
     /// Contracts that have registered with this contract.
     registered_contracts: StorageMap<ContractId, bool> = StorageMap {},
+    /// Maps the hash digest of configurables to the contract id.
+    contract_configurables: StorageMap<b256, ContractId> = StorageMap {},
+    /// The template contract's bytecode
+    bytecode: StorageVec<u8> = StorageVec {},
+}
+ 
+abi MyRegistryContract {
+    #[storage(read, write)]
+    fn set_bytecode(bytecode: Vec<u8>);
+}
+ 
+impl MyRegistryContract for Contract {
+    /// Special helper function to store the template contract's bytecode
+    ///
+    /// # Additional Information
+    ///
+    /// Real world implementations should apply restrictions on this function such that it cannot
+    /// be changed by anyone or can only be changed once.
+    #[storage(read, write)]
+    fn set_bytecode(bytecode: Vec<u8>) {
+        storage.bytecode.store_vec(bytecode);
+    }
 }
  
 impl SRC12 for Contract {
@@ -30,7 +58,7 @@ impl SRC12 for Contract {
     ///
     /// # Number of Storage Accesses
     ///
-    /// * Writes: `1`
+    /// * Writes: `2`
     ///
     /// # Examples
     ///
@@ -48,21 +76,32 @@ impl SRC12 for Contract {
         child_contract: ContractId,
         configurables: Option<ContractConfigurables>,
     ) -> Result<BytecodeRoot, str> {
-        if configurables.is_some() {
-            return Result::Err(
-                "This SRC-12 implementation only registers contracts without configurable values",
-            );
-        }
- 
         let returned_root = bytecode_root(child_contract);
-        if returned_root != TEMPLATE_BYTECODE_ROOT {
+ 
+        // If there are no configurables just use the default template
+        let computed_root = match configurables {
+            Some(config) => {
+                let bytecode = storage.bytecode.load_vec();
+                compute_bytecode_root(bytecode, config)
+            },
+            None => {
+                TEMPLATE_BYTECODE_ROOT
+            }
+        };
+ 
+        // Verify the roots match
+        if returned_root != computed_root {
             return Result::Err(
-                "The deployed contract's bytecode root and template coTEMPLATE_BYTECODE_ROOTntract bytecode root do not match",
+                "The deployed contract's bytecode root and expected contract bytecode root do not match",
             );
         }
  
         storage.registered_contracts.insert(child_contract, true);
-        return Result::Ok(returned_root)
+        storage
+            .contract_configurables
+            .insert(sha256(configurables.unwrap_or(Vec::new())), child_contract);
+ 
+        return Result::Ok(computed_root)
     }
  
     /// Returns a boolean representing the state of whether a contract is a valid child of the contract factory.
@@ -117,3 +156,46 @@ impl SRC12 for Contract {
         Some(TEMPLATE_BYTECODE_ROOT)
     }
 }
+ 
+impl SRC12_Extension for Contract {
+    /// Return a registered contract factory child contract with specific implementation details specified by it's configurables.
+    ///
+    /// # Arguments
+    ///
+    /// * `configurables`: [Option<ContractConfigurables>] - The configurables value set for the `child_contract`.
+    ///
+    /// # Returns
+    ///
+    /// * [Option<ContractId>] - The id of the contract which has registered with the specified configurables.
+    ///
+    ///
+    /// # Number of Storage Accesses
+    ///
+    /// * Reads: `1`
+    ///
+    /// # Examples
+    ///
+    /// ```sway
+    /// use src12::SRC12_Extension;
+    ///
+    /// fn foo(my_src_12_contract: ContractId, my_deployed_contract: ContractId, my_configurables: Option<ContractConfigurables>) {
+    ///     let src_12_contract_abi = abi(SRC12_Extension, my_src_12_contract.bits());
+    ///     src_12_contract_abi.register_contract(my_deployed_contract, my_configurables);
+    ///     let result_contract_id = src_12_contract_abi.get_contract_id(my_configurables);
+    ///     assert(result_contract_id.unwrap() == my_deployed_contract);
+    /// }
+    /// ```
+    #[storage(read)]
+    fn get_contract_id(configurables: Option<ContractConfigurables>) -> Option<ContractId> {
+        storage.contract_configurables.get(sha256(configurables.unwrap_or(Vec::new()))).try_read()
+    }
+}
+ 
+/// This function is copied and can be imported from the Sway Libs Bytecode Library.
+/// https://github.com/FuelLabs/sway-libs/tree/master/libs/bytecode
+fn compute_bytecode_root(bytecode: Vec<u8>, configurables: Vec<(u64, Vec<u8>)>) -> b256 {
+    let mut bytecode_slice = bytecode.as_raw_slice();
+    _swap_configurables(bytecode_slice, configurables);
+    _compute_bytecode_root(bytecode_slice)
+}
+ 

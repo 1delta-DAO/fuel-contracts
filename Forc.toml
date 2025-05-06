@@ -11,6 +11,9 @@ members = [
     "contracts/account_factory",
     "contracts/beacon",
     "contracts/beacon_utils",
+    "contracts/order_utils",
+    "contracts/one_delta_orders",
+    "contracts/order_router",
     # libs
     "dex_lib/mira_v1/interfaces",
     "dex_lib/mira_v1/math",
@@ -21,7 +24,4 @@ members = [
     "contracts/mocks/mock_token",
     "contracts/mocks/mock_swaylend",
     "contracts/logger",
-    "order_utils",
-    "one_delta_orders",
-    "order_router",
 ]

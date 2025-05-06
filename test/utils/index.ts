@@ -10,7 +10,7 @@ import { BatchSwapExactOutScript } from '../../ts-scripts/typegen/BatchSwapExact
 import { expect } from 'vitest';
 import { OrderRouterFactory } from '../../ts-scripts/typegen/OrderRouterFactory';
 import { OrderRouter } from '../../ts-scripts/typegen/OrderRouter';
-import { LoggerFactory } from '../../ts-scripts/sway_abis';
+import { LoggerFactory } from '../../ts-scripts/typegen/LoggerFactory';
 
 
 export namespace OrderTestUtils {

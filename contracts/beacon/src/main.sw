@@ -6,6 +6,9 @@ use beacon_utils::Beacon;
 /// Follows somewhat the pattern for SRC14.
 /// Note that we have no storage collision issues here
 /// as the Beacon itself is not a proxy.
+/// A beacon proxy structure is ideal for identical contract
+/// deployments that all share the same implementaion and need 
+/// the same simultaneous upgrades
 storage {
     /// The [ContractId] of the beacon target contract.
     target: ContractId = ContractId::zero(),

@@ -2,11 +2,7 @@ contract;
 
 use interfaces::mira_amm::MiraAMM;
 use executor::{BatchSwapStep, execute_exact_in, get_dex_input_receiver};
-use std::{
-    asset::transfer,
-    auth::msg_sender,
-    revert::revert,
-};
+use std::{asset::transfer, auth::msg_sender, context::this_balance, revert::revert};
 use market_abi::Market;
 use account_utils::{
     AccountLogic,
@@ -15,11 +11,11 @@ use account_utils::{
         Action,
         AmountType,
         LenderAction,
-        TransferAction,
         LenderActionType,
         LenderId,
         SwapPath,
         SwapPathList,
+        TransferAction,
     },
 };
 
@@ -258,11 +254,15 @@ impl AccountLogic for Contract {
                     }
                 },
                 Some(Action::Transfer(TransferAction {
-                    asset,
-                    amount,
-                    receiver,
+                    asset, amount, receiver,
                 })) => {
-                    transfer(receiver, asset, amount);
+                    // zero for using this contract balance
+                    let amount_used = if amount != 0 {
+                        amount
+                    } else {
+                        this_balance(asset)
+                    };
+                    transfer(receiver, asset, amount_used);
                     j += 1;
                 },
                 None => {

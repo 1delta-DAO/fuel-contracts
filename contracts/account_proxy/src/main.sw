@@ -8,7 +8,7 @@ abi AccountProxy {
     fn proxy_target() -> ContractId;
 }
 
-/// the beacon is a configuravble
+/// the beacon is a configurable
 configurable {
     BEACON: b256 = b256::zero(),
 }

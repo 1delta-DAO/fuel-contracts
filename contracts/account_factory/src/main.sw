@@ -63,7 +63,10 @@ impl RegisterAndCall for Contract {
         actions: Option<Vec<Action>>,
     ) {
         // check that the contract is not already owned
-        require(get_contract_owner(_contract) == ZERO_ID, "Already registered");
+        require(
+            get_contract_owner(_contract) == ZERO_ID,
+            "Already registered",
+        );
 
         // register the contract for the target
         register_contract_internal(_contract, _for);

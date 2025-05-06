@@ -1,21 +1,17 @@
 contract;
 
 use std::execution::run_external;
-use standards::src5::{AccessError, State};
-use standards::src14::{SRC14, SRC14_TARGET_STORAGE, SRC14Extension};
 use beacon_utils::Beacon;
 
-/// The owner of this contract at deployment.
-#[allow(dead_code)]
-const INITIAL_OWNER: Identity = Identity::Address(Address::zero());
-
-/// Follows somewhat the patter for
+/// Follows somewhat the pattern for SRC14,
+/// Note that we have no storage collision issues here
+/// as the Beacon itself is not a proxy.
 storage {
-    /// The [ContractId] of the target contract.
+    /// The [ContractId] of the beacon target contract.
     target: ContractId = ContractId::zero(),
-    /// The [State] of the proxy owner.
-    owner: Identity = INITIAL_OWNER,
-    /// The [State] of the proxy owner.
+    /// The [Identity] of the proxy owner.
+    owner: Identity = Identity::Address(Address::zero()),
+    /// The initialization flag as a [bool].
     initialized: bool = false,
 }
 
@@ -38,12 +34,15 @@ impl Beacon for Contract {
 
     #[storage(read, write)]
     fn set_owner(new_owner: Identity) {
+        // does noit need to check if initialized as the initial
+        // owner is zero
         only_owner();
         storage.owner.write(new_owner);
     }
 
     #[storage(read, write)]
     fn initialize(initial_owner: Identity) {
+        // does not check for owner but for initialization
         not_initialized();
         storage.owner.write(initial_owner);
         storage.initialized.write(true);
@@ -52,13 +51,7 @@ impl Beacon for Contract {
 
 #[storage(read)]
 fn only_owner() {
-    require(
-        storage
-            .owner
-            .read() == msg_sender()
-            .unwrap(),
-        AccessError::NotOwner,
-    );
+    require(storage.owner.read() == msg_sender().unwrap(), "Not owner");
 }
 
 #[storage(read)]

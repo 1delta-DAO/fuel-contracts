@@ -27,9 +27,7 @@ name = "account_proxy"
 source = "member"
 dependencies = [
     "beacon_utils",
-    "standards",
     "std",
-    "sway_libs",
 ]
 
 [[package]]
@@ -81,9 +79,7 @@ name = "beacon"
 source = "member"
 dependencies = [
     "beacon_utils",
-    "standards",
     "std",
-    "sway_libs",
 ]
 
 [[package]]

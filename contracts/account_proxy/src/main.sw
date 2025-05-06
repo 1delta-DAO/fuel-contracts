@@ -1,8 +1,6 @@
 contract;
 
 use std::execution::run_external;
-use standards::src5::{AccessError, State};
-use standards::src14::{SRC14, SRC14_TARGET_STORAGE, SRC14Extension};
 use beacon_utils::Beacon;
 
 abi AccountProxy {

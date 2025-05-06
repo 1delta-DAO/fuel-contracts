@@ -124,7 +124,6 @@ dependencies = ["std"]
 name = "margin_account"
 source = "member"
 dependencies = [
-    "order_utils",
     "std",
     "sway_libs",
 ]

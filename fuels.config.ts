@@ -3,7 +3,7 @@ import { PRIVATE_KEY, RPC } from "./env"
 
 export default createConfig({
   contracts: [
-    // "./contracts/logger"
+    "./contracts/logger"
   ],
   scripts: [
     // "./scripts/batch_swap_exact_in_script",

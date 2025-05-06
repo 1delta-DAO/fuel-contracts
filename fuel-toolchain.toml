@@ -1,5 +1,5 @@
 [toolchain]
-channel = "mainnet"
+channel = "latest-x86_64-unknown-linux-gnu"
 
 [components]
 forc="0.68.1"

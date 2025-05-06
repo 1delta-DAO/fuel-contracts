@@ -6,11 +6,11 @@ members = [
     "scripts/composer_script",
     "dex_lib/executor",
     # margin
-    "margin_account",
-    "account_proxy",
-    "account_factory",
-    "beacon",
-    "beacon_utils",
+    "contracts/margin_account",
+    "contracts/account_proxy",
+    "contracts/account_factory",
+    "contracts/beacon",
+    "contracts/beacon_utils",
     # libs
     "dex_lib/mira_v1/interfaces",
     "dex_lib/mira_v1/math",

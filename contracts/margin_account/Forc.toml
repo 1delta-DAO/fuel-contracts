@@ -5,5 +5,4 @@ license = "Apache-2.0"
 name = "margin_account"
 
 [dependencies]
-order_utils = { path = "../order_utils" }
 sway_libs = { git = "https://github.com/FuelLabs/sway-libs", tag = "v0.25.2" }

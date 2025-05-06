@@ -12,13 +12,13 @@ abi AccountProxy {
 
 /// the beacon is a configuravble
 configurable {
-    beacon:b256 = b256::zero(),
+    BEACON:b256 = b256::zero(),
 }
  
 impl AccountProxy for Contract {
     #[storage(read)]
     fn proxy_target() -> Option<ContractId> {
-        Some(abi(Beacon, beacon).proxy_target().unwrap())
+        Some(abi(Beacon, BEACON).proxy_target().unwrap())
     }
 }
 
@@ -26,5 +26,5 @@ impl AccountProxy for Contract {
 #[storage(read)]
 fn fallback() {
     // pass through any other method call to the target
-    run_external(abi(Beacon, beacon).proxy_target().unwrap())
+    run_external(abi(Beacon, BEACON).proxy_target().unwrap())
 }

@@ -24,21 +24,6 @@ storage {
     contract_to_owner: StorageMap<ContractId, Identity> = StorageMap {},
 }
 
-abi RegisterAndCall {
-    /// register a contract for an entity
-    /// optionally actions can be performed and
-    /// forwarded to the account
-    #[storage(write, read), payable]
-    fn register_and_call(
-        _contract: ContractId,
-        _for: Identity,
-        actions: Option<Vec<Action>>,
-    );
-
-    #[storage(read)]
-    fn bytecode_root(child_contract: ContractId) -> BytecodeRoot;
-}
-
 abi ExecutionValidation {
     /// called by the implementation
     /// ensures that only the owner can call a function
@@ -53,6 +38,54 @@ impl ExecutionValidation for Contract {
     fn can_call(_contract: ContractId, _caller: Identity) -> bool {
         get_contract_owner(_contract) == _caller || (_caller == Identity::ContractId(ContractId::this()))
     }
+}
+
+abi ContractTransfer {
+    /// Allow an owner to transfer the account
+    /// to another Identity.
+    #[storage(read, write)]
+    fn transfer_ownership(_contract: ContractId, _to: Identity);
+}
+
+impl ContractTransfer for Contract {
+    #[storage(read, write)]
+    fn transfer_ownership(_contract: ContractId, _to: Identity) {
+        // get the owner of the input contract
+        let owner = get_contract_owner(_contract);
+
+        // make sure that the contract is registered
+        // i.e. an owner is defined
+        require(owner != ZERO_ID, "Not registered");
+
+        // check that the caller owns the contract
+        require(owner == msg_sender().unwrap(), "Not owner");
+
+        // check that there is no self-transfer 
+        // and the receiver is not zero
+        require(
+            _to != msg_sender()
+                .unwrap() && _to != ZERO_ID,
+            "Invalid receiver",
+        );
+
+        // update owner in registry
+        storage.contract_to_owner.insert(_contract, _to);
+    }
+}
+
+abi RegisterAndCall {
+    /// register a contract for an entity
+    /// optionally actions can be performed and
+    /// forwarded to the account
+    #[storage(write, read), payable]
+    fn register_and_call(
+        _contract: ContractId,
+        _for: Identity,
+        actions: Option<Vec<Action>>,
+    );
+
+    #[storage(read)]
+    fn bytecode_root(child_contract: ContractId) -> BytecodeRoot;
 }
 
 impl RegisterAndCall for Contract {

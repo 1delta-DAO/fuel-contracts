@@ -5,9 +5,6 @@ use executor::{BatchSwapStep, execute_exact_in, get_dex_input_receiver};
 use std::{
     asset::transfer,
     auth::msg_sender,
-    bytes::Bytes,
-    bytes_conversions::u64::*,
-    primitive_conversions::u256::*,
     revert::revert,
 };
 use market_abi::Market;

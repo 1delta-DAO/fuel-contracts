@@ -3,7 +3,7 @@ contract;
 use std::execution::run_external;
 use beacon_utils::Beacon;
 
-/// Follows somewhat the pattern for SRC14,
+/// Follows somewhat the pattern for SRC14.
 /// Note that we have no storage collision issues here
 /// as the Beacon itself is not a proxy.
 storage {

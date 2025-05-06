@@ -106,4 +106,3 @@ pub enum Action {
     Swap: SwapPathList,
     Lending: LenderAction,
 }
-

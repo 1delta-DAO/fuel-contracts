@@ -1,7 +1,6 @@
 library;
 
 pub mod structs;
-
 use structs::Action;
 
 /// the account is stateless

@@ -1,76 +1,37 @@
 contract;
 
-use standards::{src12::*, src20::SRC20, src3::SRC3, src5::{SRC5, State}, src7::{Metadata, SRC7}};
+use standards::src12::BytecodeRoot;
 use std::{
+    auth::msg_sender,
+    call_frames::msg_asset_id,
+    context::{
+        msg_amount,
+        this_balance,
+    },
     external::bytecode_root,
-    hash::{
-        Hash,
-        sha256,
-    },
-    storage::storage_string::*,
-    storage::storage_vec::*,
-    string::String,
 };
-use sway_libs::{
-    asset::{
-        base::{
-            _name,
-            _set_name,
-            _set_symbol,
-            _symbol,
-            _total_assets,
-            _total_supply,
-            SetAssetAttributes,
-        },
-        metadata::*,
-        supply::{
-            _burn,
-            _mint,
-        },
-    },
-    bytecode::{
-        compute_bytecode_root,
-        swap_configurables,
-    },
-    ownership::{
-        _owner,
-        initialize_ownership,
-        only_owner,
-    },
-    pausable::{
-        _is_paused,
-        _pause,
-        _unpause,
-        Pausable,
-        require_not_paused,
-    },
-};
-
-pub enum MintError {
-    CannotMintMoreThanOneNFTWithSubId: (),
-    MaxNFTsMinted: (),
-    NFTAlreadyMinted: (),
-}
-
-pub enum SetError {
-    ValueAlreadySet: (),
-}
+use account_utils::{Account, structs::Action};
 
 configurable {
+    /// this needs to be the root of account proxy configured with the correct BEACON
     TEMPLATE_BYTECODE_ROOT: b256 = b256::zero(),
-    BEACON_ADDRESS: b256 = b256::zero(),
 }
 
 storage {
-    /// Contracts that have registered with this contract.
-    registered_contracts: StorageMap<ContractId, bool> = StorageMap {},
     /// map a registered contract to an owner
     contract_to_owner: StorageMap<ContractId, Identity> = StorageMap {},
 }
 
-abi MintAndCall {
-    #[payable, storage(read, write)]
-    fn register_and_call(_contract: ContractId, _for: Identity, operations: u64);
+abi RegisterAndCall {
+    /// register a contract for an entity
+    /// optionally actions can be performed and
+    /// forwarded to the account
+    #[storage(write, read), payable]
+    fn register_and_call(
+        _contract: ContractId,
+        _for: Identity,
+        actions: Option<Vec<Action>>,
+    );
 
     #[storage(read)]
     fn bytecode_root(child_contract: ContractId) -> BytecodeRoot;
@@ -90,18 +51,25 @@ impl ExecutionValidation for Contract {
     }
 }
 
-impl MintAndCall for Contract {
-    /// Special helper function to store the template contract's bytecode
-    ///
-    /// # Additional Information
-    ///
-    /// Real world implementations should apply restrictions on this function such that it cannot
-    /// be changed by anyone or can only be changed once.
-    #[payable, storage(read, write)]
-    fn register_and_call(_contract: ContractId, _for: Identity, operations: u64) {
-        register_contract_internal(_contract, Option::None);
+impl RegisterAndCall for Contract {
+    #[storage(write, read), payable]
+    fn register_and_call(
+        _contract: ContractId,
+        _for: Identity,
+        actions: Option<Vec<Action>>,
+    ) {
+        register_contract_internal(_contract, _for);
 
-        if operations == 0 {} else {}
+        // execute actions if provided
+        // data asset amount is forwarded 
+        if let Some(d) = actions {
+            abi(Account, _contract
+                .bits())
+                .compose {
+                    asset_id: msg_asset_id().into(),
+                    coins: msg_amount(),
+                }(d);
+        }
     }
 
     #[storage(read)]
@@ -110,24 +78,18 @@ impl MintAndCall for Contract {
     }
 }
 
+/// registers a contract
+/// validates for a bytecode root match
+/// while the expected bytecode has a configurable,
+/// we only accept the ones that have the correct beacon address
+/// this is respected in TEMPLATE_BYTECODE_ROOT
 #[storage(read, write)]
-fn register_contract_internal(
-    child_contract: ContractId,
-    configurables: Option<ContractConfigurables>,
-) -> Result<BytecodeRoot, str> {
-    if configurables.is_some() {
-        return Result::Err(
-            "This SRC-12 implementation only registers contracts without configurable values",
-        );
-    }
-
+fn register_contract_internal(child_contract: ContractId, _for: Identity) {
     let returned_root = bytecode_root(child_contract);
-    if returned_root != TEMPLATE_BYTECODE_ROOT {
-        return Result::Err(
-            "The deployed contract's bytecode root and template contract bytecode root do not match",
-        );
-    }
+    require(
+        returned_root == TEMPLATE_BYTECODE_ROOT,
+        "The deployed contract's bytecode root and template contract bytecode root do not match",
+    );
 
-    storage.registered_contracts.insert(child_contract, true);
-    return Result::Ok(returned_root)
+    storage.contract_to_owner.insert(child_contract, _for);
 }

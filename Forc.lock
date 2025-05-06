@@ -2,6 +2,7 @@
 name = "account"
 source = "member"
 dependencies = [
+    "account_utils",
     "executor",
     "interfaces",
     "logger_abi",
@@ -15,6 +16,7 @@ dependencies = [
 name = "account_factory"
 source = "member"
 dependencies = [
+    "account_utils",
     "standards",
     "std",
     "sway_libs",
@@ -142,7 +144,7 @@ dependencies = [
 
 [[package]]
 name = "market_abi"
-source = "path+from-root-9FACC154C053EAD5"
+source = "path+from-root-F411C2F07C54FF1E"
 dependencies = [
     "std",
     "sway_libs",

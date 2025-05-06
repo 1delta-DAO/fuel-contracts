@@ -1,18 +1,30 @@
 contract;
 
 use interfaces::mira_amm::MiraAMM;
-use utils::blockchain_utils::check_deadline;
 use executor::{BatchSwapStep, execute_exact_in, get_dex_input_receiver};
 use std::{
     asset::transfer,
-    auth::caller_address,
+    auth::msg_sender,
     bytes::Bytes,
     bytes_conversions::u64::*,
     primitive_conversions::u256::*,
     revert::revert,
 };
 use logger_abi::Logger;
-use market_abi::{Market, structs::PriceDataUpdate};
+use market_abi::Market;
+use account_utils::{
+    Account,
+    ExecutionValidation,
+    structs::{
+        Action,
+        AmountType,
+        LenderAction,
+        LenderActionType,
+        LenderId,
+        SwapPath,
+        SwapPathList,
+    },
+};
 
 ////////////////////////////////////////////////////
 // Error codes
@@ -28,126 +40,24 @@ const INVALID_BALANCE: u64 = 105;
 // DEX references
 ////////////////////////////////////////////////////
 configurable {
-    FACTORY_ID: ContractId = ContractId::from(0x2e40f2b244b98ed6b8204b3de0156c6961f98525c8162f80162fcf53eebd90e7),
+    FACTORY_ID: b256 = 0x2e40f2b244b98ed6b8204b3de0156c6961f98525c8162f80162fcf53eebd90e7,
     MIRA_AMM_CONTRACT_ID: ContractId = ContractId::from(0x2e40f2b244b98ed6b8204b3de0156c6961f98525c8162f80162fcf53eebd90e7),
     ONE_DELTA_ORDERS_CONTRACT_ID: ContractId = ContractId::from(0xf6caa75386fe9ba4da15b82723ecffb0d56b28ae7ece396b15c5650b605359ac),
     LOGGER_CONTRACT_ID: ContractId = ContractId::from(0x60caa3fe777329cd32a66a4c7ac5840e4eb10441a1f8331cd00d45fb0341a7a6),
 }
 
-////////////////////////////////////////////////////
-// Types
-////////////////////////////////////////////////////
-pub struct SwapPath {
-    pub amount_in: u64,
-    pub min_amount_out: u64,
-    pub transfer_in: bool,
-    pub steps: Vec<BatchSwapStep>,
-}
-
-pub enum LenderId {
-    SwaylendUSDC: (),
-}
-
-impl LenderId {
-    pub fn from_u64(value: u64) -> Option<LenderId> {
-        match value {
-            0 => Some(LenderId::SwaylendUSDC),
-            _ => None,
-        }
-    }
-
-    pub fn to_u64(self) -> u64 {
-        match self {
-            LenderId::SwaylendUSDC => 0,
-        }
-    }
-}
-
-pub enum LenderActionType {
-    Deposit: (),
-    Borrow: (),
-    Withdraw: (),
-    Repay: (),
-    DepositBase: (),
-    WithdrawBase: (),
-}
-
-impl LenderActionType {
-    pub fn from_u16(value: u16) -> Option<LenderActionType> {
-        match value {
-            0 => Some(LenderActionType::Deposit),
-            1 => Some(LenderActionType::Borrow),
-            2 => Some(LenderActionType::Withdraw),
-            3 => Some(LenderActionType::Repay),
-            4 => Some(LenderActionType::DepositBase),
-            5 => Some(LenderActionType::WithdrawBase),
-            _ => None,
-        }
-    }
-
-    pub fn to_u16(self) -> u16 {
-        match self {
-            LenderActionType::Deposit => 0,
-            LenderActionType::Borrow => 1,
-            LenderActionType::Withdraw => 2,
-            LenderActionType::Repay => 3,
-            LenderActionType::DepositBase => 4,
-            LenderActionType::WithdrawBase => 5,
-        }
-    }
-}
-
-pub enum AmountType {
-    Received: (),
-    Defined: (),
-}
-
-impl AmountType {
-    pub fn from_u8(value: u8) -> Option<AmountType> {
-        match value {
-            0 => Some(AmountType::Received),
-            1 => Some(AmountType::Defined),
-            _ => None,
-        }
-    }
-
-    pub fn to_u8(self) -> u8 {
-        match self {
-            AmountType::Received => 0,
-            AmountType::Defined => 1,
-        }
-    }
-}
-
-pub struct LenderAction {
-    pub lender_id: u64,
-    pub action_id: u16,
-    pub asset: AssetId,
-    pub amount_in: u64,
-    pub amount_type_id: u8,
-    pub market: ContractId,
-    pub data: Option<PriceDataUpdate>,
-}
-
-pub struct SwapPathList {
-    pub paths: Vec<SwapPath>,
-}
-
-pub enum Action {
-    Swap: SwapPathList,
-    Lending: LenderAction,
-}
-
-/// the account is stateless
-/// ownership
-abi Account {
-    #[payable, storage(write)]
-    fn compose(actions: Vec<Action>);
-}
+// AmountType, LenderAction,SwapPathList, Action
 
 impl Account for Contract {
     #[payable, storage(write)]
     fn compose(actions: Vec<Action>) {
+        // validate that only authorized entities can call this contract 
+        require(
+            abi(ExecutionValidation, FACTORY_ID)
+                .can_call(ContractId::this(), msg_sender().unwrap()),
+            "Unauthorized",
+        );
+
         // use cached amount for split swaps
         let mut amount_cached = 0u64;
 
@@ -303,7 +213,7 @@ impl Account for Contract {
 
                                     // 0 indicates full balance repay
                                     if amount == 0 {
-                                        let (base_deposit, _) = swaylend_market.get_user_supply_borrow(Identity::Address(caller_address().unwrap()));
+                                        let (base_deposit, _) = swaylend_market.get_user_supply_borrow(Identity::ContractId(ContractId::this()));
                                         let base_deposit_64 = u64::try_from(base_deposit).unwrap();
                                         if base_deposit_64 == 0u64 {
                                             revert(INVALID_BALANCE);
@@ -329,7 +239,7 @@ impl Account for Contract {
                                 },
                                 LenderActionType::Repay => {
                                     if amount == 0 {
-                                        let (_, user_borrow) = swaylend_market.get_user_supply_borrow(Identity::Address(caller_address().unwrap()));
+                                        let (_, user_borrow) = swaylend_market.get_user_supply_borrow(Identity::ContractId(ContractId::this()));
                                         let borrow_64 = u64::try_from(user_borrow).unwrap();
                                         if borrow_64 == 0u64 {
                                             revert(INVALID_BALANCE);

@@ -43,11 +43,11 @@ Swap multiple paths and path-fragments dynamically across multiple DEXs. Currenl
 - Mira V1 Stable
 - 1delta Orders
 
-### Beacon proxy accounts
+## Beacon proxy accounts
 
 A beacon smart contract manages the implementation for identical deployments of account smart contracts. The contract-based acconts are needed to interact with lending protocols in a modular way, allowing for looping positions for leverage.
 
-## Architecture
+### Architecture
 
 - The beacon provides the implementation for the proxies as a read function.
 - The beacon is owned and managed.

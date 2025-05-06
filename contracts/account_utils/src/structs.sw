@@ -102,7 +102,14 @@ pub struct SwapPathList {
     pub paths: Vec<SwapPath>,
 }
 
+pub struct TransferAction {
+    pub asset: AssetId,
+    pub amount: u64,
+    pub receiver: Identity,
+}
+
 pub enum Action {
     Swap: SwapPathList,
     Lending: LenderAction,
+    Transfer: TransferAction
 }

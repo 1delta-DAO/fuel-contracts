@@ -18,6 +18,7 @@ use account_utils::{
         Action,
         AmountType,
         LenderAction,
+        TransferAction,
         LenderActionType,
         LenderId,
         SwapPath,
@@ -258,6 +259,14 @@ impl AccountLogic for Contract {
                             revert(EMPTY_ACTION_ENTRY);
                         }
                     }
+                },
+                Some(Action::Transfer(TransferAction {
+                    asset,
+                    amount,
+                    receiver,
+                })) => {
+                    transfer(receiver, asset, amount);
+                    j += 1;
                 },
                 None => {
                     revert(EMPTY_ACTION_ENTRY);

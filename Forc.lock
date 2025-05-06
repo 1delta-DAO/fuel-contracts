@@ -15,11 +15,8 @@ dependencies = [
     "account_utils",
     "executor",
     "interfaces",
-    "logger_abi",
     "market_abi",
-    "mira_v1_swap",
     "std",
-    "utils",
 ]
 
 [[package]]

@@ -14,6 +14,7 @@ describe('Order fill via `msg_amount`', async () => {
       wallets: [maker, deployer, taker]
     } = launched;
 
+    
     const { Orders, tokens } = await OrderTestUtils.fixture(deployer)
 
     const [maker_asset, taker_asset] = await OrderTestUtils.createTokens(deployer, OrderTestUtils.contractIdBits(tokens))

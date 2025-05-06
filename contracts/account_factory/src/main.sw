@@ -10,7 +10,7 @@ use std::{
     },
     external::bytecode_root,
 };
-use account_utils::{Account, structs::Action};
+use account_utils::{AccountLogic, structs::Action};
 
 const ZERO_ID = Identity::Address(Address::from(b256::zero()));
 
@@ -63,7 +63,7 @@ impl RegisterAndCall for Contract {
         actions: Option<Vec<Action>>,
     ) {
         // check that the contract is not already owned
-        require(get_contract_owner(_contract) != ZERO_ID, "Already registered");
+        require(get_contract_owner(_contract) == ZERO_ID, "Already registered");
 
         // register the contract for the target
         register_contract_internal(_contract, _for);
@@ -71,7 +71,7 @@ impl RegisterAndCall for Contract {
         // execute actions if provided
         // data asset amount is forwarded 
         if let Some(d) = actions {
-            abi(Account, _contract
+            abi(AccountLogic, _contract
                 .bits())
                 .compose {
                     asset_id: msg_asset_id().into(),

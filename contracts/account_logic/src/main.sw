@@ -13,7 +13,7 @@ use std::{
 use logger_abi::Logger;
 use market_abi::Market;
 use account_utils::{
-    Account,
+    AccountLogic,
     ExecutionValidation,
     structs::{
         Action,
@@ -40,7 +40,7 @@ const INVALID_BALANCE: u64 = 105;
 // DEX references
 ////////////////////////////////////////////////////
 configurable {
-    FACTORY_ID: b256 = 0x2e40f2b244b98ed6b8204b3de0156c6961f98525c8162f80162fcf53eebd90e7,
+    FACTORY_ID: b256 = b256::zero(),
     MIRA_AMM_CONTRACT_ID: ContractId = ContractId::from(0x2e40f2b244b98ed6b8204b3de0156c6961f98525c8162f80162fcf53eebd90e7),
     ONE_DELTA_ORDERS_CONTRACT_ID: ContractId = ContractId::from(0xf6caa75386fe9ba4da15b82723ecffb0d56b28ae7ece396b15c5650b605359ac),
     LOGGER_CONTRACT_ID: ContractId = ContractId::from(0x60caa3fe777329cd32a66a4c7ac5840e4eb10441a1f8331cd00d45fb0341a7a6),
@@ -48,7 +48,7 @@ configurable {
 
 // AmountType, LenderAction,SwapPathList, Action
 
-impl Account for Contract {
+impl AccountLogic for Contract {
     #[payable, storage(write)]
     fn compose(actions: Vec<Action>) {
         // validate that only authorized entities can call this contract 

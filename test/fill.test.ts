@@ -509,7 +509,7 @@ describe('Order fill via `msg_amount`', async () => {
       maker_receiver: ZeroBytes32
     })
     const signatureRaw = await maker.signMessage(OrderTestUtils.packOrder(order, Orders))
-    
+
     const [
       maker_maker_asset_balance_before,
     ] = await OrderTestUtils.getMakerBalances(
@@ -673,7 +673,7 @@ describe('Order fill via `msg_amount`', async () => {
       maker_receiver: ZeroBytes32
     })
     const signatureRaw = await maker.signMessage(OrderTestUtils.packOrder(order, Orders))
-   
+
     const [
       maker_maker_asset_balance_before,
     ] = await OrderTestUtils.getMakerBalances(
@@ -718,38 +718,38 @@ describe('Order fill via `msg_amount`', async () => {
       .callParams({ forward: { assetId: taker_asset, amount: taker_fill_amount } })
       .call()
 
-      await OrderTestUtils.testFillStatus(order, Orders, taker_fill_amount, false)
+    await OrderTestUtils.testFillStatus(order, Orders, taker_fill_amount, false)
 
-      const [
-        maker_maker_asset_balance_after,
-      ] = await OrderTestUtils.getMakerBalances(
-        maker.address.toB256(),
-        [maker_asset],
-        Orders
-      )
-  
-      const [
-        maker_taker_asset_balance_after
-      ] = await OrderTestUtils.getConventionalBalances(
-        maker,
-        [taker_asset],
-      )
-  
-      const [
-        taker_maker_asset_balance_after,
-        taker_taker_asset_balance_after
-      ] = await OrderTestUtils.getConventionalBalances(
-        taker,
-        [maker_asset, taker_asset]
-      )
-  
-      const [
-        total_maker_asset_balance_after,
-      ] = await OrderTestUtils.getTotalBalances(
-        [maker_asset],
-        Orders
-      )
-  
+    const [
+      maker_maker_asset_balance_after,
+    ] = await OrderTestUtils.getMakerBalances(
+      maker.address.toB256(),
+      [maker_asset],
+      Orders
+    )
+
+    const [
+      maker_taker_asset_balance_after
+    ] = await OrderTestUtils.getConventionalBalances(
+      maker,
+      [taker_asset],
+    )
+
+    const [
+      taker_maker_asset_balance_after,
+      taker_taker_asset_balance_after
+    ] = await OrderTestUtils.getConventionalBalances(
+      taker,
+      [maker_asset, taker_asset]
+    )
+
+    const [
+      total_maker_asset_balance_after,
+    ] = await OrderTestUtils.getTotalBalances(
+      [maker_asset],
+      Orders
+    )
+
 
     const expected_roundingError = Math.ceil(maker_amount.toNumber() / taker_amount.toNumber())
 

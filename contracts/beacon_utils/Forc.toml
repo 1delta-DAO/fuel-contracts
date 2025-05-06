@@ -5,4 +5,3 @@ license = "Apache-2.0"
 name = "beacon_utils"
 
 [dependencies]
-standards = { git = "https://github.com/FuelLabs/sway-standards", tag = "v0.7.0" }

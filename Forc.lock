@@ -1,5 +1,15 @@
 [[package]]
-name = "account"
+name = "account_factory"
+source = "member"
+dependencies = [
+    "account_utils",
+    "standards",
+    "std",
+    "sway_libs",
+]
+
+[[package]]
+name = "account_logic"
 source = "member"
 dependencies = [
     "account_utils",
@@ -13,10 +23,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "account_factory"
+name = "account_proxy"
 source = "member"
 dependencies = [
-    "account_utils",
+    "beacon_utils",
     "standards",
     "std",
     "sway_libs",
@@ -79,10 +89,7 @@ dependencies = [
 [[package]]
 name = "beacon_utils"
 source = "member"
-dependencies = [
-    "standards",
-    "std",
-]
+dependencies = ["std"]
 
 [[package]]
 name = "composer_script"
@@ -133,14 +140,6 @@ dependencies = [
 name = "logger_abi"
 source = "member"
 dependencies = ["std"]
-
-[[package]]
-name = "margin_account"
-source = "member"
-dependencies = [
-    "std",
-    "sway_libs",
-]
 
 [[package]]
 name = "market_abi"

@@ -1,16 +1,15 @@
-
 library;
-
-use standards::src5::{AccessError, State};
 
 // The interface for interacting with Rfq orders 
 abi Beacon {
     #[storage(read, write)]
-    fn set_proxy_target(new_target: ContractId);
- 
+    fn set_beacon_target(new_target: ContractId);
     #[storage(read)]
-    fn proxy_target() -> Option<ContractId>;
-    
-        #[storage(read)]
-    fn proxy_owner() -> State;
+    fn beacon_target() -> ContractId;
+    #[storage(read)]
+    fn beacon_owner() -> Identity;
+    #[storage(read, write)]
+    fn set_owner(new_owner: Identity);
+    #[storage(read, write)]
+    fn initialize(initial_owner: Identity);
 }

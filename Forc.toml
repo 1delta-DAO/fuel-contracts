@@ -6,8 +6,8 @@ members = [
     "scripts/composer_script",
     "dex_lib/executor",
     # margin
-    "contracts/margin_account",
-    "contracts/account",
+    "contracts/account_logic",
+    "contracts/account_proxy",
     "contracts/account_factory",
     "contracts/account_utils",
     "contracts/beacon",

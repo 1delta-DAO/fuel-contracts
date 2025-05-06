@@ -6,7 +6,7 @@ use structs::Action;
 
 /// the account is stateless
 /// ownership
-abi Account {
+abi AccountLogic {
     #[payable, storage(write)]
     fn compose(actions: Vec<Action>);
 }

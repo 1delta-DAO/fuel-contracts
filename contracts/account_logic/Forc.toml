@@ -2,7 +2,7 @@
 authors = ["1delta"]
 entry = "main.sw"
 license = "Apache-2.0"
-name = "account"
+name = "account_logic"
 
 [dependencies]
 executor = { path = "../../dex_lib/executor" }

@@ -42,3 +42,16 @@ Swap multiple paths and path-fragments dynamically across multiple DEXs. Currenl
 - Mira V1 Volatile
 - Mira V1 Stable
 - 1delta Orders
+
+### Beacon proxy accounts
+
+A beacon smart contract manages the implementation for identical deployments of account smart contracts. The contract-based acconts are needed to interact with lending protocols in a modular way, allowing for looping positions for leverage.
+
+## Architecture
+
+- The beacon provides the implementation for the proxies as a read function.
+- The beacon is owned and managed.
+- Proxy accounts need to be deployed separately and are activated by registering it with a SRC12 style contract factory.
+- Accounts implement a `compose` function, an explicit back function allows to loop lending positions correctly.
+- The factory istlef unlocks the `compose` function of an account for an `owner` by registering the `owner` for a account proxy contract
+- On registering an account, a user can also directly execute an operation.

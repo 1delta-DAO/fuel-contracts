@@ -1,4 +1,17 @@
 [[package]]
+name = "account"
+source = "member"
+dependencies = [
+    "executor",
+    "interfaces",
+    "logger_abi",
+    "market_abi",
+    "mira_v1_swap",
+    "std",
+    "utils",
+]
+
+[[package]]
 name = "account_factory"
 source = "member"
 dependencies = [
@@ -8,13 +21,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "account_proxy"
+name = "account_utils"
 source = "member"
 dependencies = [
-    "beacon_utils",
-    "standards",
+    "executor",
+    "market_abi",
     "std",
-    "sway_libs",
 ]
 
 [[package]]
@@ -130,7 +142,7 @@ dependencies = [
 
 [[package]]
 name = "market_abi"
-source = "path+from-root-0A81A7D05C515DE3"
+source = "path+from-root-9FACC154C053EAD5"
 dependencies = [
     "std",
     "sway_libs",

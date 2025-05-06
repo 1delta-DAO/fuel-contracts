@@ -1,0 +1,10 @@
+[project]
+authors = ["Acthar"]
+entry = "main.sw"
+license = "Apache-2.0"
+name = "account_utils"
+
+[dependencies]
+market_abi = { path = "../../dex_lib/swaylend" }
+executor = { path = "../../dex_lib/executor" }
+

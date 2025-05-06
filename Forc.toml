@@ -7,8 +7,9 @@ members = [
     "dex_lib/executor",
     # margin
     "contracts/margin_account",
-    "contracts/account_proxy",
+    "contracts/account",
     "contracts/account_factory",
+    "contracts/account_utils",
     "contracts/beacon",
     "contracts/beacon_utils",
     "contracts/order_utils",

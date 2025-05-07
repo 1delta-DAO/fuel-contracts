@@ -1,6 +1,7 @@
 import { WalletUnlocked } from "fuels"
 import { Beacon } from "../../ts-scripts/typegen/Beacon"
-import { AccountLogic, AccountLogicFactory } from "../../ts-scripts/typegen"
+import { AccountLogic } from "../../ts-scripts/typegen/AccountLogic"
+import { AccountLogicFactory } from "../../ts-scripts/typegen/AccountLogicFactory"
 import { AccountFactory } from "../../ts-scripts/typegen/AccountFactory"
 import { AccountFactoryFactory } from "../../ts-scripts/typegen/AccountFactoryFactory"
 import { BeaconFactory } from "../../ts-scripts/typegen/BeaconFactory"

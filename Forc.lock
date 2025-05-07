@@ -162,6 +162,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "mock_br"
+source = "member"
+dependencies = [
+    "standards",
+    "std",
+]
+
+[[package]]
 name = "mock_swaylend"
 source = "member"
 dependencies = [

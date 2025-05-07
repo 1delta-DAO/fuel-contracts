@@ -2,7 +2,6 @@ import { launchTestNode } from 'fuels/test-utils';
 import { describe, test, expect } from 'vitest';
 import { addressInput, contractIdInput } from '../ts-scripts/utils';
 import { randomBytes, toHex, WalletUnlocked, ZeroBytes32 } from 'fuels';
-import { AccountFactoryFactory } from '../ts-scripts/typegen/AccountFactoryFactory';
 import { AccountProxyFactory } from '../ts-scripts/typegen/AccountProxyFactory';
 import { AccountLogicFactory } from '../ts-scripts/typegen/AccountLogicFactory';
 import { Beacon } from '../ts-scripts/typegen/Beacon';
@@ -10,7 +9,7 @@ import { AccountFactory } from '../ts-scripts/typegen/AccountFactory';
 import { AccountLogic } from '../ts-scripts/typegen/AccountLogic';
 import { AccountTestUtils } from './utils/account';
 import { AccountProxy } from '../ts-scripts/typegen/AccountProxy';
-
+import { MockBrFactory } from '../ts-scripts/typegen';
 
 export function getBeacon(signer: WalletUnlocked, addr: string) {
   return new Beacon(addr, signer)
@@ -34,12 +33,8 @@ describe('factory creations', async () => {
     } = launched;
 
 
-    const factoryTx = await AccountFactoryFactory.deploy(deployer, {
-      configurableConstants: {
-        ACCOUNT_BYTECODE_ROOT: deployer.address.b256Address,
-      }
-    })
-    const { contract: factory } = await factoryTx.waitForResult()
+    const bytecodeRootGetterTx = await MockBrFactory.deploy(deployer)
+    const { contract: bytecodeRootGetter } = await bytecodeRootGetterTx.waitForResult()
 
     let templatAccountTx = await AccountProxyFactory.deploy(deployer, {
       configurableConstants: {
@@ -48,8 +43,9 @@ describe('factory creations', async () => {
     })
     const { contract: account0 } = await templatAccountTx.waitForResult()
 
-    // @ts-ignore
-    let result = await factory.functions.bytecode_root(contractIdInput(account0.id).ContractId).simulate()
+
+    let result = await bytecodeRootGetter.functions
+      .get_bytecode_root(contractIdInput(account0.id).ContractId!).simulate()
 
     const firstRoot = result.value
 
@@ -59,8 +55,9 @@ describe('factory creations', async () => {
       }
     })
     const { contract: account1 } = await templatAccountTx.waitForResult()
-    // @ts-ignore
-    result = await factory.functions.bytecode_root(contractIdInput(account1.id).ContractId).simulate()
+
+    result = await bytecodeRootGetter.functions
+      .get_bytecode_root(contractIdInput(account1.id).ContractId!).simulate()
 
     const secondRoot = result.value
 
@@ -81,12 +78,12 @@ describe('factory creations', async () => {
     const accountTemplate = await AccountTestUtils.deployAccount(deployer, beacon.id.b256Address)
 
 
-    const fakeFactory = await AccountTestUtils.deployFactory(deployer, deployer.address.b256Address)
+    /// get bytecode root for deployment
+    const bytecodeRootGetterTx = await MockBrFactory.deploy(deployer)
+    const { contract: bytecodeRootGetter } = await bytecodeRootGetterTx.waitForResult()
 
-    // @ts-ignore
-    let result = await fakeFactory.functions.bytecode_root(contractIdInput(accountTemplate.id).ContractId).simulate()
-
-
+    let result = await bytecodeRootGetter.functions
+      .get_bytecode_root(contractIdInput(accountTemplate.id).ContractId!).simulate()
     const rootBytecode = result.value
 
     const factory = await AccountTestUtils.deployFactory(deployer, rootBytecode)
@@ -101,7 +98,8 @@ describe('factory creations', async () => {
 
     test('Beacon: cannot set owner before initialization', async () => {
       try {
-        await getBeacon(user, beacon.id.b256Address).functions.set_owner(addressInput(user.address)).addSigners(beaconOwner).call()
+        await getBeacon(user, beacon.id.b256Address).functions
+          .set_owner(addressInput(user.address)).addSigners(beaconOwner).call()
 
       } catch (e) {
 
@@ -109,12 +107,14 @@ describe('factory creations', async () => {
       }
     })
 
-    await getBeacon(beaconOwner, beacon.id.b256Address).functions.initialize(addressInput(beaconOwner.address)).addSigners(beaconOwner).call()
+    await getBeacon(beaconOwner, beacon.id.b256Address).functions
+      .initialize(addressInput(beaconOwner.address)).addSigners(beaconOwner).call()
 
 
     test('Beacon: can be initialized once', async () => {
       try {
-        await getBeacon(beaconOwner, beacon.id.b256Address).functions.initialize(addressInput(beaconOwner.address)).addSigners(beaconOwner).call()
+        await getBeacon(beaconOwner, beacon.id.b256Address).functions
+          .initialize(addressInput(beaconOwner.address)).addSigners(beaconOwner).call()
 
       } catch (e) {
 
@@ -127,9 +127,10 @@ describe('factory creations', async () => {
       expect(_beaconOwner.value.Address?.bits).to.equal(beaconOwner.address.b256Address)
     });
 
-    test('Non owner canot set new owner', async () => {
+    test('Non owner cannot set new owner', async () => {
       try {
-        await getBeacon(user, beacon.id.b256Address).functions.set_owner(addressInput(user.address)).addSigners(beaconOwner).call()
+        await getBeacon(user, beacon.id.b256Address).functions
+          .set_owner(addressInput(user.address)).addSigners(beaconOwner).call()
 
       } catch (e) {
 
@@ -137,22 +138,28 @@ describe('factory creations', async () => {
       }
     })
 
-    test('Non owner canot set new implementation', async () => {
+    test('Non owner cannot set new implementation', async () => {
       try {
-        await getBeacon(user, beacon.id.b256Address).functions.set_beacon_target(contractIdInput(accountTemplate.id).ContractId!).addSigners(beaconOwner).call()
+        await getBeacon(user, beacon.id.b256Address).functions
+          .set_beacon_target(contractIdInput(accountTemplate.id).ContractId!).addSigners(beaconOwner).call()
 
       } catch (e) {
 
         expect(JSON.stringify(e).includes("Not owner")).to.equal(true, "Did revert with the wrong message")
       }
     })
+
+    test('Beacon owner can set new implementation', async () => {
+      await getBeacon(beaconOwner, beacon.id.b256Address).functions
+        .set_beacon_target(contractIdInput(accountLogic.id).ContractId!)
+        .addSigners(beaconOwner)
+        .call()
+    });
 
     await getBeacon(beaconOwner, beacon.id.b256Address).functions
       .set_beacon_target(contractIdInput(accountLogic.id).ContractId!)
       .addSigners(beaconOwner)
       .call()
-
-
 
     await getFactory(user, factory.id.b256Address).functions
       .register_and_call(
@@ -199,10 +206,11 @@ describe('factory creations', async () => {
 
     const accountTemplate = await AccountTestUtils.deployAccount(deployer, beacon.id.b256Address)
 
-    // we use a `fakeFactory` to get the bytecode root
-    const fakeFactory = await AccountTestUtils.deployFactory(deployer, deployer.address.b256Address)
-    const result = await fakeFactory.functions.bytecode_root(contractIdInput(accountTemplate.id).ContractId!).simulate()
+    /// get bytecode root for deployment
+    const bytecodeRootGetterTx = await MockBrFactory.deploy(deployer)
+    const { contract: bytecodeRootGetter } = await bytecodeRootGetterTx.waitForResult()
 
+    const result = await bytecodeRootGetter.functions.get_bytecode_root(contractIdInput(accountTemplate.id).ContractId!).simulate()
     const factory = await AccountTestUtils.deployFactory(deployer, result.value)
 
     // deploy logic

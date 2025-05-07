@@ -135,9 +135,6 @@ abi RegisterAndCall {
         _for: Identity,
         actions: Option<Vec<Action>>,
     );
-
-    #[storage(read)]
-    fn bytecode_root(child_contract: ContractId) -> BytecodeRoot;
 }
 
 impl RegisterAndCall for Contract {
@@ -166,11 +163,6 @@ impl RegisterAndCall for Contract {
                     coins: msg_amount(),
                 }(d);
         }
-    }
-
-    #[storage(read)]
-    fn bytecode_root(child_contract: ContractId) -> BytecodeRoot {
-        bytecode_root(child_contract)
     }
 }
 

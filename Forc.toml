@@ -24,5 +24,6 @@ members = [
     "scripts/create_pool_and_add_liquidity_script",
     "contracts/mocks/mock_token",
     "contracts/mocks/mock_swaylend",
+    "contracts/mocks/mock_br",
     "contracts/logger",
 ]

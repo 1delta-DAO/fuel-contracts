@@ -1,3 +1,7 @@
 export const ACCOUNT_ADDRESSES = {
-    
+    "brReader": "0x6decc92d4b34312862b7258f4dbbbb1310033ba713e6961ea1765207ec0488d7",
+    "beacon": "0xa232f7e37890ccff652444baa9bfd223946f7638ff1ab6621360cb056d703fa0",
+    "brRoot": "0x2a8cbf3f29c3f9b7fcd96fa982fcc4e5d363bf9513eaa61ffaa826d7b8d1efb0",
+    "factory": "0x832449173d6fc459d0ce1461c350e18785b1a44ff986ad491af26c85990bc7d0",
+    "logic": "0x30a637325452577c669c8eb5e642d76c3f3a92d10ae032573310b074ea45884b",
 }

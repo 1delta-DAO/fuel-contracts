@@ -60,7 +60,6 @@ describe('factory creations', async () => {
       }
     })
     const { contract: account1 } = await templatAccountTx.waitForResult()
-
     // @ts-ignore
     result = await factory.functions.bytecode_root(contractIdInput(account1.id).ContractId).simulate()
 
@@ -87,8 +86,8 @@ describe('factory creations', async () => {
         BEACON: beacon.id.b256Address
       }
     })
-    const { contract: accountTemplate } = await templatAccountTx.waitForResult()
 
+    const { contract: accountTemplate } = await templatAccountTx.waitForResult()
 
     const fakeFactoryTx = await AccountFactoryFactory.deploy(deployer, {
       configurableConstants: {

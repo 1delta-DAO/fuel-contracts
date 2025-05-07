@@ -9,19 +9,33 @@ use std::{
         this_balance,
     },
     external::bytecode_root,
+    storage::storage_vec::*,
+    storage::storage_vec::*,
 };
 use account_utils::{AccountLogic, structs::Action};
 
 const ZERO_ID = Identity::Address(Address::from(b256::zero()));
+const ZERO_CONTRACT_ID = ContractId::from(b256::zero());
 
 configurable {
     /// this needs to be the root of account proxy configured with the correct BEACON
     TEMPLATE_BYTECODE_ROOT: b256 = b256::zero(),
 }
 
+/// The storage is set up so that it is efficient to query whether a user owns
+/// a contract via `contract_to_owner`. This also contains an ID as a second value that indicates
+/// the index of the element in the StorageVec `owner_to_contracts`
+/// This is to track which contracts are owned by a user
+/// We cannot use the `remove()` on the StorageVec as we would then change the indexes of the 
+/// following contracts.
+/// As a workaround, we leave the lengths consistent and just change and index to
+/// a zero contractId
 storage {
-    /// map a registered contract to an owner
-    contract_to_owner: StorageMap<ContractId, Identity> = StorageMap {},
+    /// map a registered contract to an owner and the index in the owner's list
+    contract_to_owner: StorageMap<ContractId, (Identity, u64)> = StorageMap {},
+    /// maps owner to an indexed map u64->ContractId
+    /// these indexes can have zeroes as values if a user transfers a contract
+    owner_to_contracts: StorageMap<Identity, StorageVec<ContractId>> = StorageMap {},
 }
 
 abi ExecutionValidation {
@@ -45,13 +59,20 @@ abi ContractTransfer {
     /// to another Identity.
     #[storage(read, write)]
     fn transfer_ownership(_contract: ContractId, _to: Identity);
+
+    /// Get the contracts as a vector for a user
+    #[storage(read)]
+    fn get_user_contracts(_owner: Identity, _start_index: u64, _count: u64) -> Vec<ContractId>;
 }
 
 impl ContractTransfer for Contract {
+    /// transfers ownership of a contract
+    /// reads 2
+    /// writes: 3
     #[storage(read, write)]
     fn transfer_ownership(_contract: ContractId, _to: Identity) {
         // get the owner of the input contract
-        let owner = get_contract_owner(_contract);
+        let (owner, from_contract_id) = get_contract_owner_and_id(_contract);
 
         // make sure that the contract is registered
         // i.e. an owner is defined
@@ -68,8 +89,48 @@ impl ContractTransfer for Contract {
             "Invalid receiver",
         );
 
+        // remove it from owner list by setting this one to zero
+        storage
+            .owner_to_contracts
+            .get(_to)
+            .set(from_contract_id, ZERO_CONTRACT_ID);
+
+        // remove it from the owner
+        let nex_index_of_to = storage.owner_to_contracts.get(_to).len();
+
+        // add it to the _to address
+        storage.owner_to_contracts.get(_to).push(_contract);
+
         // update owner in registry
-        storage.contract_to_owner.insert(_contract, _to);
+        storage
+            .contract_to_owner
+            .insert(_contract, (_to, nex_index_of_to));
+    }
+
+    #[storage(read)]
+    fn get_user_contracts(_owner: Identity, _start_index: u64, _count: u64) -> Vec<ContractId> {
+        let mut v: Vec<ContractId> = Vec::new();
+
+        // get element count minus start index
+        let len = storage.owner_to_contracts.get(_owner).len() - _start_index;
+
+        // this is to ensure that there are not too many elements returned
+        let max_index = if len > _count {
+            _count
+        } else {
+            len
+        };
+
+        let mut i = _start_index;
+        while i < len {
+            let _contract = storage.owner_to_contracts.get(_owner).get(i).unwrap().read();
+
+            if _contract != ZERO_CONTRACT_ID {
+                v.push(_contract);
+            }
+            i += 1;
+        }
+        v
     }
 }
 
@@ -125,7 +186,14 @@ impl RegisterAndCall for Contract {
 /// get the contract owner from the storage
 #[storage(read)]
 fn get_contract_owner(_contract: ContractId) -> Identity {
-    storage.contract_to_owner.get(_contract).try_read().unwrap_or(ZERO_ID)
+    let (owner, _) = storage.contract_to_owner.get(_contract).try_read().unwrap_or((ZERO_ID, 0));
+    owner
+}
+
+/// get the contract owner from the storage
+#[storage(read)]
+fn get_contract_owner_and_id(_contract: ContractId) -> (Identity, u64) {
+    storage.contract_to_owner.get(_contract).try_read().unwrap_or((ZERO_ID, 0))
 }
 
 /// registers a contract
@@ -141,5 +209,14 @@ fn register_contract_internal(child_contract: ContractId, _for: Identity) {
         "The deployed contract's bytecode root and template contract bytecode root do not match",
     );
 
-    storage.contract_to_owner.insert(child_contract, _for);
+    // the next index is the array length
+    let index = storage.owner_to_contracts.get(_for).len();
+
+    // add _for as owner to contract
+    storage
+        .contract_to_owner
+        .insert(child_contract, (_for, index));
+
+    // add it to the user contract list
+    storage.owner_to_contracts.get(_for).push(child_contract);
 }

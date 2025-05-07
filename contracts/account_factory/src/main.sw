@@ -26,7 +26,7 @@ configurable {
 /// a contract via `contract_to_owner`. This also contains an ID as a second value that indicates
 /// the index of the element in the StorageVec `owner_to_contracts`
 /// This is to track which contracts are owned by a user
-/// We cannot use the `remove()` on the StorageVec as we would then change the indexes of the 
+/// We cannot use the `remove()` on the StorageVec as we would then change the indexes of the
 /// following contracts.
 /// As a workaround, we leave the lengths consistent and just change and index to
 /// a zero contractId
@@ -78,33 +78,31 @@ impl ContractTransfer for Contract {
         // i.e. an owner is defined
         require(owner != ZERO_ID, "Not registered");
 
+        let _sender_id = msg_sender().unwrap();
+
         // check that the caller owns the contract
-        require(owner == msg_sender().unwrap(), "Not owner");
+        require(owner == _sender_id, "Not owner");
 
         // check that there is no self-transfer 
         // and the receiver is not zero
-        require(
-            _to != msg_sender()
-                .unwrap() && _to != ZERO_ID,
-            "Invalid receiver",
-        );
+        require(_to != _sender_id && _to != ZERO_ID, "Invalid receiver");
 
         // remove it from owner list by setting this one to zero
         storage
             .owner_to_contracts
-            .get(_to)
+            .get(_sender_id)
             .set(from_contract_id, ZERO_CONTRACT_ID);
 
-        // remove it from the owner
-        let nex_index_of_to = storage.owner_to_contracts.get(_to).len();
+        // get the latest contract index of _to
+        let next_index_of_to = storage.owner_to_contracts.get(_to).len();
 
         // add it to the _to address
         storage.owner_to_contracts.get(_to).push(_contract);
 
-        // update owner in registry
+        // update owner in registry, this overrides the _sender_id data
         storage
             .contract_to_owner
-            .insert(_contract, (_to, nex_index_of_to));
+            .insert(_contract, (_to, next_index_of_to));
     }
 
     #[storage(read)]
@@ -115,11 +113,7 @@ impl ContractTransfer for Contract {
         let len = storage.owner_to_contracts.get(_owner).len() - _start_index;
 
         // this is to ensure that there are not too many elements returned
-        let max_index = if len > _count {
-            _count
-        } else {
-            len
-        };
+        let max_index = if len > _count { _count } else { len };
 
         let mut i = _start_index;
         while i < len {

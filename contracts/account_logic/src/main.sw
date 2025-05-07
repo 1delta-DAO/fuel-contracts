@@ -158,6 +158,7 @@ impl AccountLogic for Contract {
                     amount_type_id,
                     data,
                     market,
+                    additional_params
                 })) => {
                     let lender = match LenderId::from_u64(lender_id) {
                         Some(lender) => lender,

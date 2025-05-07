@@ -2,6 +2,7 @@ library;
 
 use executor::{BatchSwapStep, execute_exact_in, get_dex_input_receiver};
 use market_abi::{Market, structs::PriceDataUpdate};
+use std::bytes::Bytes;
 
 ////////////////////////////////////////////////////
 // Types
@@ -96,6 +97,7 @@ pub struct LenderAction {
     pub amount_type_id: u8,
     pub market: ContractId,
     pub data: Option<PriceDataUpdate>,
+    pub additional_params: Option<Bytes>,
 }
 
 pub struct SwapPathList {
@@ -111,5 +113,5 @@ pub struct TransferAction {
 pub enum Action {
     Swap: SwapPathList,
     Lending: LenderAction,
-    Transfer: TransferAction
+    Transfer: TransferAction,
 }

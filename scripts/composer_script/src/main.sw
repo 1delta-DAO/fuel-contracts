@@ -126,6 +126,7 @@ pub struct LenderAction {
     pub amount_type_id: u8,
     pub market: ContractId,
     pub data: Option<PriceDataUpdate>,
+    pub additional_params: Option<Bytes>,
 }
 
 pub struct SwapPathList {
@@ -251,6 +252,7 @@ fn main(actions: Vec<Action>, deadline: u32) {
                 amount_type_id,
                 data,
                 market,
+                additional_params,
             })) => {
                 let lender = match LenderId::from_u64(lender_id) {
                     Some(lender) => lender,

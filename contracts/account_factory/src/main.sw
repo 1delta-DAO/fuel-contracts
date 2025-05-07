@@ -19,7 +19,7 @@ const ZERO_CONTRACT_ID = ContractId::from(b256::zero());
 
 configurable {
     /// this needs to be the root of account proxy configured with the correct BEACON
-    TEMPLATE_BYTECODE_ROOT: b256 = b256::zero(),
+    ACCOUNT_BYTECODE_ROOT: b256 = b256::zero(),
 }
 
 /// The storage is set up so that it is efficient to query whether a user owns
@@ -112,11 +112,8 @@ impl ContractTransfer for Contract {
         // get element count minus start index
         let len = storage.owner_to_contracts.get(_owner).len() - _start_index;
 
-        // this is to ensure that there are not too many elements returned
-        let max_index = if len > _count { _count } else { len };
-
         let mut i = _start_index;
-        while i < len {
+        while i < _min(len, _count) {
             let _contract = storage.owner_to_contracts.get(_owner).get(i).unwrap().read();
 
             if _contract != ZERO_CONTRACT_ID {
@@ -194,12 +191,12 @@ fn get_contract_owner_and_id(_contract: ContractId) -> (Identity, u64) {
 /// validates for a bytecode root match
 /// while the expected bytecode has a configurable,
 /// we only accept the ones that have the correct beacon address
-/// this is respected in TEMPLATE_BYTECODE_ROOT
+/// this is respected in ACCOUNT_BYTECODE_ROOT
 #[storage(read, write)]
 fn register_contract_internal(child_contract: ContractId, _for: Identity) {
     let returned_root = bytecode_root(child_contract);
     require(
-        returned_root == TEMPLATE_BYTECODE_ROOT,
+        returned_root == ACCOUNT_BYTECODE_ROOT,
         "The deployed contract's bytecode root and template contract bytecode root do not match",
     );
 
@@ -213,4 +210,9 @@ fn register_contract_internal(child_contract: ContractId, _for: Identity) {
 
     // add it to the user contract list
     storage.owner_to_contracts.get(_for).push(child_contract);
+}
+
+// minimum wrapper
+fn _min(a: u64, b: u64) -> u64 {
+    u64::min(a, b)
 }

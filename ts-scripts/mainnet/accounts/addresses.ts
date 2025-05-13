@@ -4,4 +4,5 @@ export const ACCOUNT_ADDRESSES = {
     "brRoot": "0x2a8cbf3f29c3f9b7fcd96fa982fcc4e5d363bf9513eaa61ffaa826d7b8d1efb0",
     "factory": "0x832449173d6fc459d0ce1461c350e18785b1a44ff986ad491af26c85990bc7d0",
     "logic": "0x30a637325452577c669c8eb5e642d76c3f3a92d10ae032573310b074ea45884b",
+    "lens": "0xea1eb85352875682479e2b841929d7c44d88dfbf5ce752c0093df63a30df8dac"
 }

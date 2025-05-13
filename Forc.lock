@@ -9,6 +9,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "account_lens"
+source = "member"
+dependencies = [
+    "market_abi",
+    "std",
+]
+
+[[package]]
 name = "account_logic"
 source = "member"
 dependencies = [

@@ -8,6 +8,8 @@ import { ActionInput } from "../../typegen/ComposerScript";
 import { AccountFactory } from "../../typegen/AccountFactory";
 import { ACCOUNT_ADDRESSES } from "./addresses";
 import { composerTxParams } from "../../utils/constants";
+import { MockFuelProvider } from "./mock";
+import { AccountProxyFactory } from "../../typegen/AccountProxyFactory";
 // import SWAYLEND_ABI from "../../../fixtures/swaylend/market-abi.json";
 // import { getPrice } from "./price";
 
@@ -23,13 +25,24 @@ enum AmountType {
     Defined = 1,
 }
 
-const proxyAccount = "0xd3101a9b4f29f49be7af650fbd74bbf4402b1a0c5b2a421c3a8543db227181d1"
+// const proxyAccount = "0xd3101a9b4f29f49be7af650fbd74bbf4402b1a0c5b2a421c3a8543db227181d1"
 
 async function main() {
     const provider = new Provider(MainnetData.RPC);
 
     const wallet = Wallet.fromPrivateKey(PRIVATE_KEY!, provider);
     const bals = await wallet.getBalances()
+
+
+
+
+    let firstAccountTx = await AccountProxyFactory.deploy(wallet, {
+        configurableConstants: {
+            BEACON: ACCOUNT_ADDRESSES.beacon
+        }
+    })
+
+    const { contract: proxyAccount } = await firstAccountTx.waitForResult()
 
     const amountToDeposit = 10_000n; // 0.00001 ETH
 
@@ -42,7 +55,7 @@ async function main() {
     if (amountToDeposit > BigInt(refBal ?? 0)) throw new Error(`attempting to deposit ${amountToDeposit} but only has ${refBal}`)
 
 
-    const factory = new AccountFactory(ACCOUNT_ADDRESSES.factory, wallet)
+    const factory = new AccountFactory(ACCOUNT_ADDRESSES.factory, MockFuelProvider)
 
     const params: Vec<ActionInput> = [
         {
@@ -64,7 +77,7 @@ async function main() {
     }]
     const request = await factory.functions
         .register_and_call(
-            contractIdInput(proxyAccount).ContractId!,
+            contractIdInput(proxyAccount.id).ContractId!,
             addressInput(wallet.address),
             params
         )

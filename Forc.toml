@@ -10,6 +10,7 @@ members = [
     "contracts/account_proxy",
     "contracts/account_factory",
     "contracts/account_utils",
+    "contracts/account_lens",
     "contracts/beacon",
     "contracts/beacon_utils",
     "contracts/order_utils",

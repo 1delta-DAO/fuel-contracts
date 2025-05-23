@@ -1,4 +1,60 @@
 [[package]]
+name = "account_factory"
+source = "member"
+dependencies = [
+    "account_utils",
+    "standards",
+    "std",
+    "sway_libs",
+]
+
+[[package]]
+name = "account_lens"
+source = "member"
+dependencies = [
+    "market_abi",
+    "std",
+]
+
+[[package]]
+name = "account_logic"
+source = "member"
+dependencies = [
+    "account_utils",
+    "executor",
+    "interfaces",
+    "market_abi",
+    "std",
+]
+
+[[package]]
+name = "account_proxy"
+source = "member"
+dependencies = [
+    "beacon_utils",
+    "std",
+]
+
+[[package]]
+name = "account_utils"
+source = "member"
+dependencies = [
+    "executor",
+    "market_abi",
+    "std",
+]
+
+[[package]]
+name = "add_liquidity_script"
+source = "member"
+dependencies = [
+    "interfaces",
+    "math",
+    "std",
+    "utils",
+]
+
+[[package]]
 name = "batch_swap_exact_in_script"
 source = "member"
 dependencies = [
@@ -24,8 +80,39 @@ dependencies = [
 ]
 
 [[package]]
-name = "core"
-source = "path+from-root-6A8836696D55BC6E"
+name = "beacon"
+source = "member"
+dependencies = [
+    "beacon_utils",
+    "std",
+]
+
+[[package]]
+name = "beacon_utils"
+source = "member"
+dependencies = ["std"]
+
+[[package]]
+name = "composer_script"
+source = "member"
+dependencies = [
+    "executor",
+    "interfaces",
+    "logger_abi",
+    "market_abi",
+    "mira_v1_swap",
+    "std",
+    "utils",
+]
+
+[[package]]
+name = "create_pool_and_add_liquidity_script"
+source = "member"
+dependencies = [
+    "interfaces",
+    "std",
+    "utils",
+]
 
 [[package]]
 name = "executor"
@@ -39,17 +126,33 @@ dependencies = [
 
 [[package]]
 name = "interfaces"
-source = "path+from-root-DC0586470AFEDD49"
+source = "member"
 dependencies = ["std"]
+
+[[package]]
+name = "logger"
+source = "member"
+dependencies = [
+    "logger_abi",
+    "std",
+]
 
 [[package]]
 name = "logger_abi"
-source = "path+from-root-27160AED43ADBD24"
+source = "member"
 dependencies = ["std"]
 
 [[package]]
+name = "market_abi"
+source = "path+from-root-F411C2F07C54FF1E"
+dependencies = [
+    "std",
+    "sway_libs",
+]
+
+[[package]]
 name = "math"
-source = "path+from-root-DC0586470AFEDD49"
+source = "member"
 dependencies = [
     "interfaces",
     "std",
@@ -67,25 +170,74 @@ dependencies = [
 ]
 
 [[package]]
+name = "mock_br"
+source = "member"
+dependencies = [
+    "standards",
+    "std",
+]
+
+[[package]]
+name = "mock_swaylend"
+source = "member"
+dependencies = [
+    "market_abi",
+    "std",
+    "sway_libs",
+]
+
+[[package]]
+name = "mock_token"
+source = "member"
+dependencies = [
+    "std",
+    "sway_libs",
+]
+
+[[package]]
+name = "one_delta_orders"
+source = "member"
+dependencies = [
+    "order_utils",
+    "std",
+    "sway_libs",
+]
+
+[[package]]
+name = "order_router"
+source = "member"
+dependencies = [
+    "order_utils",
+    "std",
+    "sway_libs",
+]
+
+[[package]]
 name = "order_utils"
-source = "path+from-root-DC0586470AFEDD49"
+source = "member"
 dependencies = ["std"]
 
 [[package]]
 name = "standards"
-source = "git+https://github.com/FuelLabs/sway-standards?tag=v0.6.1#792639cdf391565e6e6a02482ea8a46d9604a6f5"
+source = "git+https://github.com/FuelLabs/sway-standards?tag=v0.7.0#7d35df95e0b96dc8ad188ab169fbbeeac896aae8"
 dependencies = ["std"]
 
 [[package]]
 name = "std"
-source = "git+https://github.com/fuellabs/sway?tag=v0.66.5#94a066652468b4afa3bd396dacef482ed590976b"
-dependencies = ["core"]
+source = "git+https://github.com/fuellabs/sway?tag=v0.68.1#7e1bc152face6f1ae20b4274d98446100920e573"
+
+[[package]]
+name = "sway_libs"
+source = "git+https://github.com/FuelLabs/sway-libs?tag=v0.25.2#f43d8b4aacf60867989408991414958f8eab28c0"
+dependencies = [
+    "standards",
+    "std",
+]
 
 [[package]]
 name = "utils"
-source = "path+from-root-DC0586470AFEDD49"
+source = "member"
 dependencies = [
     "interfaces",
-    "standards",
     "std",
 ]

@@ -4,7 +4,10 @@ use fuels::{
     types::{input::Input, output::Output, Bits256},
 };
 
-use crate::paths::{LOGGER_CONTRACT_BINARY_PATH, MOCK_TOKEN_CONTRACT_BINARY_PATH};
+use crate::paths::{
+    LOGGER_CONTRACT_BINARY_PATH, MOCK_SWAYLEND_CONTRACT_BINARY_PATH,
+    MOCK_TOKEN_CONTRACT_BINARY_PATH,
+};
 
 use crate::types::PoolId;
 
@@ -14,8 +17,16 @@ abigen!(
         abi = "./contracts/mocks/mock_token/out/debug/mock_token-abi.json"
     ),
     Contract(
+        name = "MockSwaylend",
+        abi = "./contracts/mocks/mock_swaylend/out/debug/mock_swaylend-abi.json"
+    ),
+    Contract(
         name = "Logger",
         abi = "./contracts/logger/out/debug/logger-abi.json"
+    ),
+    Contract(
+        name = "SwaylendMarket",
+        abi = "./fixtures/swaylend/market-abi.json"
     ),
     Contract(
         name = "MiraAMM",
@@ -34,6 +45,10 @@ abigen!(
         name = "BatchSwapExactOutScript",
         abi =
             "./scripts/batch_swap_exact_out_script/out/debug/batch_swap_exact_out_script-abi.json"
+    ),
+    Script(
+        name = "ComposerScript",
+        abi = "./scripts/composer_script/out/debug/composer_script-abi.json"
     ),
 );
 
@@ -115,17 +130,32 @@ pub mod mock {
         (id, instance)
     }
 
-    pub async fn deploy_logger_contract(
+    pub async fn deploy_mock_swaylend_contract(
         wallet: &WalletUnlocked,
-    ) -> (ContractId, Logger<WalletUnlocked>) {
-        let contract_id = Contract::load_from(
-            LOGGER_CONTRACT_BINARY_PATH,
+    ) -> (ContractId, MockSwaylend<WalletUnlocked>) {
+        let contract_id: Bech32ContractId = Contract::load_from(
+            MOCK_SWAYLEND_CONTRACT_BINARY_PATH,
             LoadConfiguration::default(),
         )
         .unwrap()
         .deploy(wallet, TxPolicies::default())
         .await
         .unwrap();
+        let id = ContractId::from(contract_id.clone());
+        let instance = MockSwaylend::new(contract_id, wallet.clone());
+
+        (id, instance)
+    }
+
+    pub async fn deploy_logger_contract(
+        wallet: &WalletUnlocked,
+    ) -> (ContractId, Logger<WalletUnlocked>) {
+        let contract_id =
+            Contract::load_from(LOGGER_CONTRACT_BINARY_PATH, LoadConfiguration::default())
+                .unwrap()
+                .deploy(wallet, TxPolicies::default())
+                .await
+                .unwrap();
 
         let id = ContractId::from(contract_id.clone());
         let instance = Logger::new(contract_id, wallet.clone());

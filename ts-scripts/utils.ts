@@ -1,13 +1,13 @@
-import { AbstractAddress, Account, Address, arrayify, AssetId, BN, CoinQuantityLike, concat, ScriptTransactionRequest, sha256, Wallet } from "fuels";
+import { Account, Address, arrayify, AssetId, BN, CoinQuantityLike, concat, ScriptTransactionRequest, sha256, Wallet } from "fuels";
 import { ContractIdInput, IdentityInput } from "./typegen/BatchSwapExactInScript";
 
 /** This is for contracts as receiver addresses  */
-export function contractIdInput(contractId: string | AbstractAddress): IdentityInput {
+export function contractIdInput(contractId: string | Address): IdentityInput {
   return { ContractId: { bits: Address.fromAddressOrString(contractId).toB256() } };
 }
 
 /** This is for EOAs as receiver addresses  */
-export function addressInput(address: string | AbstractAddress): IdentityInput {
+export function addressInput(address: string | Address): IdentityInput {
   return { Address: { bits: Address.fromAddressOrString(address).toB256() } };
 }
 

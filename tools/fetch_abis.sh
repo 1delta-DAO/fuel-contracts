@@ -15,7 +15,7 @@ forc build --release
 
 cd ../..
 
-rm -rf fixtures
+rm -rf fixtures/mira-amm
 
 mkdir -p fixtures/mira-amm
 

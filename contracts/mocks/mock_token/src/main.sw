@@ -1,7 +1,5 @@
 contract;
 
-use standards::src5::State;
-use standards::src20::SRC20;
 use sway_libs::asset::base::{_set_decimals, _set_name, _set_symbol, _total_assets};
 use std::{
     asset::mint_to,
@@ -13,6 +11,182 @@ use std::{
     storage::storage_string::*,
     string::String,
 };
+
+
+abi SRC20 {
+    #[storage(read)]
+    fn total_assets() -> u64;
+
+    #[storage(read)]
+    fn total_supply(asset: AssetId) -> Option<u64>;
+
+    #[storage(read)]
+    fn name(asset: AssetId) -> Option<String>;
+    #[storage(read)]
+    fn symbol(asset: AssetId) -> Option<String>;
+    #[storage(read)]
+    fn decimals(asset: AssetId) -> Option<u8>;
+}
+
+pub struct SetNameEvent {
+    pub asset: AssetId,
+    pub name: Option<String>,
+    pub sender: Identity,
+}
+
+pub struct SetSymbolEvent {
+    pub asset: AssetId,
+    pub symbol: Option<String>,
+    pub sender: Identity,
+}
+
+pub struct SetDecimalsEvent {
+    pub asset: AssetId,
+    pub decimals: u8,
+    pub sender: Identity,
+}
+
+pub struct TotalSupplyEvent {
+    pub asset: AssetId,
+    pub supply: u64,
+    pub sender: Identity,
+}
+
+impl PartialEq for SetNameEvent {
+    fn eq(self, other: Self) -> bool {
+        self.asset == other.asset && self.name == other.name && self.sender == other.sender
+    }
+}
+
+impl Eq for SetNameEvent {}
+
+impl SetNameEvent {
+    pub fn new(asset: AssetId, name: Option<String>, sender: Identity) -> Self {
+        Self {
+            asset,
+            name,
+            sender,
+        }
+    }
+
+    pub fn asset(self) -> AssetId {
+        self.asset
+    }
+
+    pub fn name(self) -> Option<String> {
+        self.name
+    }
+
+    pub fn sender(self) -> Identity {
+        self.sender
+    }
+
+    pub fn log(self) {
+        log(self);
+    }
+}
+
+impl PartialEq for SetSymbolEvent {
+    fn eq(self, other: Self) -> bool {
+        self.asset == other.asset && self.symbol == other.symbol && self.sender == other.sender
+    }
+}
+
+impl Eq for SetSymbolEvent {}
+
+impl SetSymbolEvent {
+    pub fn new(asset: AssetId, symbol: Option<String>, sender: Identity) -> Self {
+        Self {
+            asset,
+            symbol,
+            sender,
+        }
+    }
+
+    pub fn asset(self) -> AssetId {
+        self.asset
+    }
+
+    pub fn symbol(self) -> Option<String> {
+        self.symbol
+    }
+
+    pub fn sender(self) -> Identity {
+        self.sender
+    }
+
+    pub fn log(self) {
+        log(self);
+    }
+}
+
+impl PartialEq for SetDecimalsEvent {
+    fn eq(self, other: Self) -> bool {
+        self.asset == other.asset && self.decimals == other.decimals && self.sender == other.sender
+    }
+}
+
+impl Eq for SetDecimalsEvent {}
+
+impl SetDecimalsEvent {
+    pub fn new(asset: AssetId, decimals: u8, sender: Identity) -> Self {
+        Self {
+            asset,
+            decimals,
+            sender,
+        }
+    }
+
+    pub fn asset(self) -> AssetId {
+        self.asset
+    }
+
+    pub fn decimals(self) -> u8 {
+        self.decimals
+    }
+
+    pub fn sender(self) -> Identity {
+        self.sender
+    }
+
+    pub fn log(self) {
+        log(self);
+    }
+}
+
+impl PartialEq for TotalSupplyEvent {
+    fn eq(self, other: Self) -> bool {
+        self.asset == other.asset && self.supply == other.supply && self.sender == other.sender
+    }
+}
+
+impl Eq for TotalSupplyEvent {}
+
+impl TotalSupplyEvent {
+    pub fn new(asset: AssetId, supply: u64, sender: Identity) -> Self {
+        Self {
+            asset,
+            supply,
+            sender,
+        }
+    }
+
+    pub fn asset(self) -> AssetId {
+        self.asset
+    }
+
+    pub fn supply(self) -> u64 {
+        self.supply
+    }
+
+    pub fn sender(self) -> Identity {
+        self.sender
+    }
+
+    pub fn log(self) {
+        log(self);
+    }
+}
 
 storage {
     total_assets: u64 = 0,

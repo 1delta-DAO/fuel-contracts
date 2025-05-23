@@ -1,6 +1,6 @@
 [workspace.package]
-name = "mira-v1-periphery"
-authors = ["Mira AMM"]
+name = "fuel-contracts"
+authors = ["1delta"]
 version = "0.1.0"
 edition = "2021"
 
@@ -9,7 +9,8 @@ resolver = "2"
 members = [
     "./test-harness",
     "./scripts/batch_swap_exact_in_script",
-    "./scripts/batch_swap_exact_out_script"
+    "./scripts/batch_swap_exact_out_script",
+    "./scripts/composer_script",
 ]
 
 [workspace.dependencies]

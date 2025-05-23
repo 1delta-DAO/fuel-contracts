@@ -1,6 +1,6 @@
 [toolchain]
-channel = "mainnet"
+channel = "latest-x86_64-unknown-linux-gnu"
 
 [components]
-forc="0.66.5"
-fuel-core = "0.40.2"
+forc="0.68.1"
+fuel-core="0.43.1"

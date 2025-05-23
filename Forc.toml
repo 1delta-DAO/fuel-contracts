@@ -3,7 +3,19 @@ members = [
     # 1detla
     "scripts/batch_swap_exact_in_script",
     "scripts/batch_swap_exact_out_script",
+    "scripts/composer_script",
     "dex_lib/executor",
+    # margin
+    "contracts/account_logic",
+    "contracts/account_proxy",
+    "contracts/account_factory",
+    "contracts/account_utils",
+    "contracts/account_lens",
+    "contracts/beacon",
+    "contracts/beacon_utils",
+    "contracts/order_utils",
+    "contracts/one_delta_orders",
+    "contracts/order_router",
     # libs
     "dex_lib/mira_v1/interfaces",
     "dex_lib/mira_v1/math",
@@ -12,8 +24,7 @@ members = [
     "scripts/add_liquidity_script",
     "scripts/create_pool_and_add_liquidity_script",
     "contracts/mocks/mock_token",
+    "contracts/mocks/mock_swaylend",
+    "contracts/mocks/mock_br",
     "contracts/logger",
-    "order_utils",
-    "one_delta_orders",
-    "order_router",
 ]

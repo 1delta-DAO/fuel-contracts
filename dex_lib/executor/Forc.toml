@@ -6,5 +6,5 @@ name = "executor"
 
 [dependencies]
 mira_v1_swap = { path = "../mira_v1/swap" }
-order_utils = { path = "../../order_utils" }
+order_utils = { path = "../../contracts/order_utils" }
 interfaces = { path = "../mira_v1/interfaces" }

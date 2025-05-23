@@ -176,7 +176,6 @@ pub fn to_order_and_sig(bytes: Bytes) -> (Order, B512) {
     )
 }
 
-
 #[test]
 fn test_maker_traits() {
     // populating everything

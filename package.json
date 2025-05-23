@@ -5,30 +5,35 @@
   "scripts": {
     "test:ts": "vitest",
     "build": "forc build",
-    "abis": "./tools/fetch_abis.sh",
+    "abis": "./tools/fetch_abis.sh && ./tools/fetch_swaylend_abis.sh",
     "test:rs": "cargo test",
-    "types": "fuels typegen -i scripts/*/out/*/*-abi.json -o ./ts-scripts/typegen --script & fuels typegen -i fixtures/*/*-abi.json -o ./ts-scripts/typegen --contract & fuels typegen -i one_delta_orders/*/*/*-abi.json -o ./ts-scripts/typegen --contract & fuels typegen -i order_router/*/*/*-abi.json -o ./ts-scripts/typegen --contract & fuels typegen -i contracts/mocks/mock_token/*/*/*-abi.json -o ./ts-scripts/typegen --contract & fuels typegen -i contracts/logger/*/*/*-abi.json -o ./ts-scripts/typegen --contract",
-    "deploy:logger": "tsx ts-scripts/mainnet/logger/deploy.ts"
+    "types": "fuels typegen -i scripts/*/out/*/*-abi.json -o ./ts-scripts/typegen --script && fuels typegen -i fixtures/*/*-abi.json -o ./ts-scripts/typegen --contract && fuels typegen -i contracts/one_delta_orders/*/*/*-abi.json -o ./ts-scripts/typegen --contract && fuels typegen -i ./contracts/order_router/*/*/*-abi.json -o ./ts-scripts/typegen --contract && fuels typegen -i contracts/mocks/mock_token/*/*/*-abi.json -o ./ts-scripts/typegen --contract && fuels typegen -i contracts/logger/*/*/*-abi.json -o ./ts-scripts/typegen --contract && fuels typegen -i contracts/account_factory/*/*/*-abi.json -o ./ts-scripts/typegen --contract && fuels typegen -i fixtures/*/*-abi.json -o ./ts-scripts/typegen --contract && fuels typegen -i contracts/one_delta_orders/*/*/*-abi.json -o ./ts-scripts/typegen --contract && fuels typegen -i ./contracts/order_router/*/*/*-abi.json -o ./ts-scripts/typegen --contract && fuels typegen -i contracts/mocks/mock_token/*/*/*-abi.json -o ./ts-scripts/typegen --contract && fuels typegen -i contracts/logger/*/*/*-abi.json -o ./ts-scripts/typegen --contract && fuels typegen -i contracts/account_proxy/*/*/*-abi.json -o ./ts-scripts/typegen --contract && fuels typegen -i contracts/account_factory/*/*/*-abi.json -o ./ts-scripts/typegen --contract && fuels typegen -i contracts/beacon/*/*/*-abi.json -o ./ts-scripts/typegen --contract && fuels typegen -i contracts/account_logic/*/*/*-abi.json -o ./ts-scripts/typegen --contract && fuels typegen -i contracts/mocks/mock_br/*/*/*-abi.json -o ./ts-scripts/typegen --contract && fuels typegen -i contracts/account_lens/*/*/*-abi.json -o ./ts-scripts/typegen --contract",
+    "sway:abis": "fuels build",
+    "deploy:logger": "tsx ts-scripts/mainnet/logger/deploy.ts",
+    "swaylend:deposit": "tsx ts-scripts/mainnet/swaylend/deposit.ts",
+    "swaylend:fetch": "tsx ts-scripts/mainnet/swaylend/fetchMarketData.ts",
+    "composer:openPos": "tsx ts-scripts/mainnet/composer/openPosition.ts"
   },
   "keywords": [],
   "author": "1delta",
   "license": "MIT",
   "peerDependencies": {
-    "fuels": "^0.99.0"
+    "fuels": "^0.100.3"
   },
   "devDependencies": {
-    "@types/jest": "^29.5.13",
-    "@types/lodash": "^4.17.13",
-    "dotenv": "^16.4.5",
-    "ts-jest": "^29.2.5",
-    "tsx": "^4.19.2",
-    "typescript": "^5.6.3",
-    "vitest": "^2.1.5"
+    "@pythnetwork/hermes-client": "^2.0.0",
+    "@types/jest": "^29.5.14",
+    "@types/lodash": "^4.17.16",
+    "dotenv": "^16.5.0",
+    "ts-jest": "^29.3.2",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.2"
   },
   "dependencies": {
-    "@1delta/base-sdk": "^0.0.10",
-    "@1delta/pool-sdk": "^0.0.47",
-    "@1delta/calldata-sdk": "^0.0.1",
+    "@1delta/base-sdk": "^0.0.20",
+    "@1delta/calldata-sdk": "^0.0.3",
+    "@1delta/pool-sdk": "^0.0.69",
     "lodash": "^4.17.21"
   }
 }

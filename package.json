@@ -25,6 +25,7 @@
     "@types/jest": "^29.5.14",
     "@types/lodash": "^4.17.16",
     "dotenv": "^16.5.0",
+    "mira-dex-ts": "^1.1.42",
     "ts-jest": "^29.3.2",
     "tsx": "^4.19.4",
     "typescript": "^5.8.3",

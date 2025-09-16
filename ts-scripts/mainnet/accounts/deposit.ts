@@ -33,9 +33,6 @@ async function main() {
     const wallet = Wallet.fromPrivateKey(PRIVATE_KEY!, provider);
     const bals = await wallet.getBalances()
 
-
-
-
     let firstAccountTx = await AccountProxyFactory.deploy(wallet, {
         configurableConstants: {
             BEACON: ACCOUNT_ADDRESSES.beacon
@@ -44,7 +41,7 @@ async function main() {
 
     const { contract: proxyAccount } = await firstAccountTx.waitForResult()
 
-    const amountToDeposit = 10_000n; // 0.00001 ETH
+    const amountToDeposit = 1_000n; // 0.000001 ETH
 
     const collateral_asset = MainnetData.ETH
 
@@ -55,7 +52,7 @@ async function main() {
     if (amountToDeposit > BigInt(refBal ?? 0)) throw new Error(`attempting to deposit ${amountToDeposit} but only has ${refBal}`)
 
 
-    const factory = new AccountFactory(ACCOUNT_ADDRESSES.factory, MockFuelProvider)
+    const factory = new AccountFactory(ACCOUNT_ADDRESSES.factory, provider)
 
     const params: Vec<ActionInput> = [
         {
